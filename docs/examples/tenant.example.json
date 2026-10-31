@@ -1,0 +1,18 @@
+{
+  "id": "example-ranch",
+  "name": "Example Ranch",
+  "plan": "rancher",
+  "billing_active": true,
+  "sharing_groups": [],
+  "ranches": [
+    {
+      "id": "home",
+      "name": "Home place",
+      "location": { "lat": 0, "lon": 0 },
+      "allotments": []
+    }
+  ],
+  "contacts": [],
+  "reporting": [],
+  "updated_at": "2026-10-31T00:00:00Z"
+}

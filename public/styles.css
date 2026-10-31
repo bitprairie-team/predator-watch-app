@@ -116,3 +116,34 @@ dialog .btn { border-color: var(--brand); background: var(--brand); color: #fff;
 }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; } }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+/* Rancher assistant (private plan) */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.rancher {
+  position: fixed; right: 1rem; top: 4.2rem; bottom: 1rem; width: min(420px, calc(100vw - 2rem)); z-index: 20;
+  background: #fff; border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 6px 24px rgba(0,0,0,.18);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.rancher[hidden] { display: none; }
+.rancher-head { display: flex; justify-content: space-between; align-items: flex-start; padding: .7rem 1rem; border-bottom: 1px solid var(--line); background: var(--panel); }
+.rancher-head h2 { margin: 0; font-size: 1.05rem; }
+.gate-tag { margin: .15rem 0 0; font-size: .75rem; font-weight: 600; color: var(--warn-ink); background: var(--warn-bg); display: inline-block; padding: .05rem .4rem; border-radius: 4px; }
+.rancher .btn-ghost { color: var(--brand); border-color: var(--line); background: #fff; }
+.rancher-body { padding: .8rem 1rem; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: .5rem; }
+.rancher-body form label { font-weight: 600; display: block; margin-bottom: .2rem; }
+.rancher-body input, .rancher-body textarea { width: 100%; font: inherit; padding: .45rem; border: 1px solid var(--line); border-radius: 6px; }
+.btn-solid { background: var(--brand); color: #fff; border-color: var(--brand); }
+.btn-small { font-size: .8rem; min-height: 28px; align-self: flex-start; }
+.chat-log { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .6rem; flex: 1; }
+.chat-log li { padding: .5rem .7rem; border-radius: 8px; white-space: pre-wrap; }
+.chat-log .me { background: #e7eef9; align-self: flex-end; max-width: 85%; }
+.chat-log .bot { background: var(--panel); border: 1px solid var(--line); }
+.chat-log .tool { font-size: .8rem; color: var(--muted); padding: 0 .2rem; }
+.chat-log .err { background: var(--err-bg); color: var(--err-ink); }
+.sources { margin: .4rem 0 0; padding-left: 1.1rem; font-size: .8rem; color: var(--muted); white-space: normal; }
+.chat-form { display: flex; flex-direction: column; gap: .4rem; }
+.chat-actions { display: flex; justify-content: flex-end; gap: .4rem; }
+#rancher-mic[aria-pressed="true"] { background: var(--err-bg); color: var(--err-ink); border-color: var(--err-ink); }
+
+/* Panel sections use the hidden attribute; keep it stronger than layout rules. */
+.rancher[hidden], .rancher [hidden] { display: none !important; }
