@@ -17,10 +17,11 @@
   // this id is not used. Before deploying, create a namespace with
   // `npx wrangler kv namespace create LAYER_CACHE` and paste its id here.
   "kv_namespaces": [
-    { "binding": "LAYER_CACHE", "id": "00000000000000000000000000000000" }
+    { "binding": "LAYER_CACHE", "id": "a923d084b1f4495e833c453b16e4275e" }
   ],
   // Refresh sources every 15 minutes. Each source also has its own minimum
   // refresh interval, so slow-changing layers are only checked when due.
+  "routes": [{ "pattern": "app.predatorwatch.org", "custom_domain": true }],
   "triggers": { "crons": ["*/15 * * * *"] },
   "vars": {
     "USER_AGENT": "predator-watch-app/0.1 (+https://github.com/steelhead99x/predator-watch-app)"
