@@ -71,6 +71,8 @@ a { color: var(--link); }
 .status { font-size: .85rem; color: var(--muted); margin: 0; }
 
 .layer-list, .item-list { list-style: none; padding: 0; margin: 0; }
+/* Hold space for the layer rows while the list loads, so the panel doesn't jump. */
+.layer-list:empty { min-height: calc(var(--rows, 3) * 118px); }
 .layer { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: .55rem .65rem; margin-bottom: .45rem; }
 .layer-row { display: flex; align-items: flex-start; gap: .55rem; }
 .layer-row input { width: 20px; height: 20px; margin: .1rem 0 0; flex: none; accent-color: var(--brand); }
