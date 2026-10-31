@@ -1,0 +1,31 @@
+/* Text pages (/about, /status). Colors match the map. */
+:root {
+  --ink: #17201b; --muted: #4a5650; --bg: #ffffff; --line: #d4d9d5; --brand: #1d3b2a; --link: #0b4f9c; --focus: #0050b3;
+  --ok-bg: #dff3e6; --ok-ink: #0d4d26; --warn-bg: #fff1cc; --warn-ink: #5c4300; --err-bg: #fde2e1; --err-ink: #8a1c17;
+  color-scheme: light dark;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--ink); background: var(--bg); line-height: 1.55;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --ink: #e6ece8; --muted: #a9b6ae; --bg: #0f1412; --line: #34413a; --link: #8cc4ff; --focus: #8cc4ff;
+    --ok-bg: #173d26; --ok-ink: #b9f0cc; --warn-bg: #4a3a0c; --warn-ink: #ffe39a; --err-bg: #4d1d1b; --err-ink: #ffc6c2; }
+}
+body { margin: 0; }
+header { background: var(--brand); color: #fff; padding: .8rem 1.2rem; display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+header a { color: #fff; font-weight: 600; }
+main { max-width: 52rem; margin: 0 auto; padding: 1rem 1.2rem 3rem; }
+a { color: var(--link); }
+a:focus-visible, button:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+h1 { font-size: 1.6rem; margin: 1rem 0 .4rem; }
+h2 { font-size: 1.15rem; margin-top: 1.8rem; }
+.muted { color: var(--muted); }
+table { border-collapse: collapse; width: 100%; font-size: .92rem; }
+th, td { text-align: left; padding: .45rem .5rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; }
+.badge { display: inline-block; padding: .1rem .45rem; border-radius: .3rem; font-size: .8rem; font-weight: 600; white-space: nowrap; }
+.ok { background: var(--ok-bg); color: var(--ok-ink); }
+.warn { background: var(--warn-bg); color: var(--warn-ink); }
+.err { background: var(--err-bg); color: var(--err-ink); }
+.table-wrap { overflow-x: auto; }
+code { font-size: .9em; }
+th .muted { font-weight: 400; }

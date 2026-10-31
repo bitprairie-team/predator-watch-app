@@ -1,0 +1,38 @@
+name: Bug or data error
+description: Something on the map is broken, wrong or out of date.
+title: "Bug: "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you saw and what you expected.
+    validations:
+      required: true
+  - type: input
+    id: link
+    attributes:
+      label: Link to the view
+      description: Copy the address bar. It keeps the map position and the layers that are on.
+  - type: input
+    id: layer
+    attributes:
+      label: Layer name
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Type of problem
+      options:
+        - Map or app bug
+        - Data looks wrong compared with the agency's own site
+        - Data is out of date / refresh failing
+        - Accessibility
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device and browser
+      placeholder: e.g. iPhone 15, Safari 18

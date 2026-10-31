@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>About and methodology · Predator Watch</title>
+  <meta name="description" content="How Predator Watch collects public agency predator data, how fresh it is, what it cannot tell you, and how to report an error.">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/page.css">
+</head>
+<body>
+  <header><a href="/">← Predator Watch map</a><a href="/status">Source status</a></header>
+  <main>
+    <h1>About Predator Watch</h1>
+    <p>Predator Watch is a free, open-source map of predator data that government agencies already publish. Today that means gray wolves. Agencies post this data in many formats on many sites. This map puts the public sources in one place and shows, on every item, who published it and how old it is.</p>
+
+    <h2 id="methodology">Methodology</h2>
+    <ul>
+      <li><strong>Public agency sources only.</strong> Each source is a dataset that a wildlife or land agency publishes for anyone to use. Sources are added only after their terms of use are checked. The <a href="https://github.com/steelhead99x/predator-watch-app/blob/main/docs/data-sources.md">data sources list</a> gives the URL, license and terms for each one.</li>
+      <li><strong>No added precision.</strong> Geometry is shown as the agency publishes it. Some agencies generalize locations into cells, pack areas or management units; the map never makes them finer. A shaded area is where the agency reports activity, not where an animal is now.</li>
+      <li><strong>One format.</strong> Each source is converted into the same GeoJSON shape, with the agency name, the agency's own observed or edited date, the date this map received it, the license and a link back to the original.</li>
+      <li><strong>Change tracking.</strong> When a source changes, the map records how many items were added, changed or removed, so you can see what moved between updates.</li>
+      <li><strong>No private data.</strong> There is no rancher data, user location tracking or user-submitted sightings in the public map. A private collaboration space is <strong>Planned</strong> and would be separate from this map.</li>
+    </ul>
+
+    <h2 id="freshness">Data freshness</h2>
+    <p>A scheduled job runs every 15 minutes. Each source has its own refresh interval, from 15 minutes for weather alerts to weekly for management boundaries that rarely change. The job asks the agency whether anything changed and only downloads data when it did. Visitors never cause a request to an agency; they are served from a cache.</p>
+    <p>Each layer shows badges:</p>
+    <ul>
+      <li><strong>Agency updated …</strong>: the date the agency says it last edited the data. Some services do not publish one, and the badge says so.</li>
+      <li><strong>Checked …</strong>: when this map last asked the agency.</li>
+      <li><strong>Refresh failing</strong> or <strong>Refresh overdue</strong>: the last checks did not succeed, or none has run on schedule. The map keeps showing the last good copy.</li>
+    </ul>
+    <p>The <a href="/status">status page</a> lists every source's last success, error and item count.</p>
+
+    <h2 id="limitations">Limitations</h2>
+    <ul>
+      <li>Coverage is only as complete as what agencies publish. No layer means no public agency data has been added for that area yet, not that no animals are there.</li>
+      <li>Agencies publish on their own schedules. Some layers are annual or older. Read the agency's notes, linked from each layer's “About this source”, before relying on it.</li>
+      <li>Collar-based data covers collared animals only.</li>
+      <li>Management units and hunt areas are regulatory boundaries, not activity.</li>
+      <li>This map is not an emergency or safety service. Contact the agency directly for anything urgent.</li>
+    </ul>
+
+    <h2 id="report">Report an error or suggest a source</h2>
+    <ul>
+      <li>Wrong or out-of-date data, or something broken: <a href="https://github.com/steelhead99x/predator-watch-app/issues/new?template=bug.yml">open a bug report</a>. Include the layer name and a link to the view (the address bar keeps it).</li>
+      <li>A public agency dataset we should add: <a href="https://github.com/steelhead99x/predator-watch-app/issues/new?template=new-source.yml">suggest a source</a>.</li>
+      <li>Errors in the data itself are best reported to the agency that published it as well; each layer links to its source.</li>
+      <li>Security issues: see <a href="https://github.com/steelhead99x/predator-watch-app/blob/main/SECURITY.md">SECURITY.md</a>.</li>
+    </ul>
+
+    <h2 id="credits">Credits</h2>
+    <p class="muted">Data from the agencies named on each layer. Basemap: <a href="https://openfreemap.org/">OpenFreeMap</a> © <a href="https://openmaptiles.org/">OpenMapTiles</a>, data © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors. Place search: <a href="https://www.census.gov/geographies/reference-files/time-series/geo/gazetteer-files.html">U.S. Census Bureau Gazetteer</a> and the <a href="https://geocoding.geo.census.gov/geocoder/">Census Bureau Geocoder</a>. This product uses the Census Bureau Data API but is not endorsed or certified by the Census Bureau. Source code: <a href="https://github.com/steelhead99x/predator-watch-app">github.com/steelhead99x/predator-watch-app</a> (Apache-2.0).</p>
+  </main>
+</body>
+</html>

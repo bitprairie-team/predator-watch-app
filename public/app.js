@@ -58,7 +58,12 @@ function badges(layer) {
   if (layer.saved_at) out.push({ cls: "warn", text: "Saved copy (offline)", title: `No connection. Showing the copy saved on this device ${fmtTime(layer.saved_at)}.` });
   if (st.state === "never") out.push({ cls: "warn", text: "Loading…", title: "Not fetched yet." });
   if (st.state === "fixture") out.push({ cls: "warn", text: "Sample data", title: "The agency could not be reached; showing a bundled sample." });
-  if (st.state === "error") out.push({ cls: "err", text: "Last check failed", title: st.error || "" });
+  if (st.failures > 1) {
+    out.push({ cls: "err", text: `Refresh failing (${st.failures} in a row)`, title: `Last error ${fmtTime(st.last_error_at)}: ${st.error || "unknown"}. Showing the last good copy.` });
+  } else if (st.state === "error" || st.failures === 1) {
+    out.push({ cls: "err", text: "Last check failed", title: st.error || "" });
+  }
+  if (st.overdue) out.push({ cls: "warn", text: "Refresh overdue", title: `Not checked since ${fmtTime(st.checked_at)}. See the status page.` });
   if (st.source_updated_at) {
     const ageDays = (Date.now() - Date.parse(st.source_updated_at)) / 864e5;
     out.push({
@@ -636,6 +641,26 @@ searchForm.addEventListener("submit", async (e) => {
     searchOut.innerHTML = `<li class="hint">Place search could not load. Check your connection.</li>`;
   }
 });
+
+// ------------------------------------------------------- first-visit hint
+// Shown once per browser. Not modal: the map stays usable behind it.
+{
+  const hint = $("#first-hint");
+  const KEY = "pw-hint-dismissed";
+  let seen = false;
+  try { seen = localStorage.getItem(KEY) === "1"; } catch {}
+  if (!seen && !initial.view) {
+    hint.hidden = false;
+    const close = () => {
+      hint.hidden = true;
+      try { localStorage.setItem(KEY, "1"); } catch {}
+      document.removeEventListener("keydown", onKey);
+    };
+    const onKey = (e) => { if (e.key === "Escape" && !hint.hidden) close(); };
+    $("#first-hint-close").addEventListener("click", () => { close(); $("#map").focus(); });
+    document.addEventListener("keydown", onKey);
+  }
+}
 
 // ------------------------------------------------------------- dark mode
 const themeBtn = $("#theme-toggle");
