@@ -1,0 +1,81 @@
+{
+ "name": "Perimeters",
+ "type": "Feature Layer",
+ "geometryType": "esriGeometryPolygon",
+ "maxRecordCount": 2000,
+ "objectIdField": "OBJECTID",
+ "editingInfo": {
+  "lastEditDate": 1793475448315,
+  "schemaLastEditDate": 1793397134434,
+  "dataLastEditDate": 1793475448315
+ },
+ "advancedQueryCapabilities": {
+  "supportsPagination": true
+ },
+ "fields": [
+  {
+   "name": "OBJECTID",
+   "type": "esriFieldTypeOID",
+   "alias": "OBJECTID",
+   "sqlType": "sqlTypeOther",
+   "nullable": false,
+   "editable": false,
+   "domain": null,
+   "defaultValue": null
+  },
+  {
+   "name": "poly_IncidentName",
+   "type": "esriFieldTypeString",
+   "alias": "poly_IncidentName",
+   "sqlType": "sqlTypeOther",
+   "length": 50,
+   "nullable": true,
+   "editable": true,
+   "domain": null,
+   "defaultValue": null
+  },
+  {
+   "name": "poly_GISAcres",
+   "type": "esriFieldTypeDouble",
+   "alias": "poly_GISAcres",
+   "sqlType": "sqlTypeOther",
+   "nullable": true,
+   "editable": true,
+   "domain": null,
+   "defaultValue": null
+  },
+  {
+   "name": "poly_DateCurrent",
+   "type": "esriFieldTypeDate",
+   "alias": "poly_DateCurrent",
+   "sqlType": "sqlTypeOther",
+   "length": 8,
+   "nullable": true,
+   "editable": true,
+   "domain": null,
+   "defaultValue": null,
+   "precision": 1
+  },
+  {
+   "name": "attr_PercentContained",
+   "type": "esriFieldTypeDouble",
+   "alias": "attr_PercentContained",
+   "sqlType": "sqlTypeOther",
+   "nullable": true,
+   "editable": true,
+   "domain": null,
+   "defaultValue": null
+  },
+  {
+   "name": "attr_UniqueFireIdentifier",
+   "type": "esriFieldTypeString",
+   "alias": "attr_UniqueFireIdentifier",
+   "sqlType": "sqlTypeOther",
+   "length": 22,
+   "nullable": true,
+   "editable": true,
+   "domain": null,
+   "defaultValue": null
+  }
+ ]
+}
