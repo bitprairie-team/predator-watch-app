@@ -128,3 +128,10 @@ a:hover { color: var(--accent-hover); }
 .proj-name { font: 600 1rem/1.2 var(--sans); margin: 0; white-space: nowrap; }
 @media (max-width: 760px) { .brand-wordmark { display: none; } }
 a.btn { display: inline-flex; align-items: center; text-decoration: none; color: var(--ink); }
+/* Touch screens: 44 px targets (after the base rules so these win). */
+@media (pointer: coarse) {
+  .proj-link { min-height: 44px; }
+  .brand-home { min-width: 44px; justify-content: center; }
+  .byline a { padding: 16px 6px; margin: -16px -6px; }
+  .credits-links a { min-width: 44px; justify-content: center; }
+}
