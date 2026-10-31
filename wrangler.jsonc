@@ -10,8 +10,8 @@
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",
-    // Let the Worker handle /api/*; everything else is a static asset.
-    "run_worker_first": ["/api/*"]
+    // Let the Worker handle /api/* and /ogc/*; everything else is a static asset.
+    "run_worker_first": ["/api/*", "/ogc", "/ogc/*"]
   },
   // Normalized GeoJSON cache. For local dev, wrangler simulates KV on disk and
   // this id is not used. Before deploying, create a namespace with
