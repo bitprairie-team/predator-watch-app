@@ -52,6 +52,13 @@ map works the same without it.
   key. See [docs/mcp.md](docs/mcp.md).
 - **Every lookup is logged** to your account's audit log, with per-account
   rate limits.
+- **Stays in its lane.** It answers about your data and general ranching
+  questions, and labels general information as such. It provides data and
+  general information, not legal, veterinary, or financial advice, and points
+  you to the right agency or professional instead. See
+  [docs/assistant-guardrails.md](docs/assistant-guardrails.md).
+- **Try it offline.** `npm run dev:mock` runs a local demo account with a test
+  model, no key needed.
 
 How it works, the safety rules, the API, and configuration are in
 [docs/rancher-assistant.md](docs/rancher-assistant.md).

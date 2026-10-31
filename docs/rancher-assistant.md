@@ -82,22 +82,27 @@ question it returns `unknown`, and features that aren't built yet come back as
 
 ## Answer rules
 
-These are enforced in code, not only in the prompt (`src/agents/citations.ts`,
-`src/rancher/prompt.ts`):
+These are enforced in code, not only in the prompt (`src/guardrails/`,
+`src/agents/citations.ts`, `src/rancher/prompt.ts`):
 
 1. **Sources on every answer.** Each tool result carries sources labeled
    `S1`, `S2`, … with title, publisher, URL, observed time, and received time.
    The model must cite them as `[S1]`. Markers that don't match a source from
    this turn are removed.
-2. **"I don't know" beats guessing.** An answer with no valid citation is
-   replaced with: "I don't know. I could not find a sourced answer to that in
-   the data I can read, so I won't guess." The only exception is an answer that
-   already starts with "I don't know".
+2. **"I don't know" beats guessing.** Sentences that state facts about the
+   data without a valid citation are dropped. If nothing sourced is left, the
+   answer becomes "I don't know…". An answer with no data claims is general
+   ranching information and is labelled "General information, not from your
+   Predator Watch data".
 3. **Neutral.** The assistant reports what the sources say. It does not take
    sides on contested topics (for example, policy on predator management).
-4. **No identities.** It never names other ranchers or says where their
+4. **No gray areas.** No legal, compensation-strategy, veterinary, financial,
+   or lethal how-to advice, no help evading rules, and no locating animals or
+   dens to harm them. It declines politely, says who can help, and offers
+   related data. See [assistant-guardrails.md](assistant-guardrails.md).
+5. **No identities.** It never names other ranchers or says where their
    records came from.
-5. **Short.** A few sentences, plain words.
+6. **Short.** A few sentences, plain words.
 
 ## Location tiers
 
@@ -126,8 +131,11 @@ comes from the credential, never from tool input.
   billing. Otherwise private routes return `402 not_entitled`. Billing is read
   from the tenant record for now; a real billing provider is Planned.
 - **Rate limits per tenant.** 60 tool calls a minute, 10 chat turns a minute,
-  20 voice sessions an hour. Over the limit returns `429`.
-- **Audit log.** Every tool call (allowed, denied, failed) is recorded with
+  300 chat turns a day, 20 voice sessions an hour. Over the limit returns `429`.
+  Each question is also capped at 5 model rounds, 6 tool calls, 800 output
+  tokens, and 45 seconds.
+- **Audit log.** Every tool call (allowed, denied, failed), every declined
+  question, every blocked answer, and every timeout is recorded with
   tenant, user, client (`web`, `web-voice`, or `mcp:<client id>`), tool, the
   validated input, the outcome, the duration, the sources returned, and the
   time. Kept for 400 days. Readable with `my_audit_log` or
@@ -143,6 +151,7 @@ All routes need `Authorization: Bearer <access key>`.
 | `GET /api/assistant/tools` | Tools this credential may use, with input schemas. |
 | `POST /api/assistant/tools/:name` | Run one tool. Body `{ "arguments": { … } }`. Returns `data`, `unknown`, `planned`, and `citations`. |
 | `POST /api/assistant/chat` | Body `{ "messages": [{ "role": "user", "content": "…" }] }` (1 to 20 messages, 4,000 characters each). Streams SSE: `status`, `tool_call`, `tool_result`, `tool_error`, `delta`, `citations`, `done`, `error`. |
+| `POST /api/assistant/voice/guard` | Policy check on a voice transcript. Body `{ "stage": "input" \| "output", "text": "…" }`. Returns `allow`, `decline` (with `say`), `block`, or `redact`. |
 | `POST /api/assistant/voice/session` | Mints a short-lived voice secret and returns the WebSocket URL, subprotocols, and the `session.update` payload (instructions, voice, tools). |
 | `GET /api/assistant/audit` | Recent audit entries for this account. |
 
@@ -171,7 +180,10 @@ Public agency layers come from the existing `LAYER_CACHE`.
 | `PRIVATE_KV` | KV binding | unset | Turns on the private plan. |
 | `OAUTH_KV` | KV binding | unset | Turns on MCP OAuth (also needs `PRIVATE_KV`). |
 | `XAI_API_KEY` | secret | unset | xAI key for chat and voice. Without it, chat and voice return `503`; tools and MCP still work. |
-| `MODEL_PROVIDER` | var | `xai` | Model provider. `xai` is the only built-in one; a mock is used in tests. |
+| `MODEL_PROVIDER` | var | `xai` | Model provider. `xai` is the only built-in one. |
+| `XAI_MOCK` | var | unset | `1` uses an offline xAI mock instead of the real API (local development and tests). Never set in production. |
+| `ASSISTANT_DEMO` | var | unset | `1` with `XAI_MOCK=1`, no `PRIVATE_KV`, and a localhost request: serves a seeded demo account (`npm run dev:mock`). |
+| `GUARD_MODEL_CLASSIFIER` | var | unset | `1` adds a model check on each question after the rule-based check. |
 | `XAI_MODEL` | var | `grok-4.7` | Text model. |
 | `XAI_VOICE_MODEL` | var | `grok-voice-latest` | Realtime voice model. |
 | `XAI_VOICE` | var | `eve` | Voice. |
@@ -193,9 +205,12 @@ Swapping providers: implement `ModelProvider` in `src/agents/providers/types.ts`
   routes, and service wiring.
 - `src/mcp/`: the MCP server and OAuth.
 - `public/rancher.js`: the web panel (text and voice).
+- `src/guardrails/`: scope policy, input classifier, output check, and
+  tool-data sanitizer.
 - Tests: `test/agents.test.ts`, `test/assistant-http.test.ts`,
-  `test/mcp-oauth.test.ts`. No test calls xAI; the provider is mocked or given
-  a fake `fetch`.
+  `test/mcp-oauth.test.ts`, and the red-team eval `test/redteam.test.ts`. No
+  test calls xAI; the real provider class talks to the offline mock in
+  `src/agents/providers/xai-mock.ts`, or the scripted `MockProvider` is used.
 
 ## Planned
 
