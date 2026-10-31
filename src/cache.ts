@@ -23,6 +23,75 @@ export interface StoredStatus extends SourceStatus {
   config_hash?: string;
   /** Most recent changes first; see src/lib/changes.ts. */
   changes?: ChangeEntry[];
+  /** Last time the agency answered with a usable result (ok or unchanged). */
+  last_success_at?: string | null;
+}
+
+/** One cron run, kept in a short log for /status. */
+export interface RunLogEntry {
+  started_at: string;
+  finished_at: string;
+  duration_ms: number;
+  requests: number;
+  sources: Record<string, { state: SourceStatus["state"] | "deferred"; feature_count?: number; ms?: number; error?: string }>;
+}
+export const RUN_LOG_KEY = "cron:runs";
+export const RUN_LOG_SIZE = 20;
+
+/** Whole-source time limit, on top of each request's own timeout. */
+export const SOURCE_TIMEOUT_MS = 90_000;
+/** Pause between sources so one run does not hit agency servers in a burst. */
+export const STAGGER_MS = 250;
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** Thrown when a source answers but the answer should not replace good data. */
+export class KeepLastGood extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "KeepLastGood";
+  }
+}
+
+/** Reject after `ms`, so a hung source cannot stall the whole run. */
+export async function withTimeout<T>(p: Promise<T>, ms: number, what: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      p,
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`${what} timed out after ${Math.round(ms / 1000)} s`)), ms);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+/**
+ * Checks a fresh result before it may replace the stored copy. A source may
+ * return zero features only when that is a normal answer for it (allowEmpty,
+ * e.g. no active warnings) or when it has never had any.
+ */
+export function validateResult(features: unknown, previousCount: number, allowEmpty: boolean): asserts features is NormalizedFeature[] {
+  if (!Array.isArray(features)) throw new KeepLastGood("Source returned an invalid result; keeping the last good copy");
+  if (features.length === 0) {
+    if (!allowEmpty && previousCount > 0) throw new KeepLastGood("Source returned no features; keeping the last good copy");
+    return;
+  }
+  const valid = features.filter((f) => {
+    const g = (f as NormalizedFeature | null)?.geometry as { type?: unknown; coordinates?: unknown; geometries?: unknown } | null | undefined;
+    return Boolean(g && typeof g.type === "string" && (Array.isArray(g.coordinates) || Array.isArray(g.geometries)));
+  }).length;
+  if (valid === 0) throw new KeepLastGood("Source returned features without usable geometry; keeping the last good copy");
+}
+
+/** Network trouble or a server error is worth one more try; bad data is not. */
+function retryable(e: unknown): boolean {
+  if (e instanceof KeepLastGood) return false;
+  const status = (e as { status?: unknown } | null)?.status;
+  if (status === null || status === undefined) return true;
+  return typeof status === "number" && (status === 429 || status >= 500);
 }
 
 /** Hash of a source config; a change forces a full re-fetch. */
@@ -70,7 +139,7 @@ export async function readStatus(kv: KVNamespace, id: string, cacheTtl?: number)
 }
 
 export function publicStatus(s: StoredStatus): SourceStatus {
-  const { source_updated_ms: _m, validator: _v, config_hash: _h, changes: _c, ...rest } = s;
+  const { source_updated_ms: _m, validator: _v, config_hash: _h, changes: _c, last_success_at: _l, ...rest } = s;
   return rest;
 }
 
@@ -96,6 +165,14 @@ export interface RefreshOptions {
   force?: boolean;
   fetchImpl?: typeof fetch;
   now?: () => Date;
+  /** Attempts per source (default 2: one retry after a backoff). */
+  attempts?: number;
+  /** Delay before the retry; doubles each attempt (default 2 s). */
+  retryDelayMs?: number;
+  /** Whole-source time limit (default SOURCE_TIMEOUT_MS). */
+  timeoutMs?: number;
+  /** Return false to skip a retry, e.g. when the request budget is low. */
+  canRetry?: () => boolean;
 }
 
 export async function refreshSource(
@@ -124,16 +201,25 @@ export async function refreshSource(
   const checkedAt = now().toISOString();
   let next: StoredStatus;
   try {
-    const result = await adapter.load(ctx);
+    const attempts = Math.max(1, opts.attempts ?? 2);
+    const delay = opts.retryDelayMs ?? 2_000;
+    let result!: Awaited<ReturnType<SourceAdapter["load"]>>;
+    for (let i = 1; ; i++) {
+      try {
+        result = await withTimeout(adapter.load(ctx), opts.timeoutMs ?? SOURCE_TIMEOUT_MS, "Source");
+        break;
+      } catch (e) {
+        if (i >= attempts || !retryable(e) || (opts.canRetry && !opts.canRetry())) throw e;
+        await sleep(delay * 2 ** (i - 1));
+      }
+    }
     const updated = result.sourceUpdatedMs;
     if (result.changed) {
       const allowEmpty = adapter.config.allowEmpty ?? adapter.config.category === "context";
-      if (result.features.length === 0 && !allowEmpty && status.feature_count > 0) {
-        throw new Error("Source returned no features; keeping the last good copy");
-      }
+      validateResult(result.features, status.state === "fixture" ? 0 : status.feature_count, allowEmpty);
       const body = JSON.stringify(result.features);
       if (body.length > MAX_STORED_BYTES) {
-        throw new Error(`Source is too large to cache (${Math.round(body.length / 1048576)} MB); raise maxAllowableOffset or lower maxFeatures`);
+        throw new KeepLastGood(`Source is too large to cache (${Math.round(body.length / 1048576)} MB); raise maxAllowableOffset or lower maxFeatures`);
       }
       // Only diff real agency copies, not the bundled sample.
       const prev = status.state === "fixture" || configChanged ? null : await readData(kv, id);
@@ -149,6 +235,7 @@ export async function refreshSource(
         feature_count: result.features.length,
         validator: result.validator,
         attempted_at: checkedAt,
+        last_success_at: checkedAt,
         failures: 0,
       };
     } else {
@@ -160,6 +247,7 @@ export async function refreshSource(
         source_updated_at: updated ? new Date(updated).toISOString() : status.source_updated_at,
         validator: result.validator ?? status.validator,
         attempted_at: checkedAt,
+        last_success_at: checkedAt,
         failures: 0,
       };
     }
@@ -174,6 +262,7 @@ export async function refreshSource(
       last_error_at: checkedAt,
       failures: (status.failures ?? 0) + 1,
     };
+    // The stored data is left as it was: the last good copy keeps serving.
     if (status.feature_count === 0 || status.state === "fixture") {
       const fx = await loadFixture(adapter, now);
       if (fx) {
@@ -200,25 +289,28 @@ async function loadFixture(adapter: SourceAdapter, now: () => Date): Promise<Nor
 }
 
 /**
- * Refresh every source that is due, most overdue first. Workers cap the
- * number of outbound requests per invocation (50 on the free plan), so stop
- * starting new sources once the request budget is nearly used; the rest are
- * picked up by the next run.
+ * Refresh every source that is due, most overdue first, one at a time with a
+ * short pause between sources. Workers cap the number of outbound requests per
+ * invocation (50 on the free plan), so stop starting new sources, and stop
+ * retrying, once the request budget is nearly used; the rest are picked up by
+ * the next run. Each run is added to a short log in KV for /status.
  */
 export async function refreshDue(
   registry: Registry,
   env: Env,
-  opts: RefreshOptions & { requestBudget?: number } = {},
+  opts: RefreshOptions & { requestBudget?: number; staggerMs?: number } = {},
 ) {
   const budget = opts.requestBudget ?? 45;
   const base = opts.fetchImpl ?? fetch;
+  const clock = opts.now ?? (() => new Date());
+  const startedAt = clock();
   let used = 0;
   const counted = ((input: RequestInfo | URL, init?: RequestInit) => {
     used++;
     return base(input, init);
   }) as typeof fetch;
 
-  const now = (opts.now ?? (() => new Date()))().getTime();
+  const now = startedAt.getTime();
   const statuses = await Promise.all(
     registry.all().map(async (a) => ({ a, s: await readStatus(env.LAYER_CACHE, a.config.id) })),
   );
@@ -227,15 +319,55 @@ export async function refreshDue(
   statuses.sort((x, y) => overdue(y) - overdue(x));
 
   const results: Record<string, SourceStatus["state"] | "deferred"> = {};
-  for (const { a } of statuses) {
+  const log: RunLogEntry["sources"] = {};
+  const stagger = opts.staggerMs ?? STAGGER_MS;
+  for (const { a, s } of statuses) {
+    const id = a.config.id;
     // Leave headroom: one source can take several requests (metadata + pages + retries).
     if (used >= budget - 4) {
-      results[a.config.id] = "deferred";
+      results[id] = "deferred";
+      log[id] = { state: "deferred" };
       continue;
     }
-    results[a.config.id] = (await refreshSource(a, env, { ...opts, fetchImpl: counted })).state;
+    const before = used;
+    const t0 = Date.now();
+    const next = await refreshSource(a, env, { ...opts, fetchImpl: counted, canRetry: () => used < budget - 8 });
+    results[id] = next.state;
+    // Sources that were not due make no requests and are not logged.
+    if (used > before || next.attempted_at !== s.attempted_at) {
+      log[id] = {
+        state: next.state,
+        feature_count: next.feature_count,
+        ms: Date.now() - t0,
+        ...(next.error && next.attempted_at === next.last_error_at ? { error: next.error } : {}),
+      };
+      if (stagger > 0) await sleep(stagger);
+    }
   }
+  const finished = clock();
+  await appendRunLog(env.LAYER_CACHE, {
+    started_at: startedAt.toISOString(),
+    finished_at: finished.toISOString(),
+    duration_ms: finished.getTime() - startedAt.getTime(),
+    requests: used,
+    sources: log,
+  });
   return results;
+}
+
+/** Add a run to the front of the log, keeping the last RUN_LOG_SIZE runs. */
+export async function appendRunLog(kv: KVNamespace, entry: RunLogEntry): Promise<RunLogEntry[]> {
+  const prev = (await kv.get<RunLogEntry[]>(RUN_LOG_KEY, "json")) ?? [];
+  const next = [entry, ...prev].slice(0, RUN_LOG_SIZE);
+  await kv.put(RUN_LOG_KEY, JSON.stringify(next));
+  return next;
+}
+
+export async function readRunLog(kv: KVNamespace, cacheTtl?: number): Promise<RunLogEntry[]> {
+  const v = cacheTtl
+    ? await kv.get<RunLogEntry[]>(RUN_LOG_KEY, { type: "json", cacheTtl })
+    : await kv.get<RunLogEntry[]>(RUN_LOG_KEY, "json");
+  return Array.isArray(v) ? v : [];
 }
 
 /**

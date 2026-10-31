@@ -6,10 +6,10 @@ import { EXPORT_TYPES, toCsv, toKml, type ExportFormat } from "./api/export";
 import { GEOCODER_ATTRIBUTION, geocode, looksLikeAddress, normalizeQuery } from "./api/geocode";
 import { BadRequest, collectionInfo, CONFORMANCE, items, landing } from "./api/ogc";
 import { json, problem, respond } from "./api/respond";
-import { collection, PUBLIC_KV_TTL, publicStatus, readStatus, refreshDue, type Env } from "./cache";
+import { collection, PUBLIC_KV_TTL, publicStatus, readRunLog, readStatus, refreshDue, type Env } from "./cache";
 import { cached } from "./lib/edge";
 import { allow, clientKey, type LimitClass } from "./lib/ratelimit";
-import { RASTER_LAYERS } from "./config/sources";
+import { BASEMAP_CREDITS, RASTER_LAYERS } from "./config/sources";
 import { PLANNED, PLANNED_SOURCES } from "./config/planned";
 import { publicInfo, Registry } from "./registry";
 
@@ -40,7 +40,7 @@ export async function layersIndex(env: Env) {
     }),
   );
   const raster = RASTER_LAYERS.map((r) => ({ ...r, type: "raster" as const, status: { state: "live-service" } }));
-  return { layers: [...vector, ...raster], planned: PLANNED, planned_sources: PLANNED_SOURCES };
+  return { layers: [...vector, ...raster], basemap: BASEMAP_CREDITS, planned: PLANNED, planned_sources: PLANNED_SOURCES };
 }
 
 export async function statusReport(env: Env) {
@@ -53,7 +53,7 @@ export async function statusReport(env: Env) {
         name: a.config.name,
         agency: a.config.agency,
         state: s.state,
-        last_success_at: s.checked_at,
+        last_success_at: s.last_success_at ?? s.checked_at,
         last_change_at: s.received_at,
         last_attempt_at: s.attempted_at ?? s.checked_at,
         failures_in_a_row: s.failures ?? 0,
@@ -65,9 +65,19 @@ export async function statusReport(env: Env) {
       };
     }),
   );
-  const cron = await env.LAYER_CACHE.get<{ at: string; results: Record<string, string> }>(CRON_KEY, { type: "json", cacheTtl: PUBLIC_KV_TTL });
+  const [cron, runs] = await Promise.all([
+    env.LAYER_CACHE.get<{ at: string; results: Record<string, string> }>(CRON_KEY, { type: "json", cacheTtl: PUBLIC_KV_TTL }),
+    readRunLog(env.LAYER_CACHE, PUBLIC_KV_TTL),
+  ]);
   const healthy = sources.filter((s) => (s.state === "ok" || s.state === "unchanged") && !s.overdue).length;
-  return { generated_at: new Date(now).toISOString(), last_cron_run: cron?.at ?? null, healthy, total: sources.length, sources };
+  return {
+    generated_at: new Date(now).toISOString(),
+    last_cron_run: runs[0]?.finished_at ?? cron?.at ?? null,
+    healthy,
+    total: sources.length,
+    sources,
+    runs,
+  };
 }
 
 async function changesFor(env: Env, id: string) {
