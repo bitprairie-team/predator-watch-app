@@ -6,7 +6,7 @@ import { BadRequest, collectionInfo, CONFORMANCE, items, landing } from "./api/o
 import { json, problem, respond } from "./api/respond";
 import { collection, publicStatus, readStatus, refreshDue, type Env } from "./cache";
 import { RASTER_LAYERS } from "./config/sources";
-import { PLANNED } from "./config/planned";
+import { PLANNED, PLANNED_SOURCES } from "./config/planned";
 import { publicInfo, Registry } from "./registry";
 
 const registry = new Registry();
@@ -32,7 +32,7 @@ export async function layersIndex(env: Env) {
     }),
   );
   const raster = RASTER_LAYERS.map((r) => ({ ...r, type: "raster" as const, status: { state: "live-service" } }));
-  return { layers: [...vector, ...raster], planned: PLANNED };
+  return { layers: [...vector, ...raster], planned: PLANNED, planned_sources: PLANNED_SOURCES };
 }
 
 function warm(env: Env, ctx: ExecutionContext) {

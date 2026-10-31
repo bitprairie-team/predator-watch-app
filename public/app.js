@@ -137,6 +137,20 @@ function addVector(layer) {
 }
 
 function addRaster(layer) {
+  const before = map.getLayer(firstVectorLayerId()) ? firstVectorLayerId() : firstSymbolLayer();
+  if (layer.vector) {
+    // Agency vector tiles drawn as a light fill with an outline.
+    map.addSource(layer.id, {
+      type: "vector", tiles: layer.tiles, minzoom: 0, maxzoom: layer.maxzoom ?? 14, attribution: esc(layer.attribution),
+    });
+    map.addLayer({
+      id: `${layer.id}-raster`, type: "fill", source: layer.id, "source-layer": layer.vector.source_layer,
+      minzoom: layer.minzoom ?? 0,
+      layout: { visibility: layer.visible ? "visible" : "none" },
+      paint: { "fill-color": layer.color, "fill-opacity": layer.vector.fill_opacity, "fill-outline-color": layer.vector.outline },
+    }, before);
+    return;
+  }
   map.addSource(layer.id, {
     type: "raster", tiles: layer.tiles, tileSize: layer.tileSize,
     minzoom: layer.minzoom ?? 0, maxzoom: layer.maxzoom ?? 22, attribution: esc(layer.attribution),
