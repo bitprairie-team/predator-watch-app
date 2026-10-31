@@ -12,3 +12,4 @@ coverage/
 .DS_Store
 # vendored at install time from node_modules
 public/vendor/
+redteam-report.json
