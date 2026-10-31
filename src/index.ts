@@ -124,8 +124,10 @@ export async function handleRequest(request: Request, env: Env, ctx: ExecutionCo
     if (path === "/ogc") return json(request, landing(base), { maxAge: 3600 });
     if (path === "/ogc/conformance") return json(request, { conformsTo: CONFORMANCE }, { maxAge: 3600 });
     if (path === "/ogc/collections") {
-      const collections = registry.all().map((a) =>
-        collectionInfo(base, { metadata: { ...publicStatus({ ...emptyish(a.config.id) }), source: publicInfo(a) } }),
+      const collections = await Promise.all(
+        registry.all().map(async (a) =>
+          collectionInfo(base, { metadata: { ...publicStatus(await readStatus(env.LAYER_CACHE, a.config.id)), source: publicInfo(a) } }),
+        ),
       );
       return json(request, { collections, links: [{ href: `${base}/ogc/collections`, rel: "self", type: "application/json" }] }, { maxAge: 300 });
     }
@@ -154,19 +156,6 @@ export async function handleRequest(request: Request, env: Env, ctx: ExecutionCo
 
   if (env.ASSETS) return env.ASSETS.fetch(request);
   return new Response("Not found", { status: 404 });
-}
-
-function emptyish(id: string) {
-  return {
-    source_id: id,
-    state: "never" as const,
-    checked_at: null,
-    received_at: null,
-    source_updated_at: null,
-    source_updated_ms: null,
-    feature_count: 0,
-    validator: null,
-  };
 }
 
 export default {
