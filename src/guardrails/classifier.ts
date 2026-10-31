@@ -59,6 +59,7 @@ const RULES: Rule[] = [
   { id: "eva.around", category: "evasion", test: re(/\b(get(ting)? away with|get(ting)? around (the )?(rules?|law|regulations?|reporting)|evad(e|ing)|circumvent|loophole|under the radar|off the books|cover(ing)? (it |this |that )?up|hide (the |a )?(carcass|body|evidence|kill|collar))\b/) },
   { id: "eva.caught", category: "evasion", test: re(/\b(without|avoid|so (that )?)\b.{0,25}\b(getting caught|being caught|anyone (knowing|finding out)|the (game )?warden|wardens|(agency|state|feds|officers?|fish and game|enforcement) (finding out|knowing|noticing|seeing))\b/) },
   { id: "eva.noreport", category: "evasion", test: re(/\b(how (do|can) i|ways? to|is there a way to)\b.{0,20}\b(not|avoid|skip|get out of) report/) },
+  { id: "eva.fraud", category: "evasion", test: re(/\b(inflate|exaggerate|pad|overstate|fake|fabricate|falsify|make up)\b.{0,30}\b(claims?|loss(es)?|reports?|numbers|count|evidence|kill)\b|\breport (more|extra)\b.{0,40}\bthan (i|we) (can prove|lost|actually)\b|\b(stage|fake) a (kill|depredation)\b/) },
   { id: "eva.collar", category: "evasion", test: re(/\b(remove|destroy|disable|cut off|jam|block)\b.{0,20}\b(collar|transmitter|tracking)\b/) },
 
   // ---------------------------------------------------------------- locating animals
@@ -94,6 +95,7 @@ const RULES: Rule[] = [
   { id: "pii.who", category: "personal_data", test: (t) => /\b(who|which (rancher|neighbou?r|ranch|person|user|member|account|family))\b.{0,40}\b(reported|shared|submitted|posted|lost|saw|logged|contributed|made (the|that|this) report|is reporting)\b/.test(t) && !/\bwho (do|should|can|would|will) (i|we)\b/.test(t) && !/\b(agency|agencies|layer|publisher|published|source|service)\b/.test(t) },
   { id: "pii.contact", category: "personal_data", test: re(/\b(name|names|phone|number|email|address|contact info|identity|identities|location)\b.{0,30}\b(of|for)\b.{0,20}\b(the |that |this |other |another |my )?(rancher|ranchers|neighbou?rs?|person|owner|reporter|member|user|other ranch(es)?)\b/) },
   { id: "pii.others", category: "personal_data", test: re(/\b(neighbou?r'?s|neighbou?rs'|other ranchers?'?s?|another rancher'?s|other (people|users|members|accounts)'?s?|someone else'?s)\b.{0,30}\b(records?|data|loss(es)?|reports?|location|ranch|address|name|sightings?|notes|herd|account)\b/) },
+  { id: "pii.origin", category: "personal_data", test: re(/\b(where|which ranch|whose ranch)\b.{0,20}\b(did|does|do)\b.{0,20}\b(shared|other ranchers'?|neighbou?rs'?)\b.{0,10}\breports?\b.{0,15}\b(come from|originate|get (reported|submitted))\b/) },
   { id: "pii.owner", category: "personal_data", test: re(/\bwho (owns|lives (at|on)|runs)\b/) },
 
   // ---------------------------------------------------------------- lethal methods
@@ -102,6 +104,7 @@ const RULES: Rule[] = [
   // ---------------------------------------------------------------- legal
   { id: "leg.isit", category: "legal", test: re(/\b(is it|it's|it is|would it be|is that|was it|was that|am i|are we)\b.{0,30}\b(legal|illegal|lawful|unlawful|against the law|allowed to|permitted to|breaking the law|in trouble|liable)\b/) },
   { id: "leg.cani", category: "legal", test: re(new RegExp(String.raw`\b(can|may|could|am i allowed to|is anyone allowed to|are ranchers allowed to)\b.{0,10}\b(i|we|ranchers|a rancher|you)?\b.{0,10}\b(legally )?(shoot|kill|trap|take|poison|hunt|remove|harass)\b.{0,20}\b${PREDATOR}`)) },
+  { id: "leg.canit", category: "legal", test: re(/\b(can|may|could) (i|we) (legally |lawfully )?(shoot|kill|trap|poison|take|hunt|harass|haze) (it|them|one|that one|this one|that thing)\b/) },
   { id: "leg.legally", category: "legal", test: re(/\b(legally|legality|legal right|right to (shoot|kill|defend)|legal advice|legal options?)\b/) },
   { id: "leg.law", category: "legal", test: re(/\b(lawyer|attorney|lawsuit|sue (the|them|him|her|my|a|an)|suing|litigation|court|liab(le|ility)|statutes?|endangered species act|\besa\b|section \d+|federal law|state law|the law say|regulations? (say|mean|allow|require)|interpret\w*.{0,20}(rule|regulation|law)|penalt(y|ies)|fined|prosecut\w*|ticketed|cited for)\b/) },
   { id: "leg.permit", category: "legal", test: re(/\b(kill|lethal|depredation|take|hunting|trapping) (permit|permits|tag|tags|license)\b/) },
@@ -118,7 +121,8 @@ const RULES: Rule[] = [
 
   // ---------------------------------------------------------------- veterinary
   { id: "vet.drug", category: "veterinary", test: re(/\b(dose|doses|dosage|dosing|mg\/kg|ml\/kg|cc'?s?|\d+\s?(mg|ml|cc)|antibiotics?|penicillin|oxytetracycline|la-?200|banamine|flunixin|ivermectin|meloxicam|sedat\w*|tranquiliz\w*|anesthe\w*|lidocaine|prescri\w*|medicat\w*|drugs?|what (shot|medicine) (should|do|can) i give|what (should|can|do) i give (her|him|it|them|my|the))\b/) },
-  { id: "vet.treat", category: "veterinary", test: re(/\b(diagnos\w*|treat(ing|ment)?|stitch(es)?|sutur\w*|clean (the|a|her|his|its) wound|wound care|euthani[sz]\w*|put (her|him|it) down|infect(ed|ion)|abscess)\b.{0,40}\b(calf|calves|cow|cows|ewe|ewes|lamb|lambs|sheep|goat|horse|dog|heifer|steer|bull|animal|wound|bite|injur\w*)\b|\b(is (she|he|it) going to (live|die|make it)|will (she|he|it) (live|survive)|put (her|him|it) down)\b/) },
+  { id: "vet.treat", category: "veterinary", test: re(/\b(diagnos\w*|treat(ing|ment)?|stitch(es)?|sutur\w*|clean (the|a|her|his|its) wound|wound care|euthani[sz]\w*|put (her|him|it) down|infect(ed|ion)|abscess)\b.{0,40}\b(calf|calves|cow|cows|ewe|ewes|lamb|lambs|sheep|goat|horse|dog|heifer|steer|bull|animal|wound|bite|injur\w*)\b|\b(is (she|he|it) going to (live|die|make it)|will (she|he|it) (live|survive)|put (her|him|it|them) down|put down (the|my|a|this|that) \w+|put (the|my|a|this|that) \w+ down)\b/) },
+  { id: "vet.infected", category: "veterinary", test: re(/\b(is|could|might) (it|she|he|the (wound|bite|leg|cut)) (be )?(infected|broken|fractured|septic|abscessed)\b|\bwhat (antibiotic|medicine|medication|drug)\b/) },
   { id: "vet.sick", category: "veterinary", test: re(/\b(what'?s wrong with|is (my|the|this) (cow|calf|ewe|lamb|sheep|horse|dog|heifer|steer|bull|goat) (sick|dying|ok|okay|injured|going to)|why is (my|the) (cow|calf|ewe|lamb|sheep|horse|dog|heifer|steer|bull|goat) (limping|bleeding|not eating|down))\b/) },
 
   // ---------------------------------------------------------------- financial
