@@ -11,6 +11,32 @@ function stateBadge(s) {
   return `<span class="badge ok">OK</span>`;
 }
 
+const RUN_STATE = { ok: "updated", unchanged: "no change", error: "failed, kept last good", fixture: "failed, sample shown", never: "not loaded", deferred: "deferred" };
+const secs = (ms) => (ms >= 1000 ? `${(ms / 1000).toFixed(1)} s` : `${ms} ms`);
+
+function renderRuns(runs, names) {
+  const body = document.getElementById("runs");
+  if (!runs.length) {
+    body.innerHTML = `<tr><td colspan="4" class="muted">No runs recorded yet.</td></tr>`;
+    return;
+  }
+  body.innerHTML = runs.map((run) => {
+    const items = Object.entries(run.sources ?? {});
+    const checked = items.filter(([, x]) => x.state !== "deferred");
+    const deferred = items.length - checked.length;
+    const list = checked.map(([id, x]) => {
+      const bad = x.state === "error" || x.state === "fixture";
+      return `<li><span class="badge ${bad ? "err" : "ok"}">${esc(RUN_STATE[x.state] ?? x.state)}</span> ${esc(names.get(id) ?? id)}${x.feature_count != null ? ` <span class="muted">· ${esc(x.feature_count)} items</span>` : ""}${x.error ? `<br><span class="muted">${esc(x.error)}</span>` : ""}</li>`;
+    }).join("");
+    return `<tr>
+      <th scope="row">${esc(when(run.finished_at))}</th>
+      <td>${esc(secs(run.duration_ms ?? 0))}</td>
+      <td>${esc(run.requests ?? 0)}</td>
+      <td>${checked.length ? `<ul class="run-list">${list}</ul>` : `<span class="muted">none due</span>`}${deferred ? `<span class="muted">${deferred} deferred to the next run</span>` : ""}</td>
+    </tr>`;
+  }).join("");
+}
+
 async function load() {
   const summary = document.getElementById("summary");
   try {
@@ -24,11 +50,13 @@ async function load() {
           <th scope="row">${esc(s.name)}<br><span class="muted">${esc(s.agency)} · checked ${esc(every(s.refresh_minutes))}</span></th>
           <td>${stateBadge(s)}</td>
           <td>${esc(when(s.last_success_at))}${s.last_change_at ? `<br><span class="muted">changed ${esc(when(s.last_change_at))}</span>` : ""}</td>
+          <td>${esc(when(s.last_attempt_at))}</td>
           <td>${esc(s.feature_count ?? "–")}</td>
           <td>${s.last_error ? `${esc(when(s.last_error_at))}<br><span class="muted">${esc(s.last_error)}</span>` : "none"}</td>
         </tr>`,
       )
       .join("");
+    renderRuns(r.runs ?? [], new Map(r.sources.map((s) => [s.id, s.name])));
   } catch (e) {
     summary.textContent = `Status could not load (${e.message}). Try again in a minute.`;
   }

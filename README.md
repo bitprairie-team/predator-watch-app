@@ -39,9 +39,10 @@ sent to the U.S. Census Bureau Geocoder. A private collaboration space is
 
 ## Features
 
-- Wolf activity, wolf management areas and context layers (wildfire
-  perimeters, weather alerts, land ownership, grazing allotments, protected
-  areas, counties, tribal lands, terrain, water, land cover).
+- Wolf activity and wolf management areas (on by default), bear ranges (off
+  by default) and context layers (wildfire perimeters, weather alerts, who
+  manages the land, grazing allotments, protected areas, counties, tribal
+  lands, terrain, water, land cover), each in one fixed color.
 - Freshness badges, a details panel for every item and a "Recent changes" feed.
 - Place search, shareable links that keep the view and layers, a dark map,
   and an offline copy of the last data you loaded.
@@ -68,7 +69,8 @@ Live means the map reads it today. Full details, endpoints and terms:
 | Wolf management zones | Wisconsin Department of Natural Resources | ArcGIS | Weekly | Live |
 | Wildfire perimeters (current) | National Interagency Fire Center | ArcGIS | 15 min | Live |
 | Weather watches, warnings and advisories | National Weather Service | ArcGIS | 15 min | Live |
-| Land ownership, grazing allotments, PAD-US, counties, tribal lands, terrain, water, land cover | BLM, USDA Forest Service, USGS, U.S. Census Bureau, MRLC | Agency map services, drawn live | n/a | Live |
+| Grizzly and black bear ranges (off by default) | State wildlife agencies | ArcGIS | Weekly | Live |
+| Who manages the land, grazing allotments, PAD-US, counties, tribal lands, terrain, water, land cover | BLM, USDA Forest Service, USGS, U.S. Census Bureau, MRLC | Agency map services, drawn live | n/a | Live |
 | Agency wolf activity maps published only as PDF or images, token-only services, and agencies with no public layer yet | Several state and federal agencies | – | – | Planned |
 
 Know a public agency dataset that belongs here?
@@ -96,8 +98,12 @@ flowchart LR
   change detection through `editingInfo.lastEditDate`, timeouts, retries,
   per-host spacing) and a GeoJSON adapter (ETag / Last-Modified).
 - `src/config/sources.ts`: every source, validated by `src/registry.ts`.
-- `src/cache.ts`: refreshes due sources, keeps the last good copy when an
-  agency is down, records failures, and tracks what changed.
+- `src/cache.ts`: refreshes due sources one at a time within the request
+  budget, with a per-source time limit and one retry with backoff. It keeps
+  the last good copy when an agency is down, times out, or returns an empty or
+  invalid answer (zero is accepted only from sources where zero is normal),
+  records last success, last attempt, error and item count per source, keeps
+  a log of the last 20 runs for `/status`, and tracks what changed.
 - `src/index.ts`: the Worker. Public routes read KV only and go through the
   Cache API; the cron is the only code that calls agencies.
 
@@ -111,7 +117,7 @@ code:
   type: "arcgis",
   id: "agency-wolf-units",
   name: "Wolf management units",
-  category: "wolf-management",          // wolf-activity | wolf-management | context
+  category: "wolf-management",          // wolf-activity | wolf-management | bear | context
   species: "Gray wolf",
   agency: "Example Department of Fish and Wildlife",
   url: "https://services.arcgis.com/.../FeatureServer/0",
@@ -144,8 +150,8 @@ Requires Node.js 20 or newer.
 npm i                  # installs dependencies and copies MapLibre into public/vendor
 npm test               # vitest suite (recorded fixtures, no network)
 npm run typecheck      # TypeScript
-npx wrangler dev       # http://127.0.0.1:8787
-curl "http://127.0.0.1:8787/cdn-cgi/local/scheduled"   # run the refresh job once
+npx wrangler dev --test-scheduled   # http://127.0.0.1:8787
+npm run refresh        # run the refresh job once on the local dev server and print the result
 npm run loadtest       # autocannon against wrangler dev; see docs/loadtest.md
 ```
 
