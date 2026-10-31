@@ -56,7 +56,9 @@ function badges(layer) {
     return out;
   }
   if (layer.saved_at) out.push({ cls: "warn", text: "Saved copy (offline)", title: `No connection. Showing the copy saved on this device ${fmtTime(layer.saved_at)}.` });
-  if (st.state === "never") out.push({ cls: "warn", text: "Loading…", title: "Not fetched yet." });
+  if (layer.loaded === "loading") out.push({ cls: "old", text: "Loading…", title: "Downloading this layer from the map's cache." });
+  if (layer.loaded === false && layer.loadError) out.push({ cls: "err", text: "Could not load", title: `This browser could not download the layer (${layer.loadError}). Check the connection and retry.` });
+  if (st.state === "never") out.push({ cls: "warn", text: "Waiting for first check", title: "The scheduled job has not fetched this source yet." });
   if (st.state === "fixture") out.push({ cls: "warn", text: "Sample data", title: "The agency could not be reached; showing a bundled sample." });
   if (st.failures > 1) {
     out.push({ cls: "err", text: `Refresh failing (${st.failures} in a row)`, title: `Last error ${fmtTime(st.last_error_at)}: ${st.error || "unknown"}. Showing the last good copy.` });
@@ -243,6 +245,8 @@ async function fetchWithTimeout(url, ms) {
 
 async function loadVector(layer) {
   layer.loaded = "loading";
+  layer.loadError = null;
+  renderLayerRow(layer);
   try {
     const res = await fetchWithTimeout(layer.data_url, 25000);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -255,7 +259,7 @@ async function loadVector(layer) {
     else addVector(layer);
   } catch (e) {
     layer.loaded = false;
-    layer.status = { ...(layer.status || {}), state: "error", error: String(e.message || e) };
+    layer.loadError = String(e.message || e);
   }
   renderLayerRow(layer);
   updateItems();
@@ -270,6 +274,12 @@ function renderLayerRow(layer) {
   const infoUrl = safeUrl(layer.info_url);
   const endpoint = safeUrl(layer.url || layer.legend_url);
   const count = layer.status?.feature_count;
+  // Re-rendering replaces the row; keep focus and the open "About" panel.
+  const focusSel = li.contains(document.activeElement)
+    ? (document.activeElement.matches("input") ? "input" : document.activeElement.matches("summary") ? "summary" : document.activeElement.matches(".retry") ? ".retry, input" : null)
+    : null;
+  const wasOpen = li.querySelector("details")?.open;
+  const nm = esc(layer.name);
   li.innerHTML = `
     <div class="layer-row">
       <input type="checkbox" id="${inputId}" ${layer.visible ? "checked" : ""} aria-describedby="badges-${layer.id}">
@@ -281,9 +291,10 @@ function renderLayerRow(layer) {
     </div>
     <div class="badges" id="badges-${layer.id}">
       ${badges(layer).map((b) => `<span class="badge ${b.cls}" title="${esc(b.title)}">${esc(b.text)}</span>`).join("")}
+      ${layer.loaded === false && layer.loadError ? `<button type="button" class="btn btn-small retry">Retry<span class="sr-only"> loading ${nm}</span></button>` : ""}
     </div>
-    <details>
-      <summary>About this source</summary>
+    <details${wasOpen ? " open" : ""}>
+      <summary>About this source<span class="sr-only">: ${nm}</span></summary>
       <dl>
         <dt>Publisher</dt><dd>${esc(layer.attribution)}</dd>
         <dt>Updates</dt><dd>${esc(layer.cadence)}</dd>
@@ -294,14 +305,16 @@ function renderLayerRow(layer) {
         ${infoUrl ? `<dt>Agency page</dt><dd><a href="${esc(infoUrl)}" target="_blank" rel="noopener">Open<span class="sr-only"> (new tab)</span></a></dd>` : ""}
         ${endpoint ? `<dt>Endpoint</dt><dd><a href="${esc(endpoint)}" target="_blank" rel="noopener">Service</a></dd>` : ""}
         ${layer.type === "geojson" ? `<dt>Download</dt><dd class="exports">
-          <a href="${esc(layer.data_url)}.geojson" download>GeoJSON</a>
-          <a href="${esc(layer.data_url)}.kml" download>KML</a>
-          <a href="${esc(layer.data_url)}.csv" download>CSV</a>
-          <a href="/ogc/collections/${esc(layer.id)}/items" target="_blank" rel="noopener">OGC API</a></dd>` : ""}
+          <a href="${esc(layer.data_url)}.geojson" download>GeoJSON<span class="sr-only"> for ${nm}</span></a>
+          <a href="${esc(layer.data_url)}.kml" download>KML<span class="sr-only"> for ${nm}</span></a>
+          <a href="${esc(layer.data_url)}.csv" download>CSV<span class="sr-only"> for ${nm}</span></a>
+          <a href="/ogc/collections/${esc(layer.id)}/items" target="_blank" rel="noopener">OGC API<span class="sr-only"> for ${nm} (new tab)</span></a></dd>` : ""}
         ${layer.type === "geojson" ? `<dt>Recent changes</dt><dd>${changesHtml(changesBySource.get(layer.id), 3)}</dd>` : ""}
       </dl>
     </details>`;
   li.querySelector("input").addEventListener("change", (e) => setVisible(layer, e.target.checked));
+  li.querySelector(".retry")?.addEventListener("click", () => loadVector(layer));
+  if (focusSel) li.querySelector(focusSel)?.focus();
 }
 
 function renderPanel(all) {

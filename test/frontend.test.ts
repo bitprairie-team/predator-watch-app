@@ -52,4 +52,11 @@ describe("front end", () => {
     expect(html).toMatch(/id="first-hint"[^>]*aria-labelledby="first-hint-title"[^>]*hidden/);
     expect(html).toContain('id="first-hint-close"');
   });
+  it("keeps layer rows usable with a screen reader and after a failed download", () => {
+    const app = readFileSync("public/app.js", "utf8").toString();
+    expect(app).toMatch(/About this source<span class="sr-only">: \$\{nm\}/);
+    expect(app).toMatch(/GeoJSON<span class="sr-only"> for \$\{nm\}/);
+    expect(app).toMatch(/class="btn btn-small retry">Retry/);
+    expect(app).toMatch(/if \(focusSel\) li\.querySelector\(focusSel\)\?\.focus\(\)/);
+  });
 });
