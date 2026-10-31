@@ -86,8 +86,9 @@
     </div>
 
     <div id="rancher-signin" class="rancher-body">
-      <p>Ask about wolf activity near your ranch and allotments, fire and weather alerts, who to call and how to report, and how fresh the data is. You can type or talk.</p>
-      <p>Every answer lists its sources with when each fact was observed and when we received it. If the data doesn't cover your question, the assistant says it doesn't know.</p>
+      <p>Ask about wolf activity near your ranch and allotments, fire and weather alerts, who to call and how to report, how fresh the data is, and general ranching and livestock-protection questions. You can type or talk. Answers come from our intelligence and realtime systems working over your data.</p>
+      <p>Every answer about your data lists its sources with when each fact was observed and when we received it. If the data doesn't cover your question, the assistant says it doesn't know. General information is labelled as general.</p>
+      <p class="disclaimer assistant-disclaimer">The assistant provides data and general information, not legal, veterinary, or financial advice. For those, contact your state wildlife agency, a licensed veterinarian, or an attorney or other licensed professional. In an emergency, call 911.</p>
       <form id="rancher-key-form">
         <label for="rancher-key">Rancher access key</label>
         <input id="rancher-key" type="password" autocomplete="off" spellcheck="false" required>
@@ -109,6 +110,7 @@
         </div>
       </form>
       <p id="rancher-voice-status" class="hint" role="status" aria-live="polite"></p>
+      <p id="rancher-disclaimer" class="disclaimer assistant-disclaimer">Provides data and general information, not legal, veterinary, or financial advice. It won't help locate individual animals or dens, or identify other ranchers. In an emergency, call 911 or the agency contact on file.</p>
       <button type="button" id="rancher-signout" class="btn btn-ghost btn-small">Sign out</button>
     </div>
   </section>
