@@ -17,6 +17,12 @@ export interface BaseSourceConfig {
   refreshMinutes: number;
   precision: Precision;
   notes?: string;
+  /**
+   * Whether an empty result is a valid update. Defaults to true for context
+   * layers (no active fires is normal) and false otherwise, so a wolf layer
+   * that briefly comes back empty during an agency outage keeps its last copy.
+   */
+  allowEmpty?: boolean;
   style: LayerStyle;
 }
 
