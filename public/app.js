@@ -110,16 +110,17 @@ function writeHash() {
 }
 
 // ----------------------------------------------------------------- theme
-const THEME_KEY = "pw-theme";
-const prefersDark = matchMedia("(prefers-color-scheme: dark)");
-function storedTheme() {
-  try { return localStorage.getItem(THEME_KEY); } catch { return null; }
-}
+// /theme.js (BitPrairie's theme handling, "bp-theme" key) sets data-theme
+// before first paint; the map follows it and swaps the basemap on change.
+const THEME_KEY = "bp-theme";
 function currentTheme() {
-  const t = storedTheme();
-  return t === "dark" || t === "light" ? t : prefersDark.matches ? "dark" : "light";
+  return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
 }
-document.documentElement.dataset.theme = currentTheme();
+/** Layer style with the colour for the current theme. */
+function styleFor(layer) {
+  const s = layer.style || { color: layer.color, fillOpacity: 0.4 };
+  return currentTheme() === "dark" && s.colorDark ? { ...s, color: s.colorDark } : s;
+}
 
 // --------------------------------------------------------------- map setup
 const map = new maplibregl.Map({
@@ -159,7 +160,7 @@ function firstSymbolLayer() {
 // ------------------------------------------------------------- data layers
 function addVector(layer) {
   const id = layer.id;
-  const s = layer.style;
+  const s = styleFor(layer);
   map.addSource(id, { type: "geojson", data: layer.data, attribution: esc(layer.attribution) });
   const before = firstSymbolLayer();
   const vis = layer.visible ? "visible" : "none";
@@ -176,7 +177,7 @@ function addVector(layer) {
   map.addLayer({
     id: `${id}-circle`, type: "circle", source: id, filter: ["in", ["geometry-type"], ["literal", ["Point", "MultiPoint"]]],
     layout: { visibility: vis },
-    paint: { "circle-color": s.color, "circle-radius": 5, "circle-stroke-color": "#fff", "circle-stroke-width": 1.5 },
+    paint: { "circle-color": s.color, "circle-radius": 5, "circle-stroke-color": currentTheme() === "dark" ? "#0e1012" : "#fff", "circle-stroke-width": 1.5 },
   }, before);
   if (hoverBound.has(id)) return;
   hoverBound.add(id);
@@ -264,7 +265,7 @@ async function loadVector(layer) {
 function renderLayerRow(layer) {
   const li = document.getElementById(`row-${layer.id}`);
   if (!li) return;
-  const s = layer.style || { color: layer.color, fillOpacity: 0.4 };
+  const s = styleFor(layer);
   const inputId = `toggle-${layer.id}`;
   const infoUrl = safeUrl(layer.info_url);
   const endpoint = safeUrl(layer.url || layer.legend_url);
@@ -541,7 +542,7 @@ function renderLegend() {
   const vis = [...layers.values()].filter((l) => l.visible)
     .sort((a, b) => CATEGORY_ORDER.indexOf(a.category) - CATEGORY_ORDER.indexOf(b.category));
   ul.innerHTML = vis.length ? vis.map((l) => {
-    const s = l.style || { color: l.color, fillOpacity: 0.4 };
+    const s = styleFor(l);
     const bg = s.dashed || !s.fillOpacity ? "transparent" : `${esc(s.color)}55`;
     const zoomNote = l.minzoom && map.getZoom() < l.minzoom ? ` <small>(zoom in to see)</small>` : "";
     return `<li><span class="swatch ${s.dashed ? "dashed" : ""}" style="border-color:${esc(s.color)};background:${bg}" aria-hidden="true"></span>${esc(l.name)}${zoomNote}</li>`;
@@ -664,15 +665,16 @@ searchForm.addEventListener("submit", async (e) => {
 
 // ------------------------------------------------------------- dark mode
 const themeBtn = $("#theme-toggle");
+let mapTheme = currentTheme();
 function syncThemeButton() {
   const dark = currentTheme() === "dark";
   themeBtn.setAttribute("aria-pressed", String(dark));
   themeBtn.textContent = dark ? "Light map" : "Dark map";
-  document.querySelector('meta[name="theme-color"]').setAttribute("content", dark ? "#0f1a14" : "#1d3b2a");
 }
 function applyTheme(theme) {
-  document.documentElement.dataset.theme = theme;
   syncThemeButton();
+  if (theme === mapTheme) return;
+  mapTheme = theme;
   // Swap the basemap, then put the agency layers back in their places.
   map.setStyle(BASEMAPS[theme], { diff: false });
   map.once("style.load", () => {
@@ -681,13 +683,17 @@ function applyTheme(theme) {
       if (l.type === "geojson" && l.loaded === true) addVector(l);
     }
   });
+  for (const l of layers.values()) renderLayerRow(l);
+  renderLegend();
 }
 themeBtn.addEventListener("click", () => {
   const next = currentTheme() === "dark" ? "light" : "dark";
   try { localStorage.setItem(THEME_KEY, next); } catch { /* private mode */ }
-  applyTheme(next);
+  window.pwTheme?.paint(next);
 });
-prefersDark.addEventListener("change", () => { if (!storedTheme()) applyTheme(currentTheme()); });
+// theme.js may change data-theme (device setting, another tab): follow it.
+new MutationObserver(() => applyTheme(currentTheme()))
+  .observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 syncThemeButton();
 
 // ------------------------------------------------------------- share link

@@ -1,0 +1,155 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="BitPrairie">
+  <title>BitPrairie</title>
+  <rect width="64" height="64" rx="14" fill="#c4ae96"/>
+  <g transform="translate(3.687 14.726) scale(0.236630)">
+    <ellipse cx="118" cy="141" rx="86" ry="5" fill="#1A0F08" opacity="0.3" />
+
+      <path
+        d="M16 82
+           C12 70 22 56 42 52
+           C50 40 64 38 74 50
+           C90 20 128 16 154 40
+           C176 50 202 64 212 82
+           C222 84 230 96 222 104
+           L210 98
+           L208 126 L202 132 L192 126 L194 100
+           L184 126 L178 132 L168 126 L170 102
+           C154 110 124 112 102 104
+           L100 126 L94 132 L84 126 L86 102
+           L76 126 L70 132 L60 126 L64 100
+           C48 106 32 114 24 124
+           C18 110 12 94 16 84
+           C14 84 14 82 16 82 Z"
+        fill="#1A0F08"
+      />
+
+      <path
+        d="M78 54
+           C96 28 132 26 152 48
+           C164 58 166 74 152 84
+           C132 96 98 94 80 80
+           C70 70 68 60 78 54 Z"
+        fill="#4A311C"
+      />
+      <path
+        d="M132 62
+           C150 56 176 64 194 78
+           C204 86 206 96 196 100
+           C176 92 148 86 128 88
+           C124 78 126 68 132 62 Z"
+        fill="#2E1C12"
+      />
+
+      <path
+        d="M20 78
+           C18 66 30 54 48 54
+           C62 54 72 64 70 76
+           C68 88 54 96 38 94
+           C26 92 20 86 20 78 Z"
+        fill="#2A1810"
+      />
+      <ellipse cx="24" cy="80" rx="10" ry="7" fill="#1A0F08" />
+      <path
+        d="M32 88
+           C36 104 44 122 50 128
+           C56 132 60 124 56 114
+           C52 102 44 92 36 86
+           C32 84 30 86 32 88 Z"
+        fill="#1A0F08"
+      />
+
+      <path
+        d="M58 50
+           L74 20
+           L92 26
+           C84 30 72 42 66 58
+           C62 58 56 54 58 50 Z"
+        fill="#E2C48A"
+      />
+      <path
+        d="M64 48
+           L76 26
+           L86 30
+           C80 32 72 42 68 54
+           C66 54 62 50 64 48 Z"
+        fill="#F0DDB4"
+      />
+      <ellipse cx="72" cy="58" rx="5" ry="7.5" fill="#1A0F08" />
+
+      <circle cx="42" cy="70" r="3.2" fill="#0D0805" />
+      <circle cx="43.1" cy="69" r="1" fill="#F6F0E4" />
+
+      <ellipse cx="218" cy="102" rx="7" ry="5" fill="#1A0F08" />
+
+      <ellipse cx="128" cy="56" rx="15" ry="10" fill="#A56B32" />
+      <path
+        d="M118 26
+           C114 42 118 62 130 72
+           C140 78 150 74 152 62
+           C154 44 144 26 134 22
+           C124 18 120 20 118 26 Z"
+        fill="#C9894A"
+      />
+      <path
+        d="M122 30
+           C120 44 124 62 132 70
+           C140 74 146 70 147 60
+           C148 44 140 28 132 26
+           C126 24 124 26 122 30 Z"
+        fill="#D9A85C"
+      />
+      <ellipse cx="114" cy="20" rx="11" ry="9.5" fill="#C9894A" />
+      <ellipse cx="113" cy="21" rx="8.2" ry="7.2" fill="#E2B56A" />
+      <ellipse cx="119" cy="13" rx="3" ry="4" fill="#7A4A24" />
+      <ellipse cx="119" cy="14" rx="1.7" ry="2.3" fill="#C9894A" />
+      <ellipse cx="104" cy="22" rx="5.2" ry="3.4" fill="#E8C090" />
+      <ellipse cx="101.6" cy="22.4" rx="1.9" ry="1.4" fill="#5C3A1E" />
+      <circle cx="110" cy="19" r="2.3" fill="#1A0F08" />
+      <circle cx="110.7" cy="18.3" r="0.75" fill="#F6F0E4" />
+      <ellipse cx="124" cy="44" rx="3.8" ry="2.5" fill="#E8C090" />
+      <ellipse cx="120" cy="50" rx="3.4" ry="2.2" fill="#E8C090" />
+      <path
+        d="M142 66c10-2 17 8 11 14-4 4-9 2-12-2-2-4-2-9 1-12z"
+        fill="#7A4A24"
+      />
+      <path
+        d="M151 76c3 5 2 10-3 12-2 0-3-2-2-5 2-3 3-5 5-7z"
+        fill="#1A0F08"
+      />
+
+      <rect
+        x="107"
+        y="1"
+        width="7"
+        height="38"
+        rx="2"
+        fill="#C9A15B"
+        stroke="#6B4A2E"
+        stroke-width="1.4"
+      />
+      <rect x="104" y="16" width="13" height="7.5" rx="1.6" fill="#8F6A3A" />
+      <rect
+        x="104"
+        y="0"
+        width="13"
+        height="12"
+        rx="2.2"
+        fill="#C9A15B"
+        stroke="#6B4A2E"
+        stroke-width="1.4"
+      />
+      <rect
+        x="60"
+        y="0.5"
+        width="47"
+        height="11"
+        rx="2.2"
+        fill="#C9A15B"
+        stroke="#6B4A2E"
+        stroke-width="1.4"
+      />
+      <rect x="54" y="1.6" width="12.5" height="8.6" rx="2" fill="#5C3A1E" />
+      <rect x="56" y="3.2" width="8.6" height="5.2" rx="1.1" fill="#8EC5DC" />
+      <rect x="57.2" y="4.2" width="3" height="2" rx="0.5" fill="#F6F0E4" />
+  </g>
+</svg>
