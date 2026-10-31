@@ -1,4 +1,8 @@
+<img src="public/favicon.svg" alt="" width="40" height="40">
+
 # Predator Watch
+
+*A [BitPrairie](https://bitprairie.com/predator-watch/) project.*
 
 **Public agency wolf data on one map, with the source, date and freshness on every item.**
 
@@ -183,4 +187,15 @@ Census Bureau Data API but is not endorsed or certified by the Census Bureau.
 This map is for public information only. It is not a substitute for the
 agencies' own products, and a shaded area is not a current animal position.
 
-Part of BitPrairie Predator Watch. Licensed under Apache-2.0.
+## Brand
+
+The logo, colors and type follow the [BitPrairie](https://bitprairie.com/predator-watch/) brand.
+`public/brand.css` holds the shared tokens, the masthead and the credits block for the map,
+`/about` and `/status`. `public/theme.js` is BitPrairie's theme script (same `bp-theme` key),
+changed only to follow the device setting when no choice is saved. Fonts are self-hosted
+IBM Plex Sans and IBM Plex Mono under the SIL Open Font License 1.1 (`public/fonts/OFL-*.txt`).
+Layer colors come from the same palette, with a light and a dark value for each layer that
+keep at least 3:1 contrast against the basemap (checked in `test/brand.test.ts`).
+The BitPrairie symbol and wordmark are BitPrairie marks; the Apache-2.0 license covers the code, not the marks.
+
+Part of BitPrairie Predator Watch. Code licensed under Apache-2.0.

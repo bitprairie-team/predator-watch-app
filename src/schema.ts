@@ -105,8 +105,10 @@ export interface PublicSourceInfo {
 }
 
 export interface LayerStyle {
-  /** Fill / line / circle colour, hex. */
+  /** Fill / line / circle colour on the light basemap, hex (BitPrairie palette, at least 3:1 against the basemap). */
   color: string;
+  /** Colour on the dark basemap, hex. Falls back to `color`. */
+  colorDark?: string;
   /** Polygon fill opacity, 0..1 */
   fillOpacity?: number;
   /** Optional dashed outline for management boundaries. */

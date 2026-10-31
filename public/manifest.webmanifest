@@ -1,11 +1,11 @@
 {
-  "name": "Predator Watch",
+  "name": "Predator Watch by BitPrairie",
   "short_name": "Predator Watch",
   "description": "Public agency predator data on one map, with the source and time on every item.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#1d3b2a",
+  "background_color": "#f3f4f6",
+  "theme_color": "#f3f4f6",
   "icons": [
     { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
