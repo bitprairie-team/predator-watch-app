@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Predator Watch: public agency predator data map</title>
+  <meta name="description" content="A free, open-source map that brings together publicly available government and agency predator data, with the source and time on every item.">
+  <meta name="theme-color" content="#1d3b2a">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
+  <link rel="stylesheet" href="/vendor/maplibre-gl/maplibre-gl.css">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#panel">Skip to layers and data</a>
+  <header class="topbar">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 3 7v6c0 5 3.8 8.7 9 9 5.2-.3 9-4 9-9V7l-9-5Zm0 4.2 5 2.8v4c0 2.9-2.1 5.1-5 5.5-2.9-.4-5-2.6-5-5.5V9l5-2.8Z"/></svg>
+      <div>
+        <h1>Predator Watch</h1>
+        <p class="tagline">Public agency predator data, with the source and time on every item.</p>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button type="button" id="panel-toggle" class="btn" aria-controls="panel" aria-expanded="true">Layers</button>
+      <button type="button" id="about-open" class="btn btn-ghost" aria-haspopup="dialog">About</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <aside id="panel" class="panel" tabindex="-1" aria-label="Layers and data">
+      <p id="status" class="status" role="status" aria-live="polite">Loading layers…</p>
+
+      <section aria-labelledby="h-wolf">
+        <h2 id="h-wolf">Wolf activity</h2>
+        <ul class="layer-list" data-category="wolf-activity"></ul>
+      </section>
+      <section aria-labelledby="h-mgmt">
+        <h2 id="h-mgmt">Wolf management areas</h2>
+        <ul class="layer-list" data-category="wolf-management"></ul>
+      </section>
+      <section aria-labelledby="h-context">
+        <h2 id="h-context">Context</h2>
+        <ul class="layer-list" data-category="context"></ul>
+      </section>
+
+      <section aria-labelledby="h-items">
+        <h2 id="h-items">Items in view</h2>
+        <p class="hint">Wolf activity items in the current map view. Select one for its source and times.</p>
+        <ul id="items" class="item-list"></ul>
+      </section>
+
+      <section aria-labelledby="h-planned" class="planned">
+        <h2 id="h-planned">Planned</h2>
+        <ul>
+          <li><strong>Private collaboration space</strong> <span class="tag">Planned</span><br>
+            A paid, private space for ranchers, community members, and local, state, and federal agencies to share data under agreements, with points of contact, schedules, and an audit log.</li>
+          <li><strong>More agency sources</strong> <span class="tag">Planned</span><br>
+            Sources still being verified are listed in the <a href="https://github.com/steelhead99x/predator-watch-app/blob/main/docs/data-sources.md">data sources document</a>.</li>
+        </ul>
+      </section>
+
+      <p class="disclaimer">Generalized public data from the agencies named on each layer. Locations are never shown more precisely than the agency publishes them. A highlighted area shows where the agency reports activity; it is not a current animal position. Check the agency's own notes before relying on any layer.</p>
+    </aside>
+
+    <div class="map-wrap">
+      <div id="map" role="region" aria-label="Map. Use arrow keys to pan and plus or minus to zoom when focused." tabindex="0"></div>
+      <section id="details" class="details" aria-labelledby="details-title" hidden>
+        <div class="details-head">
+          <h2 id="details-title">Details</h2>
+          <button type="button" id="details-close" class="btn btn-ghost" aria-label="Close details">Close</button>
+        </div>
+        <div id="details-body"></div>
+      </section>
+    </div>
+  </main>
+
+  <dialog id="about" aria-labelledby="about-title">
+    <h2 id="about-title">About Predator Watch</h2>
+    <p>Predator Watch is a free, open-source map. It brings together predator data that government agencies already publish, starting with gray wolves, and refreshes each source as often as the agency updates it.</p>
+    <p>Every item shows which agency published it, when the agency observed or last updated it, and when this map received it. Each layer has a freshness badge. Data is shown at the same precision the agency publishes, never finer.</p>
+    <p>Only public agency data is used here. A private collaboration space for ranchers, community members, and agencies is <strong>Planned</strong>.</p>
+    <p>Source code and the full list of data sources: <a href="https://github.com/steelhead99x/predator-watch-app">github.com/steelhead99x/predator-watch-app</a> (Apache-2.0).</p>
+    <p class="small">Basemap: <a href="https://openfreemap.org/">OpenFreeMap</a> © <a href="https://openmaptiles.org/">OpenMapTiles</a>, data © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors.</p>
+    <form method="dialog"><button class="btn" autofocus>Close</button></form>
+  </dialog>
+
+  <script src="/vendor/maplibre-gl/maplibre-gl.js"></script>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
