@@ -15,6 +15,19 @@ export interface Env {
 interface StoredStatus extends SourceStatus {
   source_updated_ms: number | null;
   validator: string | null;
+  /** Hash of the source config; a config change forces a full re-fetch. */
+  config_hash?: string;
+}
+
+/** Small, stable string hash (FNV-1a) of a source config. */
+export function configHash(config: unknown): string {
+  const str = JSON.stringify(config);
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return (h >>> 0).toString(16);
 }
 
 /** Bundled samples used only when a source has never loaded and the network fails. */
@@ -47,7 +60,7 @@ export async function readStatus(kv: KVNamespace, id: string): Promise<StoredSta
 }
 
 export function publicStatus(s: StoredStatus): SourceStatus {
-  const { source_updated_ms: _m, validator: _v, ...rest } = s;
+  const { source_updated_ms: _m, validator: _v, config_hash: _h, ...rest } = s;
   return rest;
 }
 
@@ -76,7 +89,9 @@ export async function refreshSource(
   const now = opts.now ?? (() => new Date());
   const id = adapter.config.id;
   const status = await readStatus(kv, id);
-  if (!opts.force && !isDue(status, adapter.config.refreshMinutes, now())) return status;
+  const hash = configHash(adapter.config);
+  const configChanged = status.config_hash !== undefined && status.config_hash !== hash;
+  if (!opts.force && !configChanged && !isDue(status, adapter.config.refreshMinutes, now())) return status;
 
   const ctx: FetchContext = {
     fetch: opts.fetchImpl ?? fetch,
@@ -85,7 +100,7 @@ export async function refreshSource(
     previous: {
       sourceUpdatedMs: status.source_updated_ms,
       validator: status.validator,
-      hasData: status.feature_count > 0 && status.state !== "fixture",
+      hasData: status.feature_count > 0 && status.state !== "fixture" && !configChanged,
     },
   };
   const checkedAt = now().toISOString();
@@ -127,6 +142,7 @@ export async function refreshSource(
       }
     }
   }
+  if (next.state === "ok" || next.state === "unchanged") next.config_hash = hash;
   await kv.put(statusKey(id), JSON.stringify(next));
   return next;
 }
@@ -156,7 +172,7 @@ export async function collection(registry: Registry, env: Env, id: string): Prom
   if (!adapter) return null;
   let status = await readStatus(env.LAYER_CACHE, id);
   let features = await readData(env.LAYER_CACHE, id);
-  if (!features) {
+  if (!features || (status.config_hash && status.config_hash !== configHash(adapter.config))) {
     status = await refreshSource(adapter, env, { force: true });
     features = (await readData(env.LAYER_CACHE, id)) ?? [];
   }

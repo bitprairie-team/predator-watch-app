@@ -10,7 +10,10 @@ export type TimeMapping =
 export interface FieldMapping {
   /** Field holding a stable native id. Defaults to the layer's object id field. */
   idField?: string;
-  /** Field name, or a template such as "{Pack} pack". */
+  /**
+   * Label template. Field names go in braces, e.g. "{Pack} pack" or "{name}".
+   * Text without braces is used as a fixed label for every item.
+   */
   label: string;
   observedAt?: TimeMapping;
   /** Display key -> source field. Only these fields are passed through. */
@@ -22,9 +25,7 @@ type Attrs = Record<string, unknown>;
 export function fieldsUsed(m: FieldMapping): string[] {
   const out = new Set<string>();
   if (m.idField) out.add(m.idField);
-  const tpl = m.label.match(/\{([^}]+)\}/g);
-  if (tpl) tpl.forEach((t) => out.add(t.slice(1, -1)));
-  else out.add(m.label);
+  for (const t of m.label.match(/\{([^}]+)\}/g) ?? []) out.add(t.slice(1, -1));
   if (m.observedAt && "field" in m.observedAt) out.add(m.observedAt.field);
   for (const f of Object.values(m.details ?? {})) out.add(f);
   return [...out];
@@ -33,12 +34,19 @@ export function fieldsUsed(m: FieldMapping): string[] {
 const clean = (v: unknown) => (v === null || v === undefined ? "" : String(v).trim());
 
 export function renderLabel(m: FieldMapping, a: Attrs, fallback: string): string {
-  let s: string;
-  if (/\{[^}]+\}/.test(m.label)) {
-    s = m.label.replace(/\{([^}]+)\}/g, (_, f: string) => clean(a[f])).replace(/\s+/g, " ").trim();
-  } else {
-    s = clean(a[m.label]);
-  }
+  let placeholders = 0;
+  let filled = 0;
+  const s = m.label
+    .replace(/\{([^}]+)\}/g, (_, f: string) => {
+      placeholders++;
+      const v = clean(a[f]);
+      if (v) filled++;
+      return v;
+    })
+    .replace(/\s+/g, " ")
+    .trim();
+  // If every referenced field is empty, the template would be meaningless.
+  if (placeholders > 0 && filled === 0) return fallback;
   return s || fallback;
 }
 
