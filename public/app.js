@@ -205,7 +205,7 @@ function firstVectorLayerId() {
   return map.getStyle().layers.find((l) => /-(fill|line|circle)$/.test(l.id) && layers.has(l.id.replace(/-(fill|line|circle)$/, "")))?.id;
 }
 
-function setVisible(layer, on) {
+function setVisible(layer, on, { announce: say = false, quiet = false } = {}) {
   layer.visible = on;
   const ids = layer.type === "raster" ? [`${layer.id}-raster`] : ["fill", "line", "circle"].map((x) => `${layer.id}-${x}`);
   for (const lid of ids) if (map.getLayer(lid)) map.setLayoutProperty(lid, "visibility", on ? "visible" : "none");
@@ -215,6 +215,8 @@ function setVisible(layer, on) {
   renderLegend();
   renderCredits();
   writeHash();
+  if (!quiet) updatePanelState();
+  if (say) announce(`${layer.name} turned ${on ? "on" : "off"}. ${countOn()}`);
 }
 
 async function fetchWithTimeout(url, ms) {
@@ -302,7 +304,7 @@ function renderLayerRow(layer) {
         ${layer.type === "geojson" ? `<dt>Recent changes</dt><dd>${changesHtml(changesBySource.get(layer.id), 3)}</dd>` : ""}
       </dl>
     </details>`;
-  li.querySelector("input").addEventListener("change", (e) => setVisible(layer, e.target.checked));
+  li.querySelector("input").addEventListener("change", (e) => setVisible(layer, e.target.checked, { announce: true }));
   li.querySelector(".retry")?.addEventListener("click", () => loadVector(layer));
   if (focusSel) li.querySelector(focusSel)?.focus();
 }
@@ -317,20 +319,167 @@ function classLegendHtml(layer) {
     `<li>${swatchHtml({ style: { color: c.color, fillOpacity: 1 } })}<span>${esc(c.label)}</span></li>`).join("")}</ul>`;
 }
 
-function renderPanel(all) {
-  for (const cat of CATEGORY_ORDER) {
-    const ul = document.querySelector(`.layer-list[data-category="${cat}"]`);
-    ul.innerHTML = "";
-    all.filter((l) => l.category === cat)
-      .sort((a, b) => (b.style?.order ?? 0) - (a.style?.order ?? 0))
-      .forEach((l) => {
-        const li = document.createElement("li");
-        li.className = "layer";
-        li.id = `row-${l.id}`;
-        ul.appendChild(li);
-        renderLayerRow(l);
-      });
+// Groups in the layer list. Each is a collapsible section whose header shows
+// how many of its layers are on.
+const GROUPS = [
+  { id: "wolf-activity", name: "Wolf activity", open: true },
+  { id: "wolf-management", name: "Wolf management areas" },
+  { id: "bear", name: "Bears", hint: "Off by default. Generalized agency ranges, not bear locations." },
+  { id: "context", name: "Context" },
+];
+const GROUP_KEY = "pw-groups";
+function groupOpenState() {
+  try { return JSON.parse(localStorage.getItem(GROUP_KEY) || "{}") || {}; } catch { return {}; }
+}
+function saveGroupOpen(id, open) {
+  const st = groupOpenState();
+  st[id] = open;
+  try { localStorage.setItem(GROUP_KEY, JSON.stringify(st)); } catch { /* private mode */ }
+}
+function groupLayers(g) {
+  return [...layers.values()].filter((l) => l.category === g.id)
+    .sort((a, b) => (b.style?.order ?? 0) - (a.style?.order ?? 0));
+}
+
+function renderPanel() {
+  const root = $("#layer-groups");
+  const st = groupOpenState();
+  root.innerHTML = "";
+  for (const g of GROUPS) {
+    const list = groupLayers(g);
+    if (!list.length) continue;
+    const open = st[g.id] ?? Boolean(g.open);
+    const sec = document.createElement("section");
+    sec.className = "layer-group";
+    sec.dataset.group = g.id;
+    sec.innerHTML = `<h3 class="group-head"><button type="button" class="group-toggle" id="grp-${g.id}-btn" aria-expanded="${open}" aria-controls="grp-${g.id}-body">
+        <span class="group-arrow" aria-hidden="true"></span><span class="group-name">${esc(g.name)}</span>
+        <span class="group-count" id="grp-${g.id}-count"></span></button></h3>
+      <div class="group-body" id="grp-${g.id}-body"${open ? "" : " hidden"}>
+        ${g.hint ? `<p class="hint">${esc(g.hint)}</p>` : ""}
+        <ul class="layer-list" data-category="${g.id}"></ul>
+      </div>`;
+    root.appendChild(sec);
+    const ul = sec.querySelector("ul");
+    for (const l of list) {
+      const li = document.createElement("li");
+      li.className = "layer";
+      li.id = `row-${l.id}`;
+      ul.appendChild(li);
+      renderLayerRow(l);
+    }
+    sec.querySelector(".group-toggle").addEventListener("click", (e) => {
+      const btn = e.currentTarget;
+      const next = btn.getAttribute("aria-expanded") !== "true";
+      setGroupOpen(sec, next);
+      saveGroupOpen(g.id, next);
+    });
   }
+  applyFilter();
+  updatePanelState();
+}
+function setGroupOpen(sec, open) {
+  sec.querySelector(".group-toggle").setAttribute("aria-expanded", String(open));
+  sec.querySelector(".group-body").hidden = !open;
+}
+
+// Filter box and "Show active only": hide rows that do not match. A group
+// with matches opens while a filter is typed; one with none is hidden.
+const filterInput = $("#layer-filter");
+const activeOnly = $("#active-only");
+function layerText(l) {
+  return [l.name, l.agency, l.species, l.summary, l.credit_short, ...(l.classes || []).map((c) => c.label)].filter(Boolean).join(" ").toLowerCase();
+}
+function applyFilter() {
+  const q = filterInput.value.trim().toLowerCase();
+  const only = activeOnly.checked;
+  const filtering = Boolean(q) || only;
+  let shown = 0;
+  for (const sec of document.querySelectorAll(".layer-group")) {
+    let n = 0;
+    for (const li of sec.querySelectorAll("li.layer")) {
+      const l = layers.get(li.id.slice(4));
+      const ok = l && (!q || q.split(/\s+/).every((w) => layerText(l).includes(w))) && (!only || l.visible);
+      li.hidden = !ok;
+      if (ok) n++;
+    }
+    shown += n;
+    sec.hidden = filtering && n === 0;
+    if (filtering && n) sec.querySelector(".group-body").hidden = false;
+    if (filtering && n) sec.querySelector(".group-toggle").setAttribute("aria-expanded", "true");
+    if (!filtering) setGroupOpen(sec, groupOpenState()[sec.dataset.group] ?? Boolean(GROUPS.find((g) => g.id === sec.dataset.group)?.open));
+  }
+  $("#filter-status").textContent = !filtering ? ""
+    : shown ? `${shown} ${shown === 1 ? "layer" : "layers"} shown.`
+    : only && !q ? "No layers are on." : "No layers match. Clear the filter to see all layers.";
+}
+let filterTimer = 0;
+filterInput.addEventListener("input", () => { clearTimeout(filterTimer); filterTimer = setTimeout(applyFilter, 120); });
+activeOnly.addEventListener("change", applyFilter);
+
+/** Group counts, active chips, the panel legend and sources: run after any toggle. */
+function updatePanelState() {
+  for (const g of GROUPS) {
+    const el = document.getElementById(`grp-${g.id}-count`);
+    if (!el) continue;
+    const list = groupLayers(g);
+    const on = list.filter((l) => l.visible).length;
+    el.textContent = `${on} of ${list.length} on`;
+    el.classList.toggle("has-on", on > 0);
+  }
+  renderChips();
+  renderPanelSources();
+  if (activeOnly.checked) applyFilter();
+}
+
+// Active-layer chips: every layer that is on, tap to turn it off.
+function renderChips() {
+  const ul = $("#active-chips");
+  const vis = visibleLayers();
+  const focusedId = ul.contains(document.activeElement) ? document.activeElement.dataset.id : null;
+  ul.innerHTML = vis.length ? vis.map((l) => `<li><button type="button" class="chip" data-id="${esc(l.id)}" aria-label="Turn off ${esc(l.name)}">
+      ${swatchHtml(l)}<span class="chip-name">${esc(l.name)}</span><span class="chip-x" aria-hidden="true">×</span></button></li>`).join("")
+    : `<li class="hint chips-empty">No layers are on.</li>`;
+  if (focusedId) {
+    const next = ul.querySelector(`[data-id="${CSS.escape(focusedId)}"]`) || ul.querySelector(".chip");
+    (next || $("#active-label")).focus?.();
+  }
+}
+$("#active-chips").addEventListener("click", (e) => {
+  const btn = e.target.closest(".chip");
+  if (!btn) return;
+  const l = layers.get(btn.dataset.id);
+  if (!l) return;
+  const chips = [...$("#active-chips").querySelectorAll(".chip")];
+  const i = chips.indexOf(btn);
+  setVisible(l, false, { announce: true });
+  renderLayerRow(l);
+  const after = [...$("#active-chips").querySelectorAll(".chip")];
+  (after[Math.min(i, after.length - 1)] || $("#layer-filter")).focus();
+});
+
+function setMany(pick, message) {
+  for (const l of layers.values()) {
+    const on = pick(l);
+    if (on !== l.visible) { setVisible(l, on, { quiet: true }); renderLayerRow(l); }
+  }
+  updatePanelState();
+  announce(`${message} ${countOn()}`);
+}
+const countOn = () => {
+  const n = visibleLayers().length;
+  return n ? `${n} ${n === 1 ? "layer is" : "layers are"} on.` : "No layers are on.";
+};
+$("#reset-layers").addEventListener("click", () => setMany((l) => Boolean(l.style?.defaultVisible), "Layers reset to the defaults."));
+$("#all-off").addEventListener("click", () => setMany(() => false, "All layers turned off."));
+
+// Short messages for screen readers (layer toggles, search results).
+const announcer = $("#announcer");
+let announceTimer = 0;
+function announce(text) {
+  clearTimeout(announceTimer);
+  announcer.textContent = "";
+  announceTimer = setTimeout(() => (announcer.textContent = text), 60);
 }
 
 // ------------------------------------------------------- feature details
@@ -518,12 +667,48 @@ const SHEET_STATES = ["peek", "half", "full"];
 const phoneQuery = matchMedia("(max-width: 760px)");
 const isPhone = () => phoneQuery.matches;
 
-toggle.addEventListener("click", () => {
-  const open = panel.hidden;
+// Wide screens: the header "Layers" button, the edge tab on the panel and the
+// "[" key all show and hide the side panel.
+const edge = $("#panel-edge");
+const PANEL_KEY = "pw-panel";
+function setPanelOpen(open, { save = true } = {}) {
   panel.hidden = !open;
+  layout.classList.toggle("panel-closed", !open);
   toggle.setAttribute("aria-expanded", String(open));
+  edge.setAttribute("aria-expanded", String(open));
+  const label = open ? "Hide the layers panel" : "Show the layers panel";
+  $("#panel-edge-label").textContent = label;
+  edge.title = `${label} (shortcut: [ )`;
+  if (save) try { localStorage.setItem(PANEL_KEY, open ? "open" : "closed"); } catch { /* private mode */ }
   map.resize();
+}
+toggle.addEventListener("click", () => setPanelOpen(panel.hidden));
+edge.addEventListener("click", () => setPanelOpen(panel.hidden));
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "[" || e.ctrlKey || e.metaKey || e.altKey || isPhone()) return;
+  if (e.target.closest?.("input, textarea, select, [contenteditable]")) return;
+  e.preventDefault();
+  const open = panel.hidden;
+  setPanelOpen(open);
+  announce(open ? "Layers panel shown." : "Layers panel hidden.");
+  if (open) panel.focus();
 });
+try { if (localStorage.getItem(PANEL_KEY) === "closed" && !phoneQuery.matches) setPanelOpen(false, { save: false }); } catch { /* private mode */ }
+
+// Jump links at the top of the panel: Layers, Legend, Sources.
+for (const a of document.querySelectorAll(".jump-tabs a")) {
+  a.addEventListener("click", (e) => {
+    e.preventDefault();
+    const target = document.getElementById(a.dataset.jump);
+    if (!target) return;
+    if (isPhone() && panel.dataset.sheet !== "full") setSheet("full");
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    requestAnimationFrame(() => {
+      target.scrollIntoView({ block: "start", behavior: reduce ? "auto" : "smooth" });
+      target.focus({ preventScroll: true });
+    });
+  });
+}
 
 function setSheet(state, { focus = false } = {}) {
   if (!SHEET_STATES.includes(state)) state = "peek";
@@ -604,7 +789,7 @@ if ("ResizeObserver" in window) {
 }
 function onViewportChange() {
   if (!isPhone()) panel.style.removeProperty("height");
-  if (isPhone() && panel.hidden) { panel.hidden = false; toggle.setAttribute("aria-expanded", "true"); }
+  if (isPhone() && panel.hidden) setPanelOpen(true, { save: false });
   syncOffsets();
   map.resize();
 }
@@ -634,9 +819,9 @@ function renderCredits() {
   updateSheetCount();
   if (!$("#sources-panel").hidden) renderSources();
 }
-function renderSources() {
+function sourcesHtml() {
   const list = visibleLayers();
-  $("#sources-list").innerHTML = list.length ? list.map((l) => {
+  return list.length ? list.map((l) => {
     const u = safeUrl(l.info_url);
     const updated = l.type === "raster" ? "Live agency map service" : l.status?.source_updated_at
       ? `Agency updated ${fmtTime(l.status.source_updated_at)}` : "Agency update date not published";
@@ -644,7 +829,13 @@ function renderSources() {
       <span>${esc(l.attribution)}</span>
       <span class="muted">${esc(updated)}</span>
       ${u ? `<a href="${esc(u)}" target="_blank" rel="noopener">Source page<span class="sr-only"> for ${esc(l.name)} (new tab)</span></a>` : ""}</div></li>`;
-  }).join("") : `<li class="hint">No layers are on. Turn one on under Layers and data.</li>`;
+  }).join("") : `<li class="hint">No layers are on. Turn one on under Layers.</li>`;
+}
+function renderSources() {
+  $("#sources-list").innerHTML = sourcesHtml();
+}
+function renderPanelSources() {
+  $("#panel-sources").innerHTML = sourcesHtml();
 }
 const sourcesPanel = $("#sources-panel");
 const sourcesBtn = $("#sources-open");
@@ -689,7 +880,7 @@ async function boot() {
     const visible = initial.ids ? initial.ids.has(l.id) : Boolean(l.style?.defaultVisible);
     layers.set(l.id, { ...l, visible, loaded: false });
   }
-  renderPanel([...layers.values()]);
+  renderPanel();
   renderPlanned(index);
   renderCredits();
   const vectors = [...layers.values()].filter((l) => l.type === "geojson");
@@ -763,16 +954,20 @@ function renderPlanned(index) {
 }
 
 // ------------------------------------------------------------------ legend
-function renderLegend() {
-  const ul = $("#legend-list");
+function legendHtml() {
   const vis = [...layers.values()].filter((l) => l.visible)
     .sort((a, b) => CATEGORY_ORDER.indexOf(a.category) - CATEGORY_ORDER.indexOf(b.category));
-  ul.innerHTML = vis.length ? vis.map((l) => {
+  return vis.length ? vis.map((l) => {
     const zoomNote = l.minzoom && map.getZoom() < l.minzoom ? ` <small>(${esc(l.zoom_hint ? l.zoom_hint.toLowerCase() : "zoom in to see")})</small>` : "";
     const agencyColors = l.type === "raster" && !l.drawn_in_palette ? ` <small>(agency colors)</small>` : "";
     const classes = l.classes && !zoomNote ? classLegendHtml(l) : "";
     return `<li class="${classes ? "has-classes" : ""}">${l.classes ? "" : swatchHtml(l)}<span>${esc(l.name)}${zoomNote}${agencyColors}${classes}</span></li>`;
   }).join("") : `<li class="hint">No layers turned on.</li>`;
+}
+function renderLegend() {
+  const html = legendHtml();
+  $("#legend-list").innerHTML = html;
+  $("#panel-legend").innerHTML = html;
 }
 let lastZoomBand = null;
 map.on("zoomend", () => {

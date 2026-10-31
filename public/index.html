@@ -37,6 +37,7 @@
 </head>
 <body>
   <a class="skip-link" href="#panel">Skip to layers and data</a>
+  <p id="announcer" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
   <header class="topbar">
     <div class="brand">
       <a class="brand-home" href="https://bitprairie.com/" aria-label="BitPrairie home"><img class="brand-symbol" src="/brand/bitprairie-symbol.svg" alt="" width="30" height="30"><span class="brand-wordmark" aria-hidden="true"></span></a>
@@ -61,6 +62,11 @@
         <button type="button" id="sheet-close" class="btn btn-ghost sheet-close" aria-controls="panel-body" hidden>Close<span class="sr-only"> layers</span></button>
       </div>
       <div id="panel-body" class="panel-body">
+      <nav class="jump-tabs" aria-label="Jump to">
+        <a href="#sec-layers" data-jump="sec-layers">Layers</a>
+        <a href="#sec-legend" data-jump="sec-legend">Legend</a>
+        <a href="#sec-sources" data-jump="sec-sources">Sources</a>
+      </nav>
       <p id="status" class="status" role="status" aria-live="polite">Loading layers…</p>
 
       <form id="search" class="search" role="search">
@@ -72,22 +78,29 @@
       </form>
       <ul id="search-results" class="item-list search-results" aria-live="polite"></ul>
 
-      <section aria-labelledby="h-wolf">
-        <h2 id="h-wolf">Wolf activity</h2>
-        <ul class="layer-list" data-category="wolf-activity" style="--rows:4"></ul>
+      <section id="sec-layers" class="jump-target" aria-labelledby="h-layers" tabindex="-1">
+        <h2 id="h-layers">Layers</h2>
+        <div class="active-bar">
+          <p class="active-label" id="active-label">On now</p>
+          <ul id="active-chips" class="chips" aria-labelledby="active-label"></ul>
+        </div>
+        <div class="layer-tools">
+          <label for="layer-filter">Filter layers</label>
+          <input id="layer-filter" type="search" placeholder="Name, agency or animal" autocomplete="off" maxlength="60" enterkeyhint="search" aria-describedby="filter-status">
+          <div class="tools-row">
+            <label class="tool-check" for="active-only"><span class="check"><input type="checkbox" id="active-only"><span class="check-box" aria-hidden="true"></span></span><span>Show active only</span></label>
+            <button type="button" id="reset-layers" class="btn btn-small">Reset to defaults</button>
+            <button type="button" id="all-off" class="btn btn-small">Turn all off</button>
+          </div>
+          <p id="filter-status" class="hint filter-status" role="status" aria-live="polite"></p>
+        </div>
+        <div id="layer-groups" class="layer-groups"></div>
       </section>
-      <section aria-labelledby="h-mgmt">
-        <h2 id="h-mgmt">Wolf management areas</h2>
-        <ul class="layer-list" data-category="wolf-management" style="--rows:5"></ul>
-      </section>
-      <section aria-labelledby="h-bear">
-        <h2 id="h-bear">Bears</h2>
-        <p class="hint">Off by default. Generalized agency ranges, not bear locations.</p>
-        <ul class="layer-list" data-category="bear" style="--rows:4"></ul>
-      </section>
-      <section aria-labelledby="h-context">
-        <h2 id="h-context">Context</h2>
-        <ul class="layer-list" data-category="context" style="--rows:11"></ul>
+
+      <section id="sec-legend" class="jump-target" aria-labelledby="h-panel-legend" tabindex="-1">
+        <h2 id="h-panel-legend">Legend</h2>
+        <p class="hint">Each layer has one color, the same in the list, the legend and on the map.</p>
+        <ul id="panel-legend" class="panel-legend"></ul>
       </section>
 
       <section aria-labelledby="h-items">
@@ -100,6 +113,13 @@
         <h2 id="h-changes">Recent changes</h2>
         <p class="hint">What changed in each agency layer since this map last received it.</p>
         <ul id="changes-feed" class="item-list changes-feed"><li class="hint">Loading…</li></ul>
+      </section>
+
+      <section id="sec-sources" class="jump-target" aria-labelledby="h-panel-sources" tabindex="-1">
+        <h2 id="h-panel-sources">Sources</h2>
+        <p class="hint">Agencies behind the layers that are on now, with their full credit and when they last updated the data.</p>
+        <ul id="panel-sources" class="sources-list"></ul>
+        <p class="sources-more"><a href="/status">Source status and refresh history</a> · <a href="/about#sources">All sources and credits</a></p>
       </section>
 
       <section aria-labelledby="h-share">
@@ -140,6 +160,7 @@
       </footer>
       </div>
     </aside>
+    <button type="button" id="panel-edge" class="panel-edge" aria-controls="panel" aria-expanded="true" aria-keyshortcuts="[" title="Hide the layers panel (shortcut: [ )"><span class="edge-arrow" aria-hidden="true"></span><span class="sr-only" id="panel-edge-label">Hide the layers panel</span></button>
 
     <div class="map-wrap">
       <div id="map" role="region" aria-label="Map. Use arrow keys to pan and plus or minus to zoom when focused." tabindex="0"></div>
