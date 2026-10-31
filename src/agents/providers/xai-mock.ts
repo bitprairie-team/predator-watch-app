@@ -27,6 +27,10 @@ interface ParsedOutput {
 
 const GENERAL_LIBRARY: { match: RegExp; text: string }[] = [
   {
+    match: /trail cam(era)?s?|game cam(era)?s?|camera traps?/,
+    text: "Trail cameras placed along fence lines, water, and travel routes can show what animals use an area and when. Check them regularly, note dates and times, and share confirmed predator photos with the agency contact on file rather than posting exact locations publicly.",
+  },
+  {
     match: /fladry|flags?\b/,
     text: "Fladry is a line of colored flags hung from a rope or fence. It works best as a short-term deterrent around calving pastures or night pens, because wolves can get used to it within weeks. Electrified fladry tends to last longer. Check it often and move it before animals get used to it.",
   },
@@ -103,7 +107,7 @@ export function routeQuestion(question: string, offered: Set<string>): { name: s
   if (/fresh|how old|up to date|updated|last update|how current|what does .* mean|what is .* layer|tiers?\b|precision|generaliz|delay|den season|how accurate|where does .* data come/.test(q)) add("data_freshness", {});
   const lib = GENERAL_LIBRARY.find((g) => g.match.test(q));
   if (lib && !calls.some((c) => c.name === "agency_contacts_and_reporting")) {
-    const term = q.match(/fladry|guardian dogs?|range riders?|fenc\w*|night pens?|lights?|noise|carcass\w*|calving|lambing|deterrents?/)?.[0] ?? "deterrents";
+    const term = q.match(/trail cameras?|camera traps?|fladry|guardian dogs?|range riders?|fenc\w*|night pens?|lights?|noise|carcass\w*|calving|lambing|deterrents?/)?.[0] ?? "deterrents";
     add("nonlethal_deterrents", { query: term });
   }
   if (/wolf|wolves|activity|sighting|predator|coyote|near (my|the) ranch|around (my|the) ranch|anything (new|near)|my records|my reports/.test(q) && !calls.some((c) => /activity|summary|agency_contacts|deterrents/.test(c.name)))
