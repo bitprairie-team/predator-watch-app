@@ -13,3 +13,9 @@
 /sw.js
   Cache-Control: no-cache
   Service-Worker-Allowed: /
+
+/app.js
+  Cache-Control: public, max-age=300, stale-while-revalidate=86400
+
+/styles.css
+  Cache-Control: public, max-age=300, stale-while-revalidate=86400
