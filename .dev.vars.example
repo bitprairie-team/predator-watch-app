@@ -1,3 +1,19 @@
 # Copy to .dev.vars for local development. Never commit .dev.vars.
 # Optional: an ArcGIS API key, only needed for sources marked useApiKey: true.
 # ARCGIS_API_KEY=
+
+# Rancher assistant (private plan). Text chat and voice use xAI Grok.
+# Get a key from the xAI console. Never commit it.
+# XAI_API_KEY=
+# Optional overrides:
+# MODEL_PROVIDER=xai
+# XAI_MODEL=grok-4.7
+# XAI_VOICE_MODEL=grok-voice-latest
+# XAI_VOICE=eve
+# Offline development without a key: use the xAI mock and the seeded demo
+# account (sign in with pwk_demo_localdev_0000000000000000). `npm run dev:mock`
+# sets both. Never set these in production.
+# XAI_MOCK=1
+# ASSISTANT_DEMO=1
+# Optional second guardrail check by the model on each question:
+# GUARD_MODEL_CLASSIFIER=1

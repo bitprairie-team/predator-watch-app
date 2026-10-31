@@ -23,6 +23,7 @@
     </div>
     <div class="topbar-actions">
       <button type="button" id="panel-toggle" class="btn" aria-controls="panel" aria-expanded="true">Layers</button>
+      <button type="button" id="rancher-open" class="btn btn-ghost" aria-controls="rancher" aria-expanded="false">Rancher</button>
       <button type="button" id="about-open" class="btn btn-ghost" aria-haspopup="dialog">About</button>
     </div>
   </header>
@@ -75,6 +76,45 @@
     </div>
   </main>
 
+  <section id="rancher" class="rancher" aria-labelledby="rancher-title" hidden>
+    <div class="rancher-head">
+      <div>
+        <h2 id="rancher-title">Rancher assistant</h2>
+        <p class="gate-tag">Private: rancher plan</p>
+      </div>
+      <button type="button" id="rancher-close" class="btn btn-ghost" aria-label="Close rancher assistant">Close</button>
+    </div>
+
+    <div id="rancher-signin" class="rancher-body">
+      <p>Ask about wolf activity near your ranch and allotments, fire and weather alerts, who to call and how to report, how fresh the data is, and general ranching and livestock-protection questions. You can type or talk. Answers come from our intelligence and realtime systems working over your data.</p>
+      <p>Every answer about your data lists its sources with when each fact was observed and when we received it. If the data doesn't cover your question, the assistant says it doesn't know. General information is labelled as general.</p>
+      <p class="disclaimer assistant-disclaimer">The assistant provides data and general information, not legal, veterinary, or financial advice. For those, contact your state wildlife agency, a licensed veterinarian, or an attorney or other licensed professional. In an emergency, call 911.</p>
+      <form id="rancher-key-form">
+        <label for="rancher-key">Rancher access key</label>
+        <input id="rancher-key" type="password" autocomplete="off" spellcheck="false" required>
+        <button class="btn btn-solid" type="submit">Sign in</button>
+      </form>
+      <p class="hint">Keys come with the rancher plan. Account sign-in is <span class="tag">Planned</span>.</p>
+      <p id="rancher-signin-msg" class="status" role="status" aria-live="polite"></p>
+    </div>
+
+    <div id="rancher-app" class="rancher-body" hidden>
+      <p id="rancher-who" class="hint"></p>
+      <ol id="rancher-log" class="chat-log" aria-live="polite"></ol>
+      <form id="rancher-chat" class="chat-form">
+        <label for="rancher-q" class="sr-only">Your question</label>
+        <textarea id="rancher-q" rows="2" maxlength="4000" placeholder="For example: any wolf activity in my allotment this month?" required></textarea>
+        <div class="chat-actions">
+          <button type="button" id="rancher-mic" class="btn" aria-pressed="false">Talk</button>
+          <button type="submit" class="btn btn-solid">Ask</button>
+        </div>
+      </form>
+      <p id="rancher-voice-status" class="hint" role="status" aria-live="polite"></p>
+      <p id="rancher-disclaimer" class="disclaimer assistant-disclaimer">Provides data and general information, not legal, veterinary, or financial advice. It won't help locate individual animals or dens, or identify other ranchers. In an emergency, call 911 or the agency contact on file.</p>
+      <button type="button" id="rancher-signout" class="btn btn-ghost btn-small">Sign out</button>
+    </div>
+  </section>
+
   <dialog id="about" aria-labelledby="about-title">
     <h2 id="about-title">About Predator Watch</h2>
     <p>Predator Watch is a free, open-source map. It brings together predator data that government agencies already publish, starting with gray wolves, and refreshes each source as often as the agency updates it.</p>
@@ -87,5 +127,6 @@
 
   <script src="/vendor/maplibre-gl/maplibre-gl.js"></script>
   <script type="module" src="/app.js"></script>
+  <script type="module" src="/rancher.js"></script>
 </body>
 </html>

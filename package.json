@@ -15,10 +15,16 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "vendor": "node scripts/copy-vendor.mjs",
-    "postinstall": "node scripts/copy-vendor.mjs"
+    "postinstall": "node scripts/copy-vendor.mjs",
+    "dev:mock": "wrangler dev --var XAI_MOCK:1 --var ASSISTANT_DEMO:1",
+    "test:redteam": "REDTEAM_REPORT=redteam-report.json vitest run test/redteam.test.ts"
   },
   "dependencies": {
-    "maplibre-gl": "^5.24.0"
+    "@cloudflare/workers-oauth-provider": "^1.2.4",
+    "@modelcontextprotocol/server": "^2.4.0",
+    "agents": "^0.32.0",
+    "maplibre-gl": "^5.24.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20261031.1",
