@@ -131,7 +131,7 @@ export const SOURCES: SourceConfig[] = [
     cadence: "Changes with hunting regulations.",
     refreshMinutes: 7 * 24 * 60,
     precision: "management-unit",
-    fields: { label: "{DAU} wolf management zone" },
+    fields: { label: "{DAU} wolf management zone", observedAt: { fromLayer: true } },
     maxAllowableOffset: 0.002,
     style: { color: "#3d4f63", fillOpacity: 0, dashed: true, order: 4 },
   },
@@ -152,6 +152,7 @@ export const SOURCES: SourceConfig[] = [
     fields: {
       idField: "HUNTAREA",
       label: "{HUNTNAME} (hunt area {HUNTAREA})",
+      observedAt: { fromLayer: true },
       details: { "Management area": "MGMTAREA" },
     },
     maxAllowableOffset: 0.002,
