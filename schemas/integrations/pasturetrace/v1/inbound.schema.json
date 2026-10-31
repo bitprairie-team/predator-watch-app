@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/steelhead99x/predator-watch-app/schemas/integrations/pasturetrace/v1/inbound.schema.json",
+  "title": "PastureTrace inbound event (v1)",
+  "description": "An animal event sent from PastureTrace to a private Predator Watch tenant. It carries no location. Location stays in PastureTrace and is never sent in this message. Status: Planned.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "tenant_id",
+    "animal_id",
+    "event_type",
+    "timestamp",
+    "confidence",
+    "source"
+  ],
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{2,63}$",
+      "description": "Private tenant (organization) id in Predator Watch."
+    },
+    "animal_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{2,63}$",
+      "description": "The rancher's own animal or tag id, opaque to Predator Watch."
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "unusual_movement",
+        "herd_scatter",
+        "distress",
+        "mortality",
+        "device_offline"
+      ],
+      "description": "What PastureTrace detected."
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the event happened, RFC 3339 with offset."
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "PastureTrace's confidence in the event, 0 to 1."
+    },
+    "source": {
+      "const": "pasturetrace"
+    }
+  },
+  "propertyNames": {
+    "description": "Location fields are never allowed, under any of these names.",
+    "not": {
+      "enum": [
+        "lat",
+        "lon",
+        "lng",
+        "latitude",
+        "longitude",
+        "geometry",
+        "geom",
+        "coordinates",
+        "coords",
+        "location",
+        "position",
+        "point",
+        "x",
+        "y",
+        "wkt",
+        "geojson",
+        "bbox"
+      ]
+    }
+  }
+}

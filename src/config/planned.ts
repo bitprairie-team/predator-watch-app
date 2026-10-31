@@ -8,6 +8,14 @@ export const PLANNED = [
       "A paid, private space for ranchers, community members, and local, state, and federal agencies: data-sharing agreements, points of contact, schedules, and an audit log.",
     doc_url: "https://github.com/steelhead99x/predator-watch-app/blob/main/docs/private-version.md",
   },
+  {
+    id: "pasturetrace-integration",
+    name: "PastureTrace integration",
+    status: "Planned",
+    description:
+      "Exchange of animal events and time-window alerts with PastureTrace for private workspaces. The message schemas carry no locations.",
+    doc_url: "https://github.com/steelhead99x/predator-watch-app/tree/main/schemas/integrations/pasturetrace/v1",
+  },
 ] as const;
 
 /**
