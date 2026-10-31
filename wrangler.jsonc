@@ -10,14 +10,21 @@
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",
-    // Let the Worker handle /api/*; everything else is a static asset.
-    "run_worker_first": ["/api/*"]
+    // Let the Worker handle /api/* and the MCP and sign-in routes; everything
+    // else is a static asset.
+    "run_worker_first": ["/api/*", "/mcp", "/authorize", "/oauth/*", "/.well-known/oauth-*"]
   },
   // Normalized GeoJSON cache. For local dev, wrangler simulates KV on disk and
   // this id is not used. Before deploying, create a namespace with
   // `npx wrangler kv namespace create LAYER_CACHE` and paste its id here.
   "kv_namespaces": [
     { "binding": "LAYER_CACHE", "id": "a923d084b1f4495e833c453b16e4275e" }
+    // Private rancher plan (off until these are bound). See docs/rancher-assistant.md.
+    // PRIVATE_KV holds tenant settings, records, access-key hashes, audit log,
+    // and rate-limit counters. OAUTH_KV holds MCP OAuth clients and tokens.
+    // Create each with `npx wrangler kv namespace create <NAME>` and add:
+    // ,{ "binding": "PRIVATE_KV", "id": "<id>" }
+    // ,{ "binding": "OAUTH_KV", "id": "<id>" }
   ],
   // Refresh sources every 15 minutes. Each source also has its own minimum
   // refresh interval, so slow-changing layers are only checked when due.
@@ -26,6 +33,10 @@
   "vars": {
     "USER_AGENT": "predator-watch-app/0.1 (+https://github.com/steelhead99x/predator-watch-app)"
   }
-  // Secrets (optional): `npx wrangler secret put ARCGIS_API_KEY`.
+  // Rancher assistant settings (optional vars): MODEL_PROVIDER (default "xai"),
+  // XAI_MODEL (default "grok-4.7"), XAI_VOICE_MODEL (default "grok-voice-latest"),
+  // XAI_VOICE (default "eve").
+  // Secrets (optional): `npx wrangler secret put ARCGIS_API_KEY`,
+  // `npx wrangler secret put XAI_API_KEY` (rancher assistant text and voice).
   // Locally, put them in .dev.vars (gitignored).
 }
