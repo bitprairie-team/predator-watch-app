@@ -6,6 +6,9 @@ import { publicInfo, Registry } from "./registry";
 
 const registry = new Registry();
 
+/** One background warm-up per isolate at a time, however many requests arrive. */
+let warming: Promise<void> | null = null;
+
 const JSON_HEADERS = {
   "content-type": "application/json; charset=utf-8",
   "access-control-allow-origin": "*",
@@ -57,7 +60,13 @@ export async function handleRequest(request: Request, env: Env, ctx: ExecutionCo
     const body = await layersIndex(env);
     if (body.layers.some((l) => l.type === "geojson" && l.status.state === "never")) {
       // First run (for example a fresh `wrangler dev`): warm the cache in the background.
-      ctx.waitUntil(refreshDue(registry, env).then(() => undefined, () => undefined));
+      warming ??= refreshDue(registry, env).then(
+        () => undefined,
+        () => undefined,
+      ).finally(() => {
+        warming = null;
+      });
+      ctx.waitUntil(warming);
     }
     return json(body, 200, 30);
   }

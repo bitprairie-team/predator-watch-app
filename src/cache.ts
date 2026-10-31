@@ -39,6 +39,9 @@ const FIXTURES: Record<string, { url: string; body: unknown; lastModified: strin
   },
 };
 
+/** KV values are limited to 25 MiB; stay well under it. */
+export const MAX_STORED_BYTES = 20 * 1024 * 1024;
+
 const dataKey = (id: string) => `data:${id}`;
 const statusKey = (id: string) => `status:${id}`;
 
@@ -109,7 +112,15 @@ export async function refreshSource(
     const result = await adapter.load(ctx);
     const updated = result.sourceUpdatedMs;
     if (result.changed) {
-      await kv.put(dataKey(id), JSON.stringify(result.features));
+      const allowEmpty = adapter.config.allowEmpty ?? adapter.config.category === "context";
+      if (result.features.length === 0 && !allowEmpty && status.feature_count > 0) {
+        throw new Error("Source returned no features; keeping the last good copy");
+      }
+      const body = JSON.stringify(result.features);
+      if (body.length > MAX_STORED_BYTES) {
+        throw new Error(`Source is too large to cache (${Math.round(body.length / 1048576)} MB); raise maxAllowableOffset or lower maxFeatures`);
+      }
+      await kv.put(dataKey(id), body);
       next = {
         ...status,
         state: "ok",

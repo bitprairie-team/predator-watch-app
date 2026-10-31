@@ -97,3 +97,45 @@ describe("HTTP API", () => {
     expect((await handleRequest(new Request("http://x/api/layers", { method: "POST" }), env, ctx)).status).toBe(405);
   });
 });
+
+describe("outage protection", () => {
+  it("keeps the last good copy when a wolf layer suddenly comes back empty", async () => {
+    const env: Env = { LAYER_CACHE: memoryKV() };
+    const raw = fixture("cdfw-wolf-bins.json") as { features: unknown[] };
+    let empty = false;
+    const stub = stubFetch([
+      {
+        match: () => true,
+        respond: () =>
+          jsonResponse(empty ? { type: "FeatureCollection", features: [] } : raw, {
+            "last-modified": empty ? "Sun, 01 Nov 2026 19:00:00 GMT" : LM,
+          }),
+      },
+    ]);
+    const s1 = await refreshSource(cdfw(), env, { fetchImpl: stub.fetch, force: true });
+    expect(s1.feature_count).toBe(raw.features.length);
+    empty = true;
+    const s2 = await refreshSource(cdfw(), env, { fetchImpl: stub.fetch, force: true });
+    expect(s2.state).toBe("error");
+    expect(s2.error).toMatch(/no features/);
+    expect(s2.feature_count).toBe(raw.features.length);
+  });
+
+  it("accepts an empty context layer (for example no active fires)", async () => {
+    const env: Env = { LAYER_CACHE: memoryKV() };
+    const nifc = new Registry().get("nifc-wildfire-perimeters")!;
+    (nifc.config as { http?: object }).http = { minIntervalMs: 0 };
+    const meta = fixture("nifc-layer.json") as { editingInfo: { lastEditDate: number } };
+    let empty = false;
+    const stub = stubFetch([
+      { match: (u) => u.pathname.endsWith("/FeatureServer/0"), respond: () => jsonResponse({ ...meta, editingInfo: { lastEditDate: meta.editingInfo.lastEditDate + (empty ? 1 : 0) } }) },
+      { match: (u) => u.pathname.endsWith("/query"), respond: () => jsonResponse(empty ? { features: [] } : fixture("nifc-query.json")) },
+    ]);
+    await refreshSource(nifc, env, { fetchImpl: stub.fetch, force: true });
+    empty = true;
+    const s = await refreshSource(nifc, env, { fetchImpl: stub.fetch, force: true });
+    expect(s.state).toBe("ok");
+    expect(s.feature_count).toBe(0);
+    delete (nifc.config as { http?: object }).http;
+  });
+});
