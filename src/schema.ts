@@ -72,6 +72,12 @@ export interface SourceStatus {
   /** Agency-reported last edit time of the data, if they publish one. */
   source_updated_at: string | null;
   feature_count: number;
+  /** Last refresh attempt by the cron, successful or not. */
+  attempted_at?: string | null;
+  /** Failed refreshes in a row; 0 after a success. */
+  failures?: number;
+  /** When the most recent failure happened. */
+  last_error_at?: string | null;
   error?: string;
 }
 

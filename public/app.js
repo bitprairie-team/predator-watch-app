@@ -546,56 +546,94 @@ map.on("zoomend", renderLegend);
 if (window.innerWidth < 760) $("#legend").removeAttribute("open");
 
 // ------------------------------------------------------------------ search
+// search.js is loaded on first use. Suggestions come from a local Census
+// Gazetteer index (debounced, 2+ characters); street addresses are looked up
+// on the server only when the form is submitted.
 const searchForm = $("#search");
+const searchInput = $("#search-q");
 const searchOut = $("#search-results");
 let searchMarker = null;
-function parseLatLon(q) {
-  const m = q.match(/^\s*(-?\d{1,3}(?:\.\d+)?)\s*[,\s]\s*(-?\d{1,3}(?:\.\d+)?)\s*$/);
-  if (!m) return null;
-  let a = Number(m[1]), b = Number(m[2]);
-  if (Math.abs(a) > 90 && Math.abs(b) <= 90) [a, b] = [b, a];
-  if (Math.abs(a) > 90 || Math.abs(b) > 180) return null;
-  return { lat: a, lon: b };
-}
+let searchMod = null;
+const loadSearch = () => (searchMod ??= import("/search.js"));
 function goTo(r) {
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (r.bbox) map.fitBounds([[r.bbox[0], r.bbox[1]], [r.bbox[2], r.bbox[3]]], { padding: 40, maxZoom: 11, duration: reduce ? 0 : 800 });
-  else map.flyTo({ center: [r.lon, r.lat], zoom: 10, duration: reduce ? 0 : 800 });
+  map.flyTo({ center: [r.lon, r.lat], zoom: r.zoom ?? 10, duration: reduce ? 0 : 800 });
   searchMarker?.remove();
   searchMarker = new maplibregl.Marker({ color: "#0050b3" }).setLngLat([r.lon, r.lat]).addTo(map);
+  searchOut.innerHTML = `<li class="hint">Showing ${esc(r.name)}.</li>`;
 }
+function showResults(results, note) {
+  searchOut.innerHTML = "";
+  for (const r of results) {
+    const li = document.createElement("li");
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "item-btn";
+    btn.innerHTML = `${esc(r.name)}${r.kind ? `<small>${esc(r.kind)}</small>` : ""}`;
+    btn.addEventListener("click", () => goTo(r));
+    li.appendChild(btn);
+    searchOut.appendChild(li);
+  }
+  if (note) {
+    const li = document.createElement("li");
+    li.className = "hint";
+    li.textContent = note;
+    searchOut.appendChild(li);
+  }
+}
+const GAZ_NOTE = "Places, counties and ZIP codes: U.S. Census Bureau Gazetteer.";
+let searchSeq = 0;
+async function suggest(q) {
+  const seq = ++searchSeq;
+  const m = await loadSearch();
+  if (m.parseLatLon(q) || m.looksLikeAddress(q) || q.trim().length < 2) return;
+  try {
+    const results = await m.searchLocal(q);
+    if (seq !== searchSeq) return;
+    if (results.length) showResults(results, GAZ_NOTE);
+    else searchOut.innerHTML = `<li class="hint">No matching place. Try a town, county, ZIP code, street address, or “44.5, -110.5”.</li>`;
+  } catch {
+    if (seq === searchSeq) searchOut.innerHTML = `<li class="hint">Place search could not load. Check your connection.</li>`;
+  }
+}
+let suggestTimer = 0;
+searchInput.addEventListener("focus", () => loadSearch(), { once: true });
+searchInput.addEventListener("input", () => {
+  clearTimeout(suggestTimer);
+  const q = searchInput.value;
+  if (q.trim().length < 2) { searchOut.innerHTML = ""; return; }
+  suggestTimer = setTimeout(() => suggest(q), 250);
+});
 searchForm.addEventListener("submit", async (e) => {
   e.preventDefault();
-  const q = $("#search-q").value.trim();
-  searchOut.innerHTML = "";
+  clearTimeout(suggestTimer);
+  const q = searchInput.value.trim();
   if (q.length < 2) return;
-  const ll = parseLatLon(q);
-  if (ll) { goTo(ll); searchOut.innerHTML = `<li class="hint">Moved to ${ll.lat.toFixed(4)}, ${ll.lon.toFixed(4)}.</li>`; return; }
-  searchOut.innerHTML = `<li class="hint">Searching…</li>`;
-  try {
-    const res = await fetchWithTimeout(`/api/geocode?q=${encodeURIComponent(q)}`, 12000);
-    if (res.status === 429) { searchOut.innerHTML = `<li class="hint">Search is busy. Try again in a moment.</li>`; return; }
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const body = await res.json();
-    if (!body.results.length) { searchOut.innerHTML = `<li class="hint">No places found in the United States for “${esc(q)}”.</li>`; return; }
-    searchOut.innerHTML = "";
-    for (const r of body.results) {
-      const li = document.createElement("li");
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "item-btn";
-      btn.textContent = r.name;
-      btn.addEventListener("click", () => { goTo(r); searchOut.innerHTML = ""; });
-      li.appendChild(btn);
-      searchOut.appendChild(li);
+  const m = await loadSearch();
+  const ll = m.parseLatLon(q);
+  if (ll) return goTo(ll);
+  const seq = ++searchSeq;
+  if (m.looksLikeAddress(q)) {
+    searchOut.innerHTML = `<li class="hint">Looking up the address…</li>`;
+    try {
+      const r = await m.searchAddress(q);
+      if (seq !== searchSeq) return;
+      if (r.busy) { searchOut.innerHTML = `<li class="hint">Address search is busy. Try again in a few seconds.</li>`; return; }
+      if (!r.results.length) { searchOut.innerHTML = `<li class="hint">No match for that address. Try adding the town and state.</li>`; return; }
+      if (r.results.length === 1) { goTo(r.results[0]); return; }
+      showResults(r.results, r.attribution);
+    } catch {
+      searchOut.innerHTML = `<li class="hint">Address search is not available right now. Try a town, county or ZIP code.</li>`;
     }
-    const note = document.createElement("li");
-    note.className = "hint";
-    note.textContent = body.attribution;
-    searchOut.appendChild(note);
-    if (body.results.length === 1) goTo(body.results[0]);
+    return;
+  }
+  try {
+    const results = await m.searchLocal(q);
+    if (seq !== searchSeq) return;
+    if (results.length) goTo(results[0]);
+    else searchOut.innerHTML = `<li class="hint">No matching place. Try a town, county, ZIP code, street address, or “44.5, -110.5”.</li>`;
   } catch {
-    searchOut.innerHTML = `<li class="hint">Search is not available right now. You can type a latitude and longitude, for example 44.5, -110.5.</li>`;
+    searchOut.innerHTML = `<li class="hint">Place search could not load. Check your connection.</li>`;
   }
 });
 

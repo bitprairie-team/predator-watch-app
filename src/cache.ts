@@ -1,13 +1,15 @@
 // KV-backed cache of normalized GeoJSON plus per-source status, and the
-// refresh logic used by both the Cron Trigger and on-demand requests.
+// refresh logic. Only the Cron Trigger calls agency servers; public requests
+// read KV (see collection()) and never fan out to an agency.
 import type { FetchContext, SourceAdapter } from "./adapters/types";
 import { publicInfo, type Registry } from "./registry";
 import type { NormalizedCollection, NormalizedFeature, SourceStatus } from "./schema";
 import cdfwSample from "./fixtures/cdfw-wolf-bins.sample.json";
 import { diffFeatures, pushChange, type ChangeEntry } from "./lib/changes";
 import { fnv1a } from "./lib/hash";
+import type { Limiters } from "./lib/ratelimit";
 
-export interface Env {
+export interface Env extends Limiters {
   LAYER_CACHE: KVNamespace;
   ASSETS?: Fetcher;
   ARCGIS_API_KEY?: string;
@@ -56,8 +58,15 @@ export function emptyStatus(id: string): StoredStatus {
   };
 }
 
-export async function readStatus(kv: KVNamespace, id: string): Promise<StoredStatus> {
-  return (await kv.get<StoredStatus>(statusKey(id), "json")) ?? emptyStatus(id);
+/**
+ * Public reads pass `cacheTtl` so KV can serve them from the location's
+ * cache; the refresh path reads without it to see the latest write.
+ */
+export async function readStatus(kv: KVNamespace, id: string, cacheTtl?: number): Promise<StoredStatus> {
+  const v = cacheTtl
+    ? await kv.get<StoredStatus>(statusKey(id), { type: "json", cacheTtl })
+    : await kv.get<StoredStatus>(statusKey(id), "json");
+  return v ?? emptyStatus(id);
 }
 
 export function publicStatus(s: StoredStatus): SourceStatus {
@@ -65,9 +74,17 @@ export function publicStatus(s: StoredStatus): SourceStatus {
   return rest;
 }
 
-export async function readData(kv: KVNamespace, id: string): Promise<NormalizedFeature[] | null> {
-  return kv.get<NormalizedFeature[]>(dataKey(id), "json");
+export async function readData(kv: KVNamespace, id: string, cacheTtl?: number): Promise<NormalizedFeature[] | null> {
+  return cacheTtl
+    ? kv.get<NormalizedFeature[]>(dataKey(id), { type: "json", cacheTtl })
+    : kv.get<NormalizedFeature[]>(dataKey(id), "json");
 }
+
+/** Normalized bundled samples, built once per isolate. */
+const fixtureMemo = new Map<string, NormalizedFeature[] | null>();
+
+/** KV's minimum edge cache TTL for reads on the public path. */
+export const PUBLIC_KV_TTL = 30;
 
 function isDue(status: StoredStatus, refreshMinutes: number, now: Date): boolean {
   if (!status.checked_at || status.state === "never" || status.state === "fixture") return true;
@@ -131,6 +148,8 @@ export async function refreshSource(
         source_updated_at: updated ? new Date(updated).toISOString() : null,
         feature_count: result.features.length,
         validator: result.validator,
+        attempted_at: checkedAt,
+        failures: 0,
       };
     } else {
       next = {
@@ -140,12 +159,21 @@ export async function refreshSource(
         source_updated_ms: updated ?? status.source_updated_ms,
         source_updated_at: updated ? new Date(updated).toISOString() : status.source_updated_at,
         validator: result.validator ?? status.validator,
+        attempted_at: checkedAt,
+        failures: 0,
       };
     }
     delete next.error;
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
-    next = { ...status, state: status.state === "fixture" ? "fixture" : "error", error: message };
+    next = {
+      ...status,
+      state: status.state === "fixture" ? "fixture" : "error",
+      error: message,
+      attempted_at: checkedAt,
+      last_error_at: checkedAt,
+      failures: (status.failures ?? 0) + 1,
+    };
     if (status.feature_count === 0 || status.state === "fixture") {
       const fx = await loadFixture(adapter, now);
       if (fx) {
@@ -210,14 +238,25 @@ export async function refreshDue(
   return results;
 }
 
+/**
+ * A source's cached collection, read from KV only. Before the first cron run
+ * a source has no data: it is served empty with state "never", or as the
+ * bundled sample (state "fixture") when one exists. A config change is picked
+ * up by the next cron run; until then the last good copy is served.
+ */
 export async function collection(registry: Registry, env: Env, id: string): Promise<NormalizedCollection | null> {
   const adapter = registry.get(id);
   if (!adapter) return null;
-  let status = await readStatus(env.LAYER_CACHE, id);
-  let features = await readData(env.LAYER_CACHE, id);
-  if (!features || (status.config_hash && status.config_hash !== configHash(adapter.config))) {
-    status = await refreshSource(adapter, env, { force: true });
-    features = (await readData(env.LAYER_CACHE, id)) ?? [];
+  let status = await readStatus(env.LAYER_CACHE, id, PUBLIC_KV_TTL);
+  let features = await readData(env.LAYER_CACHE, id, PUBLIC_KV_TTL);
+  if (!features) {
+    let fx = fixtureMemo.get(id);
+    if (fx === undefined) {
+      fx = await loadFixture(adapter, () => new Date());
+      fixtureMemo.set(id, fx);
+    }
+    features = fx ?? [];
+    if (fx) status = { ...status, state: "fixture", feature_count: fx.length, received_at: null };
   }
   return {
     type: "FeatureCollection",
