@@ -23,6 +23,16 @@
   // refresh interval, so slow-changing layers are only checked when due.
   "routes": [{ "pattern": "app.predatorwatch.org", "custom_domain": true }],
   "triggers": { "crons": ["*/15 * * * *"] },
+  // Per-client rate limits (Workers Rate Limiting; counts are per Cloudflare
+  // location and approximate). namespace_id values must be unique in the
+  // account; change them if they clash. See src/lib/ratelimit.ts.
+  "ratelimits": [
+    { "name": "API_LIMITER", "namespace_id": "47101", "simple": { "limit": 600, "period": 60 } },
+    { "name": "EXPORT_LIMITER", "namespace_id": "47102", "simple": { "limit": 60, "period": 60 } },
+    { "name": "SEARCH_LIMITER", "namespace_id": "47103", "simple": { "limit": 30, "period": 60 } },
+    // One shared key: caps calls to the Census address geocoder from this Worker.
+    { "name": "UPSTREAM_LIMITER", "namespace_id": "47104", "simple": { "limit": 10, "period": 10 } }
+  ],
   "vars": {
     "USER_AGENT": "predator-watch-app/0.1 (+https://github.com/steelhead99x/predator-watch-app)"
   }

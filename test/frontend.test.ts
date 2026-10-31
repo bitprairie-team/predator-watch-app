@@ -11,7 +11,8 @@ describe("front end", () => {
     expect(html).toMatch(/id="legend"/);
     expect(html).toMatch(/id="theme-toggle"[^>]*aria-pressed/);
     expect(html).toMatch(/id="share-link"/);
-    expect(html).toMatch(/Nominatim/);
+    expect(html).toMatch(/Census Bureau Gazetteer/);
+    expect(html).toMatch(/not endorsed or certified by the Census Bureau/);
   });
 
   it("preloads the layer list and defers the map library", () => {

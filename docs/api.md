@@ -65,16 +65,51 @@ whose configuration changed starts a new history.
 
 ### Place search
 
-`q` is 2 to 120 characters: a place name, address, or ZIP code in the
-United States. Results come from OpenStreetMap Nominatim through the Worker,
-at most one request per second, cached for a day:
+Places, counties and ZIP codes are searched in the browser against static
+files built from the U.S. Census Bureau Gazetteer (public domain), so they
+never reach an outside service:
+
+- `/data/gazetteer/{letter}.json`: `[name, state, lat, lon, kind, land_sq_mi]`,
+  where kind is `p` (place) or `c` (county), sorted by name.
+- `/data/gazetteer/zip/{first two digits}.json`: `{ "59715": [lat, lon] }`.
+- Rebuild with `node scripts/build-gazetteer.mjs`.
+
+`/api/geocode?q=` only accepts street addresses (a house number then a
+street, 8 to 120 characters). Anything else gets a 400. Addresses are looked
+up with the [U.S. Census Bureau Geocoder](https://geocoding.geo.census.gov/geocoder/).
+Results are cached at the edge for a week. Calls to the Census service are
+capped across all clients, and one isolate calls it at most once a second.
 
 ```json
-{ "query": "bozeman", "results": [{ "name": "…", "lat": 45.68, "lon": -111.04, "bbox": [-111.1, 45.6, -110.9, 45.7] }],
-  "attribution": "Search © OpenStreetMap contributors (Nominatim)" }
+{ "query": "1 Main St, Helena MT", "results": [{ "name": "1 MAIN ST, HELENA, MT, 59601", "lat": 46.59, "lon": -112.03, "bbox": null }],
+  "attribution": "Address search: U.S. Census Bureau Geocoder. This product uses the Census Bureau Data API but is not endorsed or certified by the Census Bureau." }
 ```
 
 The map also accepts `lat, lon` typed directly without calling this endpoint.
+
+### Status
+
+`/api/status` lists every source with `state`, `last_success_at`,
+`last_change_at`, `last_attempt_at`, `failures_in_a_row`, `last_error_at`,
+`last_error`, `feature_count`, `refresh_minutes` and `overdue`. It also gives
+`last_cron_run`. A readable version is at [/status](/status).
+
+### Caching and rate limits
+
+Every public response is built from the KV cache and stored in the
+Cloudflare edge cache (`s-maxage`, 30 seconds to a week depending on the
+endpoint; `x-edge-cache: HIT|MISS` says which). Public requests never call an
+agency server. Only the 15-minute cron does that.
+
+Per-client limits, per Cloudflare location (approximate):
+
+| Class | Applies to | Limit |
+| --- | --- | --- |
+| api | `/api/*`, `/ogc/*` | 600 requests a minute |
+| export | `.geojson`, `.kml`, `.csv`, OGC items with `limit` over 100 | 60 a minute |
+| search | `/api/geocode` | 30 a minute |
+
+Over the limit you get `429` with `Retry-After: 60` and the usual error JSON.
 
 ## OGC API – Features
 

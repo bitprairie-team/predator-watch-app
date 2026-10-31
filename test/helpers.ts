@@ -30,10 +30,11 @@ export function memoryKV() {
   const store = new Map<string, string>();
   const kv = {
     store,
-    async get(key: string, type?: string) {
+    async get(key: string, type?: string | { type?: string }) {
       const v = store.get(key);
       if (v === undefined) return null;
-      return type === "json" ? JSON.parse(v) : v;
+      const t = typeof type === "object" ? type.type : type;
+      return t === "json" ? JSON.parse(v) : v;
     },
     async put(key: string, value: string) {
       store.set(key, value);
