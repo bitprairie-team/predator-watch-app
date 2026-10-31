@@ -21,6 +21,8 @@ export interface ModelRequest {
   tools: FunctionToolSpec[];
   /** Stable, hashed end-user id for provider abuse attribution. */
   safetyIdentifier?: string;
+  /** Cap on generated tokens for this round. */
+  maxOutputTokens?: number;
   signal?: AbortSignal;
 }
 
@@ -47,6 +49,8 @@ export interface VoiceSession {
   expires_at: number | null;
   /** Sent by the browser as the first session.update. */
   session: Record<string, unknown>;
+  /** True when the instructions and tools were also bound to the short-lived credential server-side. */
+  bound?: boolean;
 }
 
 export interface VoiceProvider {

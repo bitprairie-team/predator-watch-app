@@ -76,6 +76,7 @@ export class XaiProvider implements ModelProvider, VoiceProvider {
       store: false,
       include: ["reasoning.encrypted_content"],
       ...(req.safetyIdentifier ? { safety_identifier: req.safetyIdentifier } : {}),
+      ...(req.maxOutputTokens ? { max_output_tokens: req.maxOutputTokens } : {}),
     };
     const signal = req.signal ?? AbortSignal.timeout(this.opts.timeoutMs ?? 120_000);
     const r = await this.f(`${XAI_BASE}/responses`, {
@@ -112,32 +113,46 @@ export class XaiProvider implements ModelProvider, VoiceProvider {
   }
 
   async createSession(opts: { instructions: string; tools: FunctionToolSpec[] }): Promise<VoiceSession> {
-    const r = await this.f(`${XAI_BASE}/realtime/client_secrets`, {
-      method: "POST",
-      headers: { authorization: `Bearer ${this.opts.apiKey}`, "content-type": "application/json" },
-      // A token opens one session and only has to last until the browser connects.
-      body: JSON.stringify({ expires_after: { seconds: 60 } }),
-      signal: AbortSignal.timeout(15_000),
-    });
-    if (!r.ok) throw new AgentError("provider_error", `xAI client secret error ${r.status}`, 502);
-    const secret = (await r.json()) as { value?: string; expires_at?: number };
-    if (!secret.value) throw new AgentError("provider_error", "xAI returned no client secret", 502);
     const model = this.opts.voiceModel ?? XAI_DEFAULT_VOICE_MODEL;
+    const session = {
+      voice: this.opts.voice ?? "eve",
+      instructions: opts.instructions,
+      turn_detection: { type: "server_vad" },
+      audio: {
+        input: { format: { type: "audio/pcm", rate: 24000 } },
+        output: { format: { type: "audio/pcm", rate: 24000 } },
+      },
+      tools: opts.tools.map((t) => ({ type: "function", name: t.name, description: t.description, parameters: t.parameters })),
+    };
+    const mint = (body: unknown) =>
+      this.f(`${XAI_BASE}/realtime/client_secrets`, {
+        method: "POST",
+        headers: { authorization: `Bearer ${this.opts.apiKey}`, "content-type": "application/json" },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(15_000),
+      });
+    // A token opens one session and only has to last until the browser connects.
+    // Bind the guarded instructions and tools to the token so the browser can't
+    // start a session without them. The REST reference lists `session` as
+    // optional initial config; if the API rejects it, mint a plain token and
+    // rely on the browser's session.update plus the server-side voice guard.
+    let bound = true;
+    let r = await mint({ expires_after: { seconds: 60 }, session: { model, ...session } });
+    if (r.status === 400 || r.status === 422) {
+      bound = false;
+      r = await mint({ expires_after: { seconds: 60 } });
+    }
+    if (!r.ok) throw new AgentError("provider_error", `xAI client secret error ${r.status}`, 502);
+    const secret = (await r.json()) as { value?: string; expires_at?: number; client_secret?: { value?: string; expires_at?: number } };
+    const value = secret.value ?? secret.client_secret?.value;
+    if (!value) throw new AgentError("provider_error", "xAI returned no client secret", 502);
     return {
       provider: this.id,
       url: `wss://api.x.ai/v1/realtime?model=${encodeURIComponent(model)}`,
-      protocols: [`xai-client-secret.${secret.value}`],
-      expires_at: secret.expires_at ?? null,
-      session: {
-        voice: this.opts.voice ?? "eve",
-        instructions: opts.instructions,
-        turn_detection: { type: "server_vad" },
-        audio: {
-          input: { format: { type: "audio/pcm", rate: 24000 } },
-          output: { format: { type: "audio/pcm", rate: 24000 } },
-        },
-        tools: opts.tools.map((t) => ({ type: "function", name: t.name, description: t.description, parameters: t.parameters })),
-      },
+      protocols: [`xai-client-secret.${value}`],
+      expires_at: secret.expires_at ?? secret.client_secret?.expires_at ?? null,
+      session,
+      bound,
     };
   }
 }
