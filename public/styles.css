@@ -110,8 +110,8 @@ dialog .btn { border-color: var(--brand); background: var(--brand); color: #fff;
 @media (max-width: 760px) {
   .tagline { display: none; }
   .layout { flex-direction: column-reverse; }
-  .panel { width: 100%; max-height: 46vh; border-right: 0; border-top: 1px solid var(--line); }
-  .map-wrap { min-height: 54vh; }
+  .panel { width: 100%; max-height: 40vh; max-height: 40dvh; border-right: 0; border-top: 1px solid var(--line); }
+  .map-wrap { flex: 1; min-height: 0; }
   .details { left: .5rem; right: .5rem; width: auto; top: .5rem; max-height: calc(100% - 1rem); }
 }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; } }
