@@ -480,3 +480,62 @@ dialog::backdrop { background: rgba(0,0,0,.4); }
   :root[data-text="3"] .proj-name { font-size: 16px; }
   :root[data-text="2"] .topbar, :root[data-text="3"] .topbar { padding-left: 10px; padding-right: 10px; gap: 8px; }
 }
+
+/* Phone map round: compact credits, short control stack, legend chip, and a
+   half sheet that leaves at least 45% of the screen for the map. */
+.legend-icon { display: none; flex: none; }
+.src-phone, .osm-short, .credits-colon { display: none; }
+@media (max-width: 760px) {
+  /* Credits: one strip. The basemap credit (required) is always shown, in
+     fixed px so larger text settings cannot grow the bar past two lines;
+     agency credits move behind "Data: N sources", which opens Sources. */
+  .credits-bar, :root[data-text] .credits-bar {
+    font-size: 11px; line-height: 1.3; gap: .5rem; min-height: 44px;
+    padding-top: 0; padding-bottom: env(safe-area-inset-bottom);
+  }
+  .credits-line { display: block; flex: 1; }
+  .credits-line a, :root .credits-line a { display: inline; padding: 0; }
+  .credits-label, :root[data-text] .credits-label { font-size: 9.5px; margin-right: .1rem; }
+  .credits-colon { display: inline; }
+  .credits-agencies { display: none; }
+  .osm-full { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .osm-short { display: inline; }
+  .credits-btn, :root[data-text] .credits-btn { min-height: 44px; font-size: 10.5px; letter-spacing: .04em; padding: 0 .55rem; white-space: nowrap; }
+  .src-wide { display: none; }
+  .src-phone { display: inline; }
+  /* Map controls: zoom pair plus locate, close to the corner. */
+  .maplibregl-ctrl-top-left .maplibregl-ctrl { margin: 8px 0 0 8px; }
+  .maplibregl-ctrl-top-left .maplibregl-ctrl + .maplibregl-ctrl { margin-top: 6px; }
+  /* Legend: a 44px icon and label chip in the top right that opens downward. */
+  .legend {
+    top: 8px; right: 8px; bottom: auto; padding: 0;
+    max-height: calc(100% - var(--sheet-h, 0px) - var(--credits-h, 0px) - 16px);
+    max-width: min(260px, calc(100% - 72px));
+  }
+  .legend summary, :root[data-text] .legend summary { min-height: 44px; padding: 0 .7rem; gap: .4rem; list-style: none; font-size: 12px; }
+  .legend summary::-webkit-details-marker { display: none; }
+  .legend-icon { display: block; color: var(--accent); }
+  .legend[open] { padding-bottom: .4rem; }
+  .legend[open] ul { margin: 0 .7rem; }
+  .first-hint { top: 60px; }
+  /* Sheet: keep the handle row one line at any text size. */
+  .sheet-title, :root[data-text] .sheet-title { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .sheet-count, .sheet-mode, :root[data-text] .sheet-count, :root[data-text] .sheet-mode { font-size: 11px; white-space: nowrap; flex: none; }
+  .panel[data-sheet="half"] { height: max(120px, min(46%, calc(100% - var(--credits-h, 46px) - 45vh))); }
+  @supports (height: 1dvh) {
+    .panel[data-sheet="half"] { height: max(120px, min(46%, calc(100% - var(--credits-h, 46px) - 45dvh))); }
+  }
+}
+@media (max-width: 380px) {
+  /* Narrow phones: the Data button wraps to two short lines so the basemap
+     credit keeps room for two lines. */
+  .credits-btn, :root[data-text] .credits-btn { white-space: normal; max-width: 5.6rem; line-height: 1.15; padding: 0 .4rem; font-size: 10px; letter-spacing: .02em; }
+  .credits-bar, :root[data-text] .credits-bar { font-size: 10.5px; gap: .4rem; }
+  .credits-label, :root[data-text] .credits-label { font-size: 9px; letter-spacing: .04em; }
+  /* The masthead name and buttons stay clear of each other at every text size. */
+  .brand-sep, .proj-mark { display: none; }
+  .byline, :root[data-text] .byline { padding-left: 0; }
+  .proj-name, :root[data-text] .proj-name { font-size: 14.5px; }
+  .topbar .btn, :root[data-text] .topbar .btn { font-size: 14px; padding: 0 8px; }
+  .topbar, :root[data-text] .topbar { gap: 6px; }
+}

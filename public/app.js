@@ -127,17 +127,33 @@ function currentTheme() {
 }
 
 // --------------------------------------------------------------- map setup
+const PHONE_AT_START = matchMedia("(max-width: 760px)").matches;
+// Rough extent of the layers that are on by default. The first view fits it,
+// then fits the real data once it loads (see "view fitting" below).
+const DEFAULT_DATA_BOUNDS = [[-124.8, 31.3], [-103.0, 49.1]];
+// View-fitting state: autoView stays true until the person moves the map.
+let autoView = !initial.view;
+let autoBounds = DEFAULT_DATA_BOUNDS;
+let lastPadKey = "";
 const map = new maplibregl.Map({
   container: "map",
   style: BASEMAPS[currentTheme()],
-  center: initial.view?.center ?? [-111, 42],
-  zoom: initial.view?.zoom ?? (window.innerWidth < 760 ? 2.6 : 3.6),
+  ...(initial.view
+    ? { center: initial.view.center, zoom: initial.view.zoom }
+    : { bounds: DEFAULT_DATA_BOUNDS, fitBoundsOptions: { padding: 24 } }),
   minZoom: 2,
   maxZoom: 15,
   attributionControl: false,
   cooperativeGestures: false,
 });
-map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), "top-left");
+// Phones: no compass and no touch rotation, so the control stack stays short
+// and north stays up (there is no way to see or reset a rotation without it).
+map.addControl(new maplibregl.NavigationControl({ visualizePitch: false, showCompass: !PHONE_AT_START }), "top-left");
+if (PHONE_AT_START) {
+  map.touchZoomRotate.disableRotation();
+  map.dragRotate.disable();
+  map.keyboard.disableRotation();
+}
 map.addControl(new maplibregl.ScaleControl({ unit: "imperial" }), "bottom-left");
 // Credits are drawn by renderCredits() below, not MapLibre's control, so the
 // basemap credit stays visible on every screen and agency credits are short.
@@ -259,6 +275,7 @@ async function loadVector(layer) {
   updateItems();
   renderCredits();
   scheduleListView();
+  refineAutoView();
 }
 
 // ---------------------------------------------------------------- panel UI
@@ -715,6 +732,7 @@ function updateItems() {
     btn.innerHTML = `${esc(p.label)}<small>${esc(p.agency)} · observed ${esc(fmtTime(p.observed_at, p.observed_at_precision))}</small>`;
     btn.addEventListener("click", () => {
       const [x0, y0, x1, y1] = f._bbox;
+      autoView = false;
       map.fitBounds([[x0, y0], [x1, y1]], { padding: 80, maxZoom: 8, duration: matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 600 });
       showDetails([f]);
     });
@@ -793,6 +811,7 @@ $("#list-view").addEventListener("click", (e) => {
   const f = l?.data?.features?.find((x) => String(x.properties?.id ?? "") === btn.dataset.fid);
   if (!f) return;
   const [x0, y0, x1, y1] = f._bbox;
+  autoView = false;
   map.fitBounds([[x0, y0], [x1, y1]], { padding: 80, maxZoom: 8, duration: matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 600 });
   showDetails([{ properties: { ...f.properties, details: parseMaybe(f.properties.details) } }]);
 });
@@ -824,6 +843,7 @@ function setPanelOpen(open, { save = true } = {}) {
   edge.title = `${label} (shortcut: [ )`;
   if (save) try { localStorage.setItem(PANEL_KEY, open ? "open" : "closed"); } catch { /* private mode */ }
   map.resize();
+  applyMapPadding({ force: true });
 }
 toggle.addEventListener("click", () => setPanelOpen(panel.hidden));
 edge.addEventListener("click", () => setPanelOpen(panel.hidden));
@@ -914,7 +934,7 @@ const endDrag = () => {
   if (!dragMoved) return;
   const h = panel.getBoundingClientRect().height;
   const total = layout.clientHeight;
-  const targets = { peek: 0, half: total * 0.46, full: total - 64 };
+  const targets = { peek: 0, half: halfSheetPx(total), full: total - 64 };
   const best = Object.entries(targets).sort((a, b) => Math.abs(a[1] - h) - Math.abs(b[1] - h))[0][0];
   setSheet(best);
   setTimeout(() => (dragMoved = false), 0);
@@ -929,6 +949,84 @@ function syncOffsets() {
   const creditsH = Math.round($("#credits-bar").getBoundingClientRect().height);
   layout.style.setProperty("--sheet-h", `${sheetH}px`);
   layout.style.setProperty("--credits-h", `${creditsH}px`);
+  applyMapPadding();
+}
+// Mirrors the CSS for .panel[data-sheet="half"]: 46% of the layout, but never
+// so tall that less than 45% of the screen is left for the map.
+function halfSheetPx(total) {
+  const creditsH = $("#credits-bar").getBoundingClientRect().height;
+  return Math.max(120, Math.min(total * 0.46, total - creditsH - window.innerHeight * 0.45));
+}
+
+// ------------------------------------------------------------ view fitting
+// The first view fits the data that is on, inside the part of the map that
+// the sheet (phones) and credits bar do not cover. Map padding follows the
+// sheet height, so the data stays in view when the sheet moves. Once the
+// person pans, zooms or searches, only the padding follows the sheet.
+const reduceMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+for (const ev of ["dragstart", "zoomstart", "rotatestart", "pitchstart"]) {
+  map.on(ev, (e) => { if (e.originalEvent) autoView = false; });
+}
+function mapPadding() {
+  const sheetH = isPhone() && !panel.hidden ? panel.getBoundingClientRect().height : 0;
+  const creditsH = $("#credits-bar").getBoundingClientRect().height;
+  return { top: 0, right: 0, left: 0, bottom: Math.round(sheetH + creditsH) };
+}
+// Extra room inside the clear area for the map controls (top left), the
+// legend (top right on phones) and the scale bar (bottom left).
+// On short screens (phones in landscape) the margins shrink so the data
+// still gets most of the clear area.
+function fitMargin(pad = mapPadding()) {
+  const m = isPhone() ? { top: 52, right: 10, bottom: 26, left: 52 } : { top: 24, right: 24, bottom: 36, left: 60 };
+  // Wide screens: the open legend sits bottom right, so keep the data above it.
+  const legend = $("#legend");
+  if (!isPhone() && legend?.open) m.bottom = Math.max(m.bottom, Math.round(legend.getBoundingClientRect().height) + 16);
+  const freeH = map.getContainer().clientHeight - pad.bottom;
+  if (freeH - m.top - m.bottom < 160) { m.top = Math.min(m.top, 8); m.bottom = Math.min(m.bottom, 8); }
+  return m;
+}
+function dataBounds() {
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const l of layers.values()) {
+    if (!l.visible || l.type !== "geojson" || !l.data?.features) continue;
+    for (const f of l.data.features) {
+      if (!f.geometry) continue;
+      f._bbox ??= bboxOf(f.geometry);
+      const b = f._bbox;
+      if (!b || !Number.isFinite(b[0])) continue;
+      x0 = Math.min(x0, b[0]); y0 = Math.min(y0, b[1]); x1 = Math.max(x1, b[2]); y1 = Math.max(y1, b[3]);
+    }
+  }
+  return Number.isFinite(x0) ? [[x0, y0], [x1, y1]] : null;
+}
+function fitView({ animate = false } = {}) {
+  const c = map.getContainer();
+  const pad = mapPadding();
+  const m = fitMargin(pad);
+  // Too little clear map to fit into (a tiny window): leave the view alone.
+  if (c.clientHeight - pad.bottom - m.top - m.bottom < 40 || c.clientWidth - m.left - m.right < 80) return;
+  map.fitBounds(autoBounds, { padding: m, maxZoom: 7.5, linear: true, duration: animate && !reduceMotion() ? 450 : 0 });
+}
+function applyMapPadding({ force = false, animate = false } = {}) {
+  const pad = mapPadding();
+  const c = map.getContainer();
+  const key = `${pad.bottom}|${c.clientWidth}x${c.clientHeight}`;
+  if (key === lastPadKey && !force) return;
+  lastPadKey = key;
+  if (autoView) { map.setPadding(pad); fitView({ animate }); }
+  else map.easeTo({ padding: pad, duration: animate && !reduceMotion() ? 200 : 0 });
+}
+$("#legend")?.addEventListener("toggle", () => { if (autoView && !isPhone()) fitView({ animate: true }); });
+// Called after each data layer loads: once every layer that is on has
+// loaded, fit to the real data (unless the person has moved the map).
+function refineAutoView() {
+  if (!autoView) return;
+  const on = [...layers.values()].filter((l) => l.visible && l.type === "geojson");
+  if (on.some((l) => l.loaded === "loading")) return;
+  const b = dataBounds();
+  if (!b) return;
+  autoBounds = b;
+  fitView({ animate: true });
 }
 if ("ResizeObserver" in window) {
   const ro = new ResizeObserver(() => syncOffsets());
@@ -964,6 +1062,8 @@ function renderCredits() {
         ? `<a href="${esc(g.url)}" target="_blank" rel="noopener" title="${esc(g.layers.map((l) => l.name).join(", "))}">${esc(g.name)}<span class="sr-only"> (new tab)</span></a>`
         : `<span>${esc(g.name)}</span>`).join('<span class="credits-sep" aria-hidden="true"> · </span>')}`
     : "";
+  const n = groups.length;
+  $("#credits-count").textContent = `${n} source${n === 1 ? "" : "s"}`;
   updateSheetCount();
   if (!$("#sources-panel").hidden) renderSources();
 }
@@ -1139,6 +1239,7 @@ let searchMod = null;
 const loadSearch = () => (searchMod ??= import("/search.js"));
 function goTo(r) {
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  autoView = false;
   map.flyTo({ center: [r.lon, r.lat], zoom: r.zoom ?? 10, duration: reduce ? 0 : 800 });
   searchMarker?.remove();
   searchMarker = new maplibregl.Marker({ color: "#111418" }).setLngLat([r.lon, r.lat]).addTo(map);
@@ -1309,6 +1410,7 @@ locateBtn.addEventListener("click", () => {
   navigator.geolocation.getCurrentPosition((pos) => {
     const { longitude: lon, latitude: lat } = pos.coords;
     const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    autoView = false;
     map.flyTo({ center: [lon, lat], zoom: Math.max(map.getZoom(), 8), duration: reduce ? 0 : 800 });
     locateMarker?.remove();
     locateMarker = new maplibregl.Marker({ color: "#111418" }).setLngLat([lon, lat]).addTo(map);
