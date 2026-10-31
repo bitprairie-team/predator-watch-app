@@ -103,7 +103,9 @@ export class AgentError extends Error {
       | "invalid_input"
       | "invalid_output"
       | "unknown_tool"
-      | "provider_error",
+      | "provider_error"
+      | "policy_declined"
+      | "timeout",
     message: string,
     public readonly status: number,
   ) {

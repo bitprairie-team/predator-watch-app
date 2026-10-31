@@ -11,8 +11,12 @@ export interface AuditEntry {
   client: string;
   tool: string;
   input: unknown;
-  outcome: "ok" | "denied" | "not_entitled" | "rate_limited" | "invalid_input" | "error";
+  outcome: "ok" | "denied" | "not_entitled" | "rate_limited" | "invalid_input" | "error" | "refused" | "blocked" | "timeout";
   error?: string;
+  /** Guardrail category for "refused" (question declined) and "blocked" (answer replaced). */
+  category?: string;
+  /** Guardrail notes, for example the rule that matched or "sanitized:2". */
+  flags?: string[];
   duration_ms: number;
   sources: Pick<SourceRef, "id" | "kind" | "title" | "url" | "observed_at" | "received_at">[];
 }
@@ -42,4 +46,36 @@ export class StoreAuditLog implements AuditLog {
     }
     return out;
   }
+}
+
+/** Shorten free text before it goes in the audit log. */
+export function excerpt(text: string, max = 200): string {
+  const t = text.replace(/\s+/g, " ").trim();
+  return t.length > max ? `${t.slice(0, max - 1)}…` : t;
+}
+
+/**
+ * Record a guardrail event (a declined question or a blocked answer). The
+ * "tool" field names the channel: assistant.chat, assistant.voice, or the tool
+ * whose argument was declined.
+ */
+export async function recordGuardEvent(
+  audit: AuditLog,
+  ctx: AuthContext,
+  e: { tool: string; outcome: "refused" | "blocked" | "timeout" | "rate_limited"; category?: string; rule?: string; text?: string; flags?: string[]; at?: Date },
+): Promise<void> {
+  await audit.record({
+    id: crypto.randomUUID(),
+    at: (e.at ?? new Date()).toISOString(),
+    tenant_id: ctx.tenantId,
+    user_id: ctx.userId,
+    client: ctx.client,
+    tool: e.tool,
+    input: e.text !== undefined ? { excerpt: excerpt(e.text) } : {},
+    outcome: e.outcome,
+    category: e.category,
+    flags: [...(e.rule ? [`rule:${e.rule}`] : []), ...(e.flags ?? [])],
+    duration_ms: 0,
+    sources: [],
+  });
 }

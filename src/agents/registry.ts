@@ -1,7 +1,10 @@
 // Tool registry and executor. Every call, from any channel (web chat, voice,
 // MCP), goes through execute(): scope check, entitlement check, rate limit,
 // input validation, handler, output validation, audit.
-import type { AuditLog } from "./audit";
+import { excerpt, type AuditLog } from "./audit";
+import { classifyInput } from "../guardrails/classifier";
+import { refusalText } from "../guardrails/policy";
+import { sanitizeData } from "../guardrails/sanitize";
 import { hasScope } from "./auth";
 import type { Entitlements } from "./entitlements";
 import { validate, withDefaults, SOURCE_REF_SCHEMA } from "./json-schema";
@@ -16,6 +19,37 @@ export interface ExecutorDeps<D> {
   /** Tenant-scoped data access, built for this call's AuthContext. */
   data: (ctx: AuthContext) => D;
   now?: () => Date;
+  /** Abort a tool handler after this many milliseconds. Default 10000. */
+  toolTimeoutMs?: number;
+}
+
+/** Every string in a tool input, for the policy check on free-text arguments. */
+function strings(v: unknown, out: string[] = []): string[] {
+  if (typeof v === "string") out.push(v);
+  else if (Array.isArray(v)) v.forEach((x) => strings(x, out));
+  else if (v && typeof v === "object") Object.values(v).forEach((x) => strings(x, out));
+  return out;
+}
+
+function shortInput(v: unknown): unknown {
+  if (typeof v === "string") return excerpt(v);
+  if (Array.isArray(v)) return v.slice(0, 20).map(shortInput);
+  if (v && typeof v === "object") return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, shortInput(x)]));
+  return v;
+}
+
+async function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      p,
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new AgentError("timeout", `The tool took longer than ${ms} ms.`, 504)), ms);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 }
 
 const RESULT_SCHEMA_BASE = {
@@ -68,10 +102,14 @@ export class ToolRegistry<D> {
       user_id: ctx.userId,
       client: ctx.client,
       tool: name,
-      input: rawInput ?? {},
+      input: shortInput(rawInput ?? {}),
     };
-    const fail = async (outcome: Exclude<Parameters<AuditLog["record"]>[0]["outcome"], "ok">, err: AgentError) => {
-      await deps.audit.record({ ...base, outcome, error: err.message, duration_ms: Date.now() - started, sources: [] });
+    const fail = async (
+      outcome: Exclude<Parameters<AuditLog["record"]>[0]["outcome"], "ok">,
+      err: AgentError,
+      extra: { category?: string; flags?: string[] } = {},
+    ) => {
+      await deps.audit.record({ ...base, outcome, error: err.message, duration_ms: Date.now() - started, sources: [], ...extra });
       throw err;
     };
 
@@ -86,19 +124,32 @@ export class ToolRegistry<D> {
     const inErrors = validate(tool.inputSchema, input);
     if (inErrors.length) return fail("invalid_input", new AgentError("invalid_input", inErrors.join("; "), 400));
 
+    // Same scope policy as chat, applied to free-text arguments. This covers
+    // MCP clients and voice, which call tools directly.
+    for (const text of strings(input)) {
+      const d = classifyInput(text);
+      if (d.action === "decline" && d.category)
+        return fail("refused", new AgentError("policy_declined", refusalText(d.category), 422), { category: d.category, flags: [`rule:${d.rule}`] });
+    }
+
     let result: ToolResult;
     try {
-      result = await tool.handler(input, deps.data(ctx), ctx);
+      result = await withTimeout(Promise.resolve(tool.handler(input, deps.data(ctx), ctx)), deps.toolTimeoutMs ?? 10_000);
     } catch (e) {
+      if (e instanceof AgentError && e.code === "timeout") return fail("timeout", e);
       return fail("error", new AgentError("provider_error", e instanceof Error ? e.message : String(e), 500));
     }
+    // Tool output is data. Strip instruction-like text before any model sees it.
+    const clean = sanitizeData(result);
+    result = clean.value;
     const outErrors = validate(this.resultSchema(tool), result);
     if (outErrors.length) return fail("error", new AgentError("invalid_output", outErrors.join("; "), 500));
 
     await deps.audit.record({
       ...base,
-      input,
+      input: shortInput(input),
       outcome: "ok",
+      ...(clean.flagged ? { flags: [`sanitized:${clean.flagged}`] } : {}),
       duration_ms: Date.now() - started,
       sources: result.sources.map(({ id, kind, title, url, observed_at, received_at }) => ({ id, kind, title, url, observed_at, received_at })),
     });
