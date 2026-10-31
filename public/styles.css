@@ -382,3 +382,101 @@ dialog::backdrop { background: rgba(0,0,0,.4); }
   .chips li { flex: none; }
   .chip-name { max-width: 12rem; }
 }
+
+/* --------------------------------------------- non-color layer cues */
+/* Pattern over the layer color and an outline style: the same cue in the
+   list, the legend and the chips; the map uses the same outline style. */
+.swatch[class*="mark-"] { width: 20px; height: 20px; border-radius: 2px; background-color: var(--swatch); border: 2px solid var(--swatch); box-shadow: 0 0 0 1px var(--swatch-ring); }
+.swatch.mark-fill-none { background-color: transparent; }
+.swatch.mark-fill-hatch { background-image: repeating-linear-gradient(45deg, rgba(255,255,255,.62) 0 2px, transparent 2px 5px); }
+.swatch.mark-fill-dots { background-image: radial-gradient(circle, rgba(255,255,255,.8) 1.3px, transparent 1.6px); background-size: 5px 5px; }
+.swatch.mark-fill-cross { background-image: repeating-linear-gradient(45deg, rgba(255,255,255,.55) 0 1.5px, transparent 1.5px 5px), repeating-linear-gradient(-45deg, rgba(255,255,255,.55) 0 1.5px, transparent 1.5px 5px); }
+.swatch.mark-line-dash, .swatch.mark-line-long { border-style: dashed; }
+.swatch.mark-line-dot { border-style: dotted; }
+.swatch.mark-line-dashdot { border-style: double; border-width: 3px; }
+.legend .swatch[class*="mark-"], .chip .swatch[class*="mark-"] { width: 16px; height: 16px; }
+
+/* ---- Simple and Expert views ---- */
+:root[data-mode="simple"] .expert-only { display: none !important; }
+:root[data-mode="expert"] .simple-only { display: none !important; }
+/* Panel width in rem so it grows with the text size, never past half the screen. */
+:root { --panel-w: min(22.5rem, 50vw); }
+@media (min-width: 761px) and (max-width: 1024px) { :root { --panel-w: min(20.75rem, 50vw); } }
+@media (min-width: 761px) and (max-height: 500px) { :root { --panel-w: min(20rem, 50vw); } }
+
+/* Body text at 16px or more. Small mono labels, badges and the credits line stay smaller. */
+.hint, .layer-agency, .layer-summary, .layer details, .feature dl, .feature .note, .feature.land p,
+.changes-feed li, .planned ul, .sources-list, .sources-more, .disclaimer, .small, .status,
+.panel-legend, .tool-check, .first-hint ul, .search-results button, .search label { font-size: 1rem; }
+.layer-name { font-size: 1.05rem; }
+.class-legend { font-size: .9rem; }
+.credits-bar { font-size: .72rem; }
+.credits-label { font-size: .64rem; }
+@media (max-width: 760px) { .credits-bar { font-size: .69rem; } }
+
+.panel-prefs { margin: .2rem 0 .6rem; padding: .3rem 0 .2rem; border-bottom: 1px solid var(--rule); }
+.panel-prefs > summary { display: flex; flex-wrap: wrap; align-items: center; gap: .2rem .6rem; min-height: 44px; cursor: pointer; list-style: none; }
+.panel-prefs > summary::-webkit-details-marker { display: none; }
+.panel-prefs > summary::before { content: "▸"; color: var(--ink-2); transition: transform .15s; }
+.panel-prefs[open] > summary::before { transform: rotate(90deg); }
+.prefs-title { font-weight: 600; font-size: 1rem; }
+.prefs-now { font-size: 1rem; color: var(--ink-2); }
+.panel-prefs[open] .prefs-now { display: none; }
+.prefs-body { padding: .2rem 0 .2rem; }
+.locate-row { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin: .5rem 0 0; }
+.locate-btn { min-height: 44px; font-size: 1rem; }
+.locate-status { margin: .25rem 0 0; font-size: 1rem; color: var(--ink-2); }
+.locate-status:empty { display: none; }
+
+/* Simple view: bigger text and tap targets, plain rows. */
+:root[data-mode="simple"] .search label { font: 600 1.1rem/1.3 var(--sans); color: var(--ink); text-transform: none; letter-spacing: 0; }
+:root[data-mode="simple"] .search input { min-height: 52px; font-size: 1.1rem; }
+:root[data-mode="simple"] .search button, :root[data-mode="simple"] .locate-btn { min-height: 52px; font-size: 1.05rem; padding-left: 1rem; padding-right: 1rem; }
+:root[data-mode="simple"] .group-toggle { min-height: 56px; }
+:root[data-mode="simple"] .group-name { font-size: 1.15rem; }
+:root[data-mode="simple"] .layer { padding-top: .55rem; padding-bottom: .55rem; }
+:root[data-mode="simple"] .layer-row { min-height: 52px; align-items: center; }
+:root[data-mode="simple"] .layer-name { font-size: 1.12rem; }
+:root[data-mode="simple"] .chip { min-height: 44px; font-size: 1rem; }
+:root[data-mode="simple"] .jump-tabs a { min-height: 48px; font-size: 1rem; }
+.layer-plain { margin: .2rem 0 0 calc(22px + 18px + 1.1rem); }
+.layer-plain .layer-summary, .layer-plain .class-legend { margin-left: 0; }
+.layer-plain p { margin: .25rem 0; font-size: 1rem; color: var(--ink-2); }
+.layer-plain .plain-note { color: var(--ink); }
+.feature.plain .plain-sentence { font-size: 1.1rem; color: var(--ink); margin: .4rem 0; }
+.feature.plain p { font-size: 1rem; }
+.sheet-mode { font: 500 .7rem/1.5 var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--ink-2); border: 1px solid var(--rule-strong); padding: 0 .4rem; }
+
+/* List view: the text version of the map. */
+.list-view-list { list-style: none; margin: 0; padding: 0; }
+.list-view-list > li { border-bottom: 1px solid var(--rule); padding: .55rem 0; }
+.list-view-list p { margin: .2rem 0; font-size: 1rem; }
+.lv-name { display: flex; align-items: center; gap: .5rem; font-size: 1.02rem; margin: 0; }
+.lv-meta { color: var(--ink-2); }
+.lv-nearest { margin: .2rem 0 .2rem 1.1rem; padding: 0; font-size: 1rem; }
+.lv-nearest li { margin: .15rem 0; }
+.lv-item { font: inherit; font-weight: 600; color: var(--link); background: none; border: 0; padding: .35rem 0; min-height: 32px; text-decoration: underline; text-underline-offset: .15em; cursor: pointer; text-align: left; }
+@media (pointer: coarse) { .lv-item { min-height: 44px; } }
+
+/* High contrast on the map page. */
+:root[data-contrast="high"] .layer, :root[data-contrast="high"] .layer-group { border-color: #000; }
+:root[data-contrast="high"] .credits-bar { -webkit-backdrop-filter: none; backdrop-filter: none; }
+:root[data-contrast="high"] .chip, :root[data-contrast="high"] .btn, :root[data-contrast="high"] .search input, :root[data-contrast="high"] .layer-tools input { border-width: 2px; }
+:root[data-contrast="high"][data-theme="dark"] .layer, :root[data-contrast="high"][data-theme="dark"] .layer-group { border-color: #fff; }
+:root[data-mode="simple"] .layer-actions .btn, :root[data-mode="simple"] #reset-layers, :root[data-mode="simple"] #all-off { min-height: 44px; font-size: 1rem; }
+:root[data-contrast="high"] .jump-tabs a { text-decoration: none; }
+
+:root[data-text="2"] .jump-tabs a, :root[data-text="3"] .jump-tabs a { letter-spacing: .02em; padding: 0 .2rem; font-size: .7rem; }
+.credits-bar { font-size: min(.72rem, 13px); }
+.credits-label { font-size: min(.64rem, 11.5px); }
+@media (max-width: 760px) { .credits-bar { font-size: min(.69rem, 12.5px); } }
+@media (max-width: 560px) {
+  :root[data-text="2"] .proj-name, :root[data-text="3"] .proj-name { font-size: 17px; }
+  :root[data-text="2"] .byline, :root[data-text="3"] .byline { font-size: 10px; }
+  :root[data-text="3"] .topbar .btn { font-size: 16px; }
+}
+@media (max-width: 560px) {
+  :root[data-text="2"] .topbar .btn, :root[data-text="3"] .topbar .btn { font-size: 15px; padding: 0 10px; min-height: 44px; }
+  :root[data-text="3"] .proj-name { font-size: 16px; }
+  :root[data-text="2"] .topbar, :root[data-text="3"] .topbar { padding-left: 10px; padding-right: 10px; gap: 8px; }
+}

@@ -19,11 +19,28 @@ export function isOutline(layer) {
   return Boolean(layer?.style?.dashed) || !layer?.style?.fillOpacity;
 }
 
+const FILLS = new Set(["solid", "hatch", "dots", "cross", "none"]);
+const LINES = new Set(["solid", "dash", "dot", "dashdot", "long"]);
+/**
+ * Non-color cue: a fill pattern and an outline style per layer (from
+ * src/config/views.ts), so layers are not told apart by color alone.
+ */
+export function markOf(layer) {
+  const m = layer?.mark || {};
+  return {
+    fill: FILLS.has(m.fill) ? m.fill : isOutline(layer) ? "none" : "solid",
+    line: LINES.has(m.line) ? m.line : layer?.style?.dashed ? "dash" : "solid",
+    dash: Array.isArray(m.dash) ? m.dash : layer?.style?.dashed ? [3, 2] : null,
+  };
+}
+
 /** Swatch markup for the layer list and the legend (identical in both). */
 export function swatchHtml(layer) {
   const c = colorOf(layer);
   const kind = layer?.style?.dashed ? "dashed" : isOutline(layer) ? "outline" : "fill";
-  return `<span class="swatch swatch-${kind}" style="--swatch:${c}" data-color="${c}" aria-hidden="true"></span>`;
+  const m = layer?.mark ? markOf(layer) : null;
+  const cls = m ? ` mark-fill-${m.fill} mark-line-${m.line}` : "";
+  return `<span class="swatch swatch-${kind}${cls}" style="--swatch:${c}" data-color="${c}" aria-hidden="true"></span>`;
 }
 
 /** MapLibre paint for an agency GeoJSON layer. */
@@ -32,7 +49,7 @@ export function vectorPaint(layer, theme = "light") {
   const s = layer?.style || {};
   return {
     fill: { "fill-color": c, "fill-opacity": s.fillOpacity ?? 0.2 },
-    line: { "line-color": c, "line-width": s.dashed ? 1.5 : 2, ...(s.dashed ? { "line-dasharray": [3, 2] } : {}) },
+    line: { "line-color": c, "line-width": s.dashed ? 1.5 : 2, ...(markOf(layer).dash ? { "line-dasharray": markOf(layer).dash } : {}) },
     // The point outline follows the basemap so the dot stands out; the dot keeps its color.
     circle: { "circle-color": c, "circle-radius": 5, "circle-stroke-color": theme === "dark" ? "#0e1012" : "#ffffff", "circle-stroke-width": 1.5 },
   };

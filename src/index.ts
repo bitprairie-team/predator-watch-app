@@ -11,6 +11,7 @@ import { cached } from "./lib/edge";
 import { allow, clientKey, type LimitClass } from "./lib/ratelimit";
 import { BASEMAP_CREDITS, RASTER_LAYERS } from "./config/sources";
 import { PLANNED, PLANNED_SOURCES } from "./config/planned";
+import { LAYER_MARKS, LINE_DASH, SIMPLE_GROUPS, SIMPLE_LAYERS } from "./config/views";
 import { publicInfo, Registry } from "./registry";
 
 const registry = new Registry();
@@ -40,7 +41,16 @@ export async function layersIndex(env: Env) {
     }),
   );
   const raster = RASTER_LAYERS.map((r) => ({ ...r, type: "raster" as const, status: { state: "live-service" } }));
-  return { layers: [...vector, ...raster], basemap: BASEMAP_CREDITS, planned: PLANNED, planned_sources: PLANNED_SOURCES };
+  // Same ids, colors and defaults in both views; Simple view adds plain names.
+  const withViews = [...vector, ...raster].map((l) => {
+    const id = l.id as keyof typeof LAYER_MARKS;
+    const mark = LAYER_MARKS[id];
+    return { ...l, mark: mark ? { ...mark, dash: LINE_DASH[mark.line] } : undefined, simple: SIMPLE_LAYERS[id] };
+  });
+  return {
+    layers: withViews, simple_groups: SIMPLE_GROUPS,
+    basemap: BASEMAP_CREDITS, planned: PLANNED, planned_sources: PLANNED_SOURCES,
+  };
 }
 
 export async function statusReport(env: Env) {

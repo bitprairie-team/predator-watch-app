@@ -35,6 +35,6 @@ describe("side panel navigation", () => {
     expect(app).toMatch(/turned \$\{on \? "on" : "off"\}/);
     expect(app).toMatch(/setMany\(\(l\) => Boolean\(l\.style\?\.defaultVisible\)/);
     // Chips remove a layer with a labelled button.
-    expect(app).toMatch(/aria-label="Turn off \$\{esc\(l\.name\)\}"/);
+    expect(app).toMatch(/aria-label="Turn off \$\{esc\(displayName\(l\)\)\}"/);
   });
 });

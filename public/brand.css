@@ -135,3 +135,48 @@ a.btn { display: inline-flex; align-items: center; text-decoration: none; color:
   .byline a { padding: 16px 6px; margin: -16px -6px; }
   .credits-links a { min-width: 44px; justify-content: center; }
 }
+
+/* ---- Display settings (set by /prefs.js on every page) ---- */
+/* Text size: A, A+, A++. Everything sized in rem grows with it. */
+:root[data-text="2"] { font-size: 112.5%; }
+:root[data-text="3"] { font-size: 131.25%; }
+.skip-link { position: absolute; left: -999px; top: 0; background: var(--card); color: var(--ink); padding: .6rem 1rem; z-index: 100; font-weight: 600; }
+.skip-link:focus { left: .5rem; top: .5rem; }
+.pref-row { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; margin: 0 0 .45rem; }
+.pref-label { font: 500 .8rem/1.2 var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--ink-2); min-width: 5.2rem; }
+.pref-btn {
+  font: inherit; font-size: 1rem; line-height: 1.2; min-height: 44px; min-width: 44px; padding: .3rem .75rem;
+  color: var(--ink); background: var(--card); border: 1px solid var(--rule-strong); border-radius: 0; cursor: pointer;
+}
+.pref-btn:hover { border-color: var(--ink); }
+.pref-btn[aria-pressed="true"] { background: var(--ink); color: var(--card); border-color: var(--ink); font-weight: 600; }
+.pref-btn[aria-pressed="true"]::before { content: "✓ "; }
+.pref-text-1 { font-size: .95rem; } .pref-text-2 { font-size: 1.1rem; } .pref-text-3 { font-size: 1.28rem; }
+.pref-text[aria-pressed="true"]::before, .pref-contrast[aria-pressed="true"]::before { content: none; }
+.pref-contrast[aria-pressed="true"]::after { content: " on"; font-weight: 400; }
+.view-switch .pref-btn { flex: 1 1 6rem; font-weight: 600; }
+
+/* High contrast: black and white text, solid rules, underlined links,
+   thick focus rings. Layer colors stay the same so the map key still matches. */
+:root[data-contrast="high"] {
+  --paper: #ffffff; --paper-2: #f0f0f0; --card: #ffffff;
+  --rule: #000000; --rule-strong: #000000;
+  --ink: #000000; --ink-2: #000000; --quiet: #1a1a1a;
+  --accent: #5a3a1a; --accent-hover: #000000; --link: #00306e;
+  --check-border: #000000; --swatch-ring: #000000;
+  --credits-bg: #ffffff; --shadow: rgba(0,0,0,.4);
+}
+:root[data-contrast="high"][data-theme="dark"] {
+  --paper: #000000; --paper-2: #111111; --card: #000000;
+  --rule: #ffffff; --rule-strong: #ffffff;
+  --ink: #ffffff; --ink-2: #ffffff; --quiet: #f0f0f0;
+  --accent: #ffd38a; --accent-hover: #ffffff; --link: #9fd0ff; --accent-ink: #000000;
+  --check-border: #ffffff; --swatch-ring: #ffffff; --credits-bg: #000000;
+}
+:root[data-contrast="high"] a:not(.btn):not(.brand-home):not(.proj-link):not(.skip-link) { text-decoration: underline; text-decoration-thickness: .1em; }
+.byline { white-space: nowrap; }
+:root[data-text="3"] .tagline, :root[data-text="2"] .tagline { display: none; }
+:root[data-contrast="high"] :focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; box-shadow: 0 0 0 6px var(--card); }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}

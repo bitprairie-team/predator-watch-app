@@ -8,7 +8,7 @@ h1 { font: 600 1.9rem/1.15 var(--sans); margin: .2rem 0 .6rem; letter-spacing: -
 .eyebrow { font: 500 .74rem/1.3 var(--mono); text-transform: uppercase; letter-spacing: .08em; color: var(--accent); margin: 1.6rem 0 0; }
 h2 { font: 600 1.15rem/1.3 var(--sans); margin-top: 2rem; padding-top: .6rem; border-top: 2px solid var(--ink); }
 .muted { color: var(--muted); }
-table { border-collapse: collapse; width: 100%; font-size: .92rem; }
+table { border-collapse: collapse; width: 100%; font-size: 1rem; }
 th, td { text-align: left; padding: .45rem .5rem; border-bottom: 1px solid var(--line); vertical-align: top; }
 thead th { font: 500 .72rem/1.3 var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--ink-2); border-bottom: 2px solid var(--ink); }
 tbody th { font-weight: 600; }
@@ -41,3 +41,5 @@ th .muted { font-weight: 400; }
 .run-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .25rem; }
 .run-list .badge { margin-right: .25rem; }
 @media (pointer: coarse) { .sources-table a { display: inline-flex; align-items: center; min-height: 44px; } }
+.page-prefs { margin: 0 0 1.2rem; padding: .7rem .8rem .3rem; border: 1px solid var(--rule); background: var(--card); }
+body { font-size: 1rem; }

@@ -7,6 +7,7 @@
   <meta name="description" content="A free, open-source map that brings together publicly available government and agency predator data, with the source and time on every item.">
   <meta name="theme-color" content="#f3f4f6" data-light="#f3f4f6" data-dark="#0e1012">
   <script src="/theme.js"></script>
+  <script src="/prefs.js"></script>
   <link rel="icon" href="/favicon.ico" sizes="32x32">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="/icons/icon-32.png" sizes="32x32" type="image/png">
@@ -58,25 +59,32 @@
   <main class="layout">
     <aside id="panel" class="panel" tabindex="-1" aria-label="Layers and data" data-sheet="peek">
       <div class="sheet-head">
-        <button type="button" id="sheet-handle" class="sheet-handle" aria-controls="panel-body" aria-expanded="false"><span class="sheet-grip" aria-hidden="true"></span><span class="sheet-title">Layers and data</span><span id="sheet-count" class="sheet-count"></span><span class="sr-only" id="sheet-state">, collapsed. Activate to show more.</span></button>
+        <button type="button" id="sheet-handle" class="sheet-handle" aria-controls="panel-body" aria-expanded="false"><span class="sheet-grip" aria-hidden="true"></span><span class="sheet-title">Layers and data</span><span class="sheet-mode" id="sheet-mode"></span><span id="sheet-count" class="sheet-count"></span><span class="sr-only" id="sheet-state">, collapsed. Activate to show more.</span></button>
         <button type="button" id="sheet-close" class="btn btn-ghost sheet-close" aria-controls="panel-body" hidden>Close<span class="sr-only"> layers</span></button>
       </div>
       <div id="panel-body" class="panel-body">
+      <details class="panel-prefs" id="panel-prefs" open>
+        <summary><span class="prefs-title">View and text size</span> <span class="prefs-now" id="prefs-now"></span></summary>
+        <div class="prefs-body" data-display-controls data-with-mode></div>
+      </details>
       <nav class="jump-tabs" aria-label="Jump to">
         <a href="#sec-layers" data-jump="sec-layers">Layers</a>
+        <a href="#sec-list" data-jump="sec-list">List</a>
         <a href="#sec-legend" data-jump="sec-legend">Legend</a>
         <a href="#sec-sources" data-jump="sec-sources">Sources</a>
       </nav>
-      <p id="status" class="status" role="status" aria-live="polite">Loading layers…</p>
+      <p id="status" class="status expert-only" role="status" aria-live="polite">Loading layers…</p>
 
       <form id="search" class="search" role="search">
-        <label for="search-q">Find a place</label>
+        <label for="search-q">Find my place</label>
         <div class="search-row">
           <input id="search-q" name="q" type="search" placeholder="Town, county, ZIP or address" autocomplete="off" maxlength="120" enterkeyhint="search">
           <button class="btn btn-solid" type="submit">Go</button>
         </div>
+        <button type="button" id="locate-me" class="btn locate-btn"><svg class="btn-icon" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><circle cx="10" cy="10" r="4" fill="currentColor"/><path d="M10 1v3M10 16v3M1 10h3M16 10h3" stroke="currentColor" stroke-width="2"/><circle cx="10" cy="10" r="6.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>Use my location</button>
+        <p id="locate-status" class="hint" role="status" aria-live="polite"></p>
       </form>
-      <ul id="search-results" class="item-list search-results" aria-live="polite"></ul>
+      <ul id="search-results" class="item-list search-results"></ul>
 
       <section id="sec-layers" class="jump-target" aria-labelledby="h-layers" tabindex="-1">
         <h2 id="h-layers">Layers</h2>
@@ -85,10 +93,12 @@
           <ul id="active-chips" class="chips" aria-labelledby="active-label"></ul>
         </div>
         <div class="layer-tools">
+          <div class="expert-only">
           <label for="layer-filter">Filter layers</label>
           <input id="layer-filter" type="search" placeholder="Name, agency or animal" autocomplete="off" maxlength="60" enterkeyhint="search" aria-describedby="filter-status">
+          </div>
           <div class="tools-row">
-            <label class="tool-check" for="active-only"><span class="check"><input type="checkbox" id="active-only"><span class="check-box" aria-hidden="true"></span></span><span>Show active only</span></label>
+            <label class="tool-check expert-only" for="active-only"><span class="check"><input type="checkbox" id="active-only"><span class="check-box" aria-hidden="true"></span></span><span>Show active only</span></label>
             <button type="button" id="reset-layers" class="btn btn-small">Reset to defaults</button>
             <button type="button" id="all-off" class="btn btn-small">Turn all off</button>
           </div>
@@ -97,19 +107,25 @@
         <div id="layer-groups" class="layer-groups"></div>
       </section>
 
+      <section id="sec-list" class="jump-target" aria-labelledby="h-list" tabindex="-1">
+        <h2 id="h-list">List view</h2>
+        <p class="hint">What each layer that is on shows in the current map view, in words.</p>
+        <div id="list-view" class="list-view"><p class="hint">Loading…</p></div>
+      </section>
+
       <section id="sec-legend" class="jump-target" aria-labelledby="h-panel-legend" tabindex="-1">
         <h2 id="h-panel-legend">Legend</h2>
         <p class="hint">Each layer has one color, the same in the list, the legend and on the map.</p>
         <ul id="panel-legend" class="panel-legend"></ul>
       </section>
 
-      <section aria-labelledby="h-items">
+      <section aria-labelledby="h-items" class="expert-only">
         <h2 id="h-items">Items in view</h2>
         <p class="hint">Wolf activity items in the current map view. Select one for its source and times.</p>
         <ul id="items" class="item-list"></ul>
       </section>
 
-      <section aria-labelledby="h-changes">
+      <section aria-labelledby="h-changes" class="expert-only">
         <h2 id="h-changes">Recent changes</h2>
         <p class="hint">What changed in each agency layer since this map last received it.</p>
         <ul id="changes-feed" class="item-list changes-feed"><li class="hint">Loading…</li></ul>
@@ -123,13 +139,14 @@
       </section>
 
       <section aria-labelledby="h-share">
-        <h2 id="h-share">Share and download</h2>
-        <p class="hint">The address bar keeps this view and the layers that are on. Each layer's “About this source” has GeoJSON, KML, and CSV downloads. GIS tools can connect to the <a href="/ogc">OGC API Features</a> service.</p>
+        <h2 id="h-share"><span class="expert-only">Share and download</span><span class="simple-only">Share this map</span></h2>
+        <p class="hint simple-only">The link keeps this map view and the layers that are on.</p>
+        <p class="hint expert-only">The address bar keeps this view and the layers that are on. Each layer's “About this source” has GeoJSON, KML, and CSV downloads. GIS tools can connect to the <a href="/ogc">OGC API Features</a> service.</p>
         <button type="button" id="share-link" class="btn">Copy link to this view</button>
         <p id="share-status" class="hint" role="status" aria-live="polite"></p>
       </section>
 
-      <section aria-labelledby="h-planned" class="planned">
+      <section aria-labelledby="h-planned" class="planned expert-only">
         <h2 id="h-planned">Planned</h2>
         <p class="hint">Features and agency sources that are not built yet. Sources are listed here until their data and terms are checked.</p>
         <ul id="planned-list">
@@ -168,8 +185,10 @@
         <h2 id="first-hint-title">Welcome</h2>
         <ul>
           <li>Turn agency layers on and off under Layers and data.</li>
-          <li>Select a shaded area for its agency, dates and source link.</li>
-          <li>Badges show how fresh each layer is.</li>
+          <li class="simple-only">Tap a colored area to read what it means and who reported it.</li>
+          <li class="simple-only">Type your town or use your location to see your area.</li>
+          <li class="expert-only">Select a shaded area for its agency, dates and source link.</li>
+          <li class="expert-only">Badges show how fresh each layer is.</li>
         </ul>
         <button type="button" id="first-hint-close" class="btn btn-solid">Got it</button>
       </aside>
