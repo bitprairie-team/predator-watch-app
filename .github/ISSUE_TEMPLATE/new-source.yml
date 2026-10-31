@@ -1,0 +1,55 @@
+name: New data source
+description: Suggest a public agency dataset for the map.
+title: "Source: <agency> <dataset>"
+labels: ["data source"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Predator Watch only uses **public, machine-readable data published by a government or agency**. Please do not submit private data, personal sightings or anything that needs a login.
+  - type: input
+    id: agency
+    attributes:
+      label: Agency or owner
+      placeholder: e.g. Department of Fish and Wildlife
+    validations:
+      required: true
+  - type: input
+    id: url
+    attributes:
+      label: Data URL
+      description: ArcGIS REST layer (…/FeatureServer/0 or …/MapServer/0), GeoJSON file, or other service endpoint.
+    validations:
+      required: true
+  - type: input
+    id: info
+    attributes:
+      label: Agency page about the data
+      description: Where the agency describes the dataset, its limitations or its terms.
+  - type: dropdown
+    id: category
+    attributes:
+      label: What kind of layer is it?
+      options:
+        - Predator activity or distribution
+        - Management or regulatory areas
+        - Context (land, weather, fire, boundaries)
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: terms
+    attributes:
+      label: Terms of use
+      description: License, disclaimer or conditions of use, if you found them.
+  - type: input
+    id: cadence
+    attributes:
+      label: How often does the agency update it?
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: The data is published by the agency itself and is open to the public without a token.
+          required: true

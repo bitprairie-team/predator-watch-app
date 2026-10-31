@@ -7,6 +7,24 @@
   <meta name="description" content="A free, open-source map that brings together publicly available government and agency predator data, with the source and time on every item.">
   <meta name="theme-color" content="#1d3b2a">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/icons/icon-32.png" sizes="32x32" type="image/png">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="canonical" href="https://app.predatorwatch.org/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Predator Watch">
+  <meta property="og:title" content="Predator Watch: public agency predator data on one map">
+  <meta property="og:description" content="Free, open-source map of wolf data that government agencies publish, with the source, date and freshness on every item.">
+  <meta property="og:url" content="https://app.predatorwatch.org/">
+  <meta property="og:image" content="https://app.predatorwatch.org/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Predator Watch map with agency wolf layers and freshness badges">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Predator Watch: public agency predator data on one map">
+  <meta name="twitter:description" content="Free, open-source map of wolf data that government agencies publish, with the source, date and freshness on every item.">
+  <meta name="twitter:image" content="https://app.predatorwatch.org/og.png">
+  <meta name="twitter:image:alt" content="Predator Watch map with agency wolf layers and freshness badges">
   <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
   <meta name="color-scheme" content="light dark">
   <link rel="preload" href="/api/layers" as="fetch" crossorigin="anonymous">
@@ -37,7 +55,7 @@
       <form id="search" class="search" role="search">
         <label for="search-q">Find a place</label>
         <div class="search-row">
-          <input id="search-q" name="q" type="search" placeholder="Town, county, ZIP, address, or 44.5, -110.5" autocomplete="off" maxlength="120" enterkeyhint="search">
+          <input id="search-q" name="q" type="search" placeholder="Town, county, ZIP or address" autocomplete="off" maxlength="120" enterkeyhint="search">
           <button class="btn btn-solid" type="submit">Go</button>
         </div>
       </form>
@@ -84,11 +102,27 @@
         </ul>
       </section>
 
+      <nav class="panel-links" aria-label="More">
+        <a href="/about">How this works</a>
+        <a href="/status">Source status</a>
+        <a href="https://github.com/steelhead99x/predator-watch-app/issues/new?template=new-source.yml" rel="noopener">Suggest a source</a>
+        <a href="https://github.com/steelhead99x/predator-watch-app" rel="noopener">Source code</a>
+      </nav>
+
       <p class="disclaimer">Generalized public data from the agencies named on each layer. Locations are never shown more precisely than the agency publishes them. A highlighted area shows where the agency reports activity; it is not a current animal position. Check the agency's own notes before relying on any layer.</p>
     </aside>
 
     <div class="map-wrap">
       <div id="map" role="region" aria-label="Map. Use arrow keys to pan and plus or minus to zoom when focused." tabindex="0"></div>
+      <aside id="first-hint" class="first-hint" aria-labelledby="first-hint-title" hidden>
+        <h2 id="first-hint-title">Welcome</h2>
+        <ul>
+          <li>Turn agency layers on and off in the panel.</li>
+          <li>Select a shaded area for its agency, dates and source link.</li>
+          <li>Badges show how fresh each layer is.</li>
+        </ul>
+        <button type="button" id="first-hint-close" class="btn btn-solid">Got it</button>
+      </aside>
       <details id="legend" class="legend" open>
         <summary>Legend</summary>
         <ul id="legend-list"></ul>
@@ -108,6 +142,7 @@
     <p>Predator Watch is a free, open-source map. It brings together predator data that government agencies already publish, starting with gray wolves, and refreshes each source as often as the agency updates it.</p>
     <p>Every item shows which agency published it, when the agency observed or last updated it, and when this map received it. Each layer has a freshness badge. Data is shown at the same precision the agency publishes, never finer.</p>
     <p>Only public agency data is used here. A private collaboration space for ranchers, community members, and agencies is <strong>Planned</strong>.</p>
+    <p><a href="/about">Methodology, freshness and limitations</a> · <a href="/status">Source status</a> · <a href="https://github.com/steelhead99x/predator-watch-app/issues/new?template=new-source.yml">Suggest a source</a></p>
     <p>Source code and the full list of data sources: <a href="https://github.com/steelhead99x/predator-watch-app">github.com/steelhead99x/predator-watch-app</a> (Apache-2.0).</p>
     <p class="small">Place search: <a href="https://www.census.gov/geographies/reference-files/time-series/geo/gazetteer-files.html">U.S. Census Bureau Gazetteer</a> (places, counties, ZIP codes, searched in your browser) and the <a href="https://geocoding.geo.census.gov/geocoder/">Census Bureau Geocoder</a> (street addresses). This product uses the Census Bureau Data API but is not endorsed or certified by the Census Bureau. Saved copies of the layer list and agency data are kept in this browser so the map still opens without a connection.</p>
     <p class="small">Basemap: <a href="https://openfreemap.org/">OpenFreeMap</a> © <a href="https://openmaptiles.org/">OpenMapTiles</a>, data © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors.</p>
