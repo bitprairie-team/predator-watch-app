@@ -12,7 +12,10 @@ describe("credits", () => {
   it("shows the basemap credit, from sources.ts, in the always-visible credits bar", () => {
     const bar = html.slice(html.indexOf('id="credits-bar"'), html.indexOf('id="sources-open"'));
     expect(bar.length).toBeGreaterThan(0);
-    for (const c of BASEMAP_CREDITS) expect(bar).toContain(`<a href="${c.url}" rel="noopener">${c.name}</a>`);
+    // What assistive tech reads: drop the aria-hidden short form ("OSM") and
+    // the wrapper spans around the full form, which phones show visually short.
+    const spoken = bar.replace(/<span[^>]*aria-hidden="true"[^>]*>[^<]*<\/span>/g, "").replace(/<\/?span[^>]*>/g, "");
+    for (const c of BASEMAP_CREDITS) expect(spoken).toContain(`<a href="${c.url}" rel="noopener">${c.name}</a>`);
     expect(BASEMAP_CREDITS.map((c) => c.url)).toContain("https://www.openstreetmap.org/copyright");
     // MapLibre's own collapsible attribution control is replaced, not stacked.
     expect(readFileSync("public/app.js", "utf8")).toMatch(/attributionControl: false/);
