@@ -1,11 +1,12 @@
 // Predator Watch front end. Plain ES module, no build step.
 /* global maplibregl */
+import { creditGroups, swatchHtml, vectorPaint, vectorTilePaint } from "/layer-style.js";
 
 const BASEMAPS = {
   light: "https://tiles.openfreemap.org/styles/positron",
   dark: "https://tiles.openfreemap.org/styles/dark",
 };
-const CATEGORY_ORDER = ["wolf-activity", "wolf-management", "context"];
+const CATEGORY_ORDER = ["wolf-activity", "wolf-management", "bear", "context"];
 const PRECISION_TEXT = {
   "hex-cell": "Generalized hexagon cell chosen by the agency",
   "pack-territory": "Generalized pack area drawn by the agency",
@@ -118,11 +119,6 @@ const THEME_KEY = "bp-theme";
 function currentTheme() {
   return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
 }
-/** Layer style with the colour for the current theme. */
-function styleFor(layer) {
-  const s = layer.style || { color: layer.color, fillOpacity: 0.4 };
-  return currentTheme() === "dark" && s.colorDark ? { ...s, color: s.colorDark } : s;
-}
 
 // --------------------------------------------------------------- map setup
 const map = new maplibregl.Map({
@@ -137,20 +133,8 @@ const map = new maplibregl.Map({
 });
 map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), "top-left");
 map.addControl(new maplibregl.ScaleControl({ unit: "imperial" }), "bottom-left");
-map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-right");
-// Start the credits collapsed on small screens so they do not cover the map;
-// the (i) button still opens them. MapLibre re-opens the box whenever the
-// credits change, so keep it closed until the reader opens it.
-let creditsTouched = false;
-document.addEventListener("click", (e) => {
-  if (e.target instanceof Element && e.target.closest(".maplibregl-ctrl-attrib-button")) creditsTouched = true;
-});
-map.on("idle", () => {
-  if (creditsTouched || window.innerWidth >= 760) return;
-  const el = document.querySelector(".maplibregl-ctrl-attrib");
-  el?.classList.remove("maplibregl-compact-show");
-  el?.removeAttribute("open");
-});
+// Credits are drawn by renderCredits() below, not MapLibre's control, so the
+// basemap credit stays visible on every screen and agency credits are short.
 if ("geolocation" in navigator) {
   map.addControl(new maplibregl.GeolocateControl({ trackUserLocation: false, showAccuracyCircle: false }), "top-left");
 }
@@ -162,24 +146,25 @@ function firstSymbolLayer() {
 // ------------------------------------------------------------- data layers
 function addVector(layer) {
   const id = layer.id;
-  const s = styleFor(layer);
-  map.addSource(id, { type: "geojson", data: layer.data, attribution: esc(layer.attribution) });
+  const s = layer.style || {};
+  const paint = vectorPaint(layer, currentTheme());
+  map.addSource(id, { type: "geojson", data: layer.data });
   const before = firstSymbolLayer();
   const vis = layer.visible ? "visible" : "none";
   map.addLayer({
     id: `${id}-fill`, type: "fill", source: id, filter: ["in", ["geometry-type"], ["literal", ["Polygon", "MultiPolygon"]]],
     layout: { visibility: vis },
-    paint: { "fill-color": s.color, "fill-opacity": s.fillOpacity ?? 0.2 },
+    paint: paint.fill,
   }, before);
   map.addLayer({
     id: `${id}-line`, type: "line", source: id, filter: ["in", ["geometry-type"], ["literal", ["Polygon", "MultiPolygon", "LineString", "MultiLineString"]]],
     layout: { visibility: vis, "line-join": "round" },
-    paint: { "line-color": s.color, "line-width": s.dashed ? 1.5 : 2, ...(s.dashed ? { "line-dasharray": [3, 2] } : {}) },
+    paint: paint.line,
   }, before);
   map.addLayer({
     id: `${id}-circle`, type: "circle", source: id, filter: ["in", ["geometry-type"], ["literal", ["Point", "MultiPoint"]]],
     layout: { visibility: vis },
-    paint: { "circle-color": s.color, "circle-radius": 5, "circle-stroke-color": currentTheme() === "dark" ? "#0e1012" : "#fff", "circle-stroke-width": 1.5 },
+    paint: paint.circle,
   }, before);
   if (hoverBound.has(id)) return;
   hoverBound.add(id);
@@ -195,19 +180,19 @@ function addRaster(layer) {
   if (layer.vector) {
     // Agency vector tiles drawn as a light fill with an outline.
     map.addSource(layer.id, {
-      type: "vector", tiles: layer.tiles, minzoom: 0, maxzoom: layer.maxzoom ?? 14, attribution: esc(layer.attribution),
+      type: "vector", tiles: layer.tiles, minzoom: 0, maxzoom: layer.maxzoom ?? 14,
     });
     map.addLayer({
       id: `${layer.id}-raster`, type: "fill", source: layer.id, "source-layer": layer.vector.source_layer,
       minzoom: layer.minzoom ?? 0,
       layout: { visibility: layer.visible ? "visible" : "none" },
-      paint: { "fill-color": layer.color, "fill-opacity": layer.vector.fill_opacity, "fill-outline-color": layer.vector.outline },
+      paint: vectorTilePaint(layer),
     }, before);
     return;
   }
   map.addSource(layer.id, {
     type: "raster", tiles: layer.tiles, tileSize: layer.tileSize,
-    minzoom: layer.minzoom ?? 0, maxzoom: layer.maxzoom ?? 22, attribution: esc(layer.attribution),
+    minzoom: layer.minzoom ?? 0, maxzoom: layer.maxzoom ?? 22,
   });
   map.addLayer({
     id: `${layer.id}-raster`, type: "raster", source: layer.id,
@@ -228,6 +213,7 @@ function setVisible(layer, on) {
   if (on && layer.type === "raster" && !map.getSource(layer.id)) addRaster(layer);
   updateItems();
   renderLegend();
+  renderCredits();
   writeHash();
 }
 
@@ -263,13 +249,13 @@ async function loadVector(layer) {
   }
   renderLayerRow(layer);
   updateItems();
+  renderCredits();
 }
 
 // ---------------------------------------------------------------- panel UI
 function renderLayerRow(layer) {
   const li = document.getElementById(`row-${layer.id}`);
   if (!li) return;
-  const s = styleFor(layer);
   const inputId = `toggle-${layer.id}`;
   const infoUrl = safeUrl(layer.info_url);
   const endpoint = safeUrl(layer.url || layer.legend_url);
@@ -282,14 +268,17 @@ function renderLayerRow(layer) {
   const nm = esc(layer.name);
   li.innerHTML = `
     <div class="layer-row">
-      <input type="checkbox" id="${inputId}" ${layer.visible ? "checked" : ""} aria-describedby="badges-${layer.id}">
-      <span class="swatch ${s.dashed ? "dashed" : ""}" style="border-color:${esc(s.color)};background:${s.dashed || !s.fillOpacity ? "transparent" : esc(s.color) + "55"}" aria-hidden="true"></span>
+      <span class="check"><input type="checkbox" id="${inputId}" ${layer.visible ? "checked" : ""} aria-describedby="badges-${layer.id}"><span class="check-box" aria-hidden="true"></span></span>
+      ${swatchHtml(layer)}
       <label for="${inputId}">
         <span class="layer-name">${esc(layer.name)}</span>
         <span class="layer-agency">${esc(layer.agency)}${layer.species ? ` · ${esc(layer.species)}` : ""}</span>
       </label>
     </div>
+    ${layer.summary ? `<p class="layer-summary">${esc(layer.summary)}</p>` : ""}
+    ${layer.classes ? classLegendHtml(layer) : ""}
     <div class="badges" id="badges-${layer.id}">
+      ${zoomedOut(layer) ? `<span class="badge warn">${esc(layer.zoom_hint || "Zoom in to see this layer")}</span>` : ""}
       ${badges(layer).map((b) => `<span class="badge ${b.cls}" title="${esc(b.title)}">${esc(b.text)}</span>`).join("")}
       ${layer.loaded === false && layer.loadError ? `<button type="button" class="btn btn-small retry">Retry<span class="sr-only"> loading ${nm}</span></button>` : ""}
     </div>
@@ -297,6 +286,7 @@ function renderLayerRow(layer) {
       <summary>About this source<span class="sr-only">: ${nm}</span></summary>
       <dl>
         <dt>Publisher</dt><dd>${esc(layer.attribution)}</dd>
+        ${layer.type === "raster" && !layer.drawn_in_palette ? `<dt>Map colors</dt><dd>Drawn by the agency's map service. The swatch marks this layer in the list and legend. <a href="${esc(safeUrl(layer.legend_url) || "")}" target="_blank" rel="noopener">Agency legend<span class="sr-only"> for ${nm} (new tab)</span></a></dd>` : ""}
         <dt>Updates</dt><dd>${esc(layer.cadence)}</dd>
         ${layer.precision ? `<dt>Precision</dt><dd>${esc(PRECISION_TEXT[layer.precision] || layer.precision)}</dd>` : ""}
         ${typeof count === "number" && layer.type === "geojson" ? `<dt>Items</dt><dd>${count}</dd>` : ""}
@@ -315,6 +305,16 @@ function renderLayerRow(layer) {
   li.querySelector("input").addEventListener("change", (e) => setVisible(layer, e.target.checked));
   li.querySelector(".retry")?.addEventListener("click", () => loadVector(layer));
   if (focusSel) li.querySelector(focusSel)?.focus();
+}
+
+/** True when a layer only draws closer in than the current zoom. */
+function zoomedOut(layer) {
+  return Boolean(layer.visible && layer.minzoom && map.getZoom() < layer.minzoom);
+}
+/** Mini legend: one fixed color per class (e.g. each land manager). */
+function classLegendHtml(layer) {
+  return `<ul class="class-legend" aria-label="${esc(layer.name)} colors">${layer.classes.map((c) =>
+    `<li>${swatchHtml({ style: { color: c.color, fillOpacity: 1 } })}<span>${esc(c.label)}</span></li>`).join("")}</ul>`;
 }
 
 function renderPanel(all) {
@@ -385,7 +385,62 @@ map.on("click", (e) => {
   const unique = hits.filter((f) => { const k = f.properties.id; if (seen.has(k)) return false; seen.add(k); return true; })
     .map((f) => ({ properties: { ...f.properties, details: parseMaybe(f.properties.details) } }));
   if (unique.length) showDetails(unique.slice(0, 8));
+  identifyLand(e.lngLat, unique.length > 0);
 });
+
+// "Who manages the land": ask BLM's service what is under the click and
+// say it in plain words. Runs only when that layer is on and drawn.
+let landSeq = 0;
+async function identifyLand(lngLat, append) {
+  const layer = [...layers.values()].find((l) => l.identify && l.visible && !zoomedOut(l));
+  if (!layer) return;
+  const seq = ++landSeq;
+  const b = map.getBounds();
+  const c = map.getCanvas();
+  const q = new URLSearchParams({
+    geometry: `${lngLat.lng},${lngLat.lat}`, geometryType: "esriGeometryPoint", sr: "4326",
+    layers: `all:${layer.identify.layer_id}`, tolerance: "1", returnGeometry: "false",
+    mapExtent: [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()].join(","),
+    imageDisplay: `${c.clientWidth},${c.clientHeight},96`, f: "json",
+  });
+  let code = null;
+  try {
+    const res = await fetchWithTimeout(`${layer.identify.url}?${q}`, 12000);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const body = await res.json();
+    code = body.results?.[0]?.attributes?.[layer.identify.field] ?? null;
+  } catch {
+    if (seq !== landSeq || append) return;
+    showLand(layer, null, append, "The land manager could not be looked up right now. Try again in a moment.");
+    return;
+  }
+  if (seq !== landSeq) return;
+  showLand(layer, code, append);
+}
+/** The land class for an agency code; anything unlisted is "other". */
+function landClassFor(layer, code) {
+  return layer.classes.find((c) => c.codes.includes(String(code))) ?? layer.classes.find((c) => c.key === "other");
+}
+function showLand(layer, code, append, error) {
+  const cls = code === null ? null : landClassFor(layer, code);
+  const info = safeUrl(layer.info_url);
+  const html = `<article class="feature land">
+    <h3>${cls ? `${swatchHtml({ style: { color: cls.color, fillOpacity: 1 } })} Managed by: ${esc(cls.label)}` : error ? "Who manages the land" : "Managed by: not listed"}</h3>
+    ${cls ? `<p><strong>What this means:</strong> ${esc(cls.meaning)}</p>`
+      : `<p>${esc(error || "BLM's data shows no surface manager at this spot. It is usually private or water.")}</p>`}
+    <p class="note">${esc(layer.popup_note || "")}</p>
+    <p class="note">Source: ${info ? `<a href="${esc(info)}" target="_blank" rel="noopener">${esc(layer.attribution)}<span class="sr-only"> (new tab)</span></a>` : esc(layer.attribution)}</p>
+  </article>`;
+  if (append && !detailsEl.hidden) {
+    $("#details-body").insertAdjacentHTML("beforeend", html);
+    return;
+  }
+  lastFocus = document.activeElement;
+  $("#details-title").textContent = "Land manager";
+  $("#details-body").innerHTML = html;
+  detailsEl.hidden = false;
+  $("#details-close").focus();
+}
 function parseMaybe(v) {
   if (typeof v !== "string") return v;
   try { return JSON.parse(v); } catch { return {}; }
@@ -450,15 +505,167 @@ function updateItems() {
 }
 map.on("moveend", () => { updateItems(); writeHash(); });
 
-// ------------------------------------------------------------ panel toggle
+// ------------------------------------------------------------ panel / sheet
+// Wide screens: a side panel the header "Layers" button shows and hides.
+// Phones (760px and narrower): a bottom sheet over the map with three
+// heights (peek, half, full). Drag the handle, tap it, or use the arrow keys.
 const panel = $("#panel");
+const layout = $(".layout");
 const toggle = $("#panel-toggle");
+const sheetHandle = $("#sheet-handle");
+const sheetClose = $("#sheet-close");
+const SHEET_STATES = ["peek", "half", "full"];
+const phoneQuery = matchMedia("(max-width: 760px)");
+const isPhone = () => phoneQuery.matches;
+
 toggle.addEventListener("click", () => {
   const open = panel.hidden;
   panel.hidden = !open;
   toggle.setAttribute("aria-expanded", String(open));
   map.resize();
 });
+
+function setSheet(state, { focus = false } = {}) {
+  if (!SHEET_STATES.includes(state)) state = "peek";
+  panel.dataset.sheet = state;
+  panel.style.removeProperty("height");
+  const open = state !== "peek";
+  sheetHandle.setAttribute("aria-expanded", String(open));
+  $("#sheet-state").textContent = state === "peek" ? ", collapsed. Activate to show more."
+    : state === "half" ? ", half open. Activate to open fully." : ", fully open. Activate to collapse.";
+  sheetClose.hidden = !open;
+  if (focus && open) sheetHandle.focus();
+  syncOffsets();
+}
+sheetHandle.addEventListener("click", () => {
+  if (dragMoved) return;
+  const i = SHEET_STATES.indexOf(panel.dataset.sheet);
+  setSheet(SHEET_STATES[(i + 1) % SHEET_STATES.length]);
+});
+sheetHandle.addEventListener("keydown", (e) => {
+  const i = SHEET_STATES.indexOf(panel.dataset.sheet);
+  if (e.key === "ArrowUp") { e.preventDefault(); setSheet(SHEET_STATES[Math.min(2, i + 1)]); }
+  if (e.key === "ArrowDown") { e.preventDefault(); setSheet(SHEET_STATES[Math.max(0, i - 1)]); }
+});
+sheetClose.addEventListener("click", () => { setSheet("peek"); sheetHandle.focus(); });
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && isPhone() && panel.dataset.sheet !== "peek" && panel.contains(document.activeElement)) {
+    setSheet("peek");
+    sheetHandle.focus();
+  }
+});
+
+// Dragging the handle: follow the finger, then snap to the nearest height.
+let dragStart = null;
+let dragMoved = false;
+sheetHandle.addEventListener("pointerdown", (e) => {
+  if (!isPhone()) return;
+  dragStart = { y: e.clientY, h: panel.getBoundingClientRect().height };
+  dragMoved = false;
+  sheetHandle.setPointerCapture?.(e.pointerId);
+});
+sheetHandle.addEventListener("pointermove", (e) => {
+  if (!dragStart) return;
+  const dy = dragStart.y - e.clientY;
+  if (Math.abs(dy) > 6) dragMoved = true;
+  if (!dragMoved) return;
+  const max = layout.clientHeight - 56;
+  panel.style.height = `${Math.max(56, Math.min(max, dragStart.h + dy))}px`;
+  panel.classList.add("dragging");
+  syncOffsets();
+});
+const endDrag = () => {
+  if (!dragStart) return;
+  dragStart = null;
+  panel.classList.remove("dragging");
+  if (!dragMoved) return;
+  const h = panel.getBoundingClientRect().height;
+  const total = layout.clientHeight;
+  const targets = { peek: 0, half: total * 0.46, full: total - 64 };
+  const best = Object.entries(targets).sort((a, b) => Math.abs(a[1] - h) - Math.abs(b[1] - h))[0][0];
+  setSheet(best);
+  setTimeout(() => (dragMoved = false), 0);
+};
+sheetHandle.addEventListener("pointerup", endDrag);
+sheetHandle.addEventListener("pointercancel", endDrag);
+
+// The legend, scale bar, credits and details sit above the sheet and the
+// credits bar, so nothing on the map is hidden under them.
+function syncOffsets() {
+  const sheetH = isPhone() && !panel.hidden ? Math.round(panel.getBoundingClientRect().height) : 0;
+  const creditsH = Math.round($("#credits-bar").getBoundingClientRect().height);
+  layout.style.setProperty("--sheet-h", `${sheetH}px`);
+  layout.style.setProperty("--credits-h", `${creditsH}px`);
+}
+if ("ResizeObserver" in window) {
+  const ro = new ResizeObserver(() => syncOffsets());
+  ro.observe(panel);
+  ro.observe($("#credits-bar"));
+}
+function onViewportChange() {
+  if (!isPhone()) panel.style.removeProperty("height");
+  if (isPhone() && panel.hidden) { panel.hidden = false; toggle.setAttribute("aria-expanded", "true"); }
+  syncOffsets();
+  map.resize();
+}
+phoneQuery.addEventListener?.("change", onViewportChange);
+window.addEventListener("orientationchange", () => setTimeout(onViewportChange, 250));
+window.addEventListener("resize", () => requestAnimationFrame(syncOffsets));
+
+function updateSheetCount() {
+  const n = [...layers.values()].filter((l) => l.visible).length;
+  $("#sheet-count").textContent = n ? `${n} on` : "none on";
+}
+
+// ------------------------------------------------------------------ credits
+// One compact line, always on screen: the basemap credit, then a short
+// credit for each agency layer that is on. "Sources" opens the full list.
+function visibleLayers() {
+  return [...layers.values()].filter((l) => l.visible)
+    .sort((a, b) => CATEGORY_ORDER.indexOf(a.category) - CATEGORY_ORDER.indexOf(b.category) || (b.style?.order ?? 0) - (a.style?.order ?? 0));
+}
+function renderCredits() {
+  const groups = creditGroups(visibleLayers());
+  $("#credits-agencies").innerHTML = groups.length
+    ? `<span class="credits-label">Data</span> ${groups.map((g) => g.url
+        ? `<a href="${esc(g.url)}" target="_blank" rel="noopener" title="${esc(g.layers.map((l) => l.name).join(", "))}">${esc(g.name)}<span class="sr-only"> (new tab)</span></a>`
+        : `<span>${esc(g.name)}</span>`).join('<span class="credits-sep" aria-hidden="true"> · </span>')}`
+    : "";
+  updateSheetCount();
+  if (!$("#sources-panel").hidden) renderSources();
+}
+function renderSources() {
+  const list = visibleLayers();
+  $("#sources-list").innerHTML = list.length ? list.map((l) => {
+    const u = safeUrl(l.info_url);
+    const updated = l.type === "raster" ? "Live agency map service" : l.status?.source_updated_at
+      ? `Agency updated ${fmtTime(l.status.source_updated_at)}` : "Agency update date not published";
+    return `<li>${swatchHtml(l)}<div><strong>${esc(l.name)}</strong>
+      <span>${esc(l.attribution)}</span>
+      <span class="muted">${esc(updated)}</span>
+      ${u ? `<a href="${esc(u)}" target="_blank" rel="noopener">Source page<span class="sr-only"> for ${esc(l.name)} (new tab)</span></a>` : ""}</div></li>`;
+  }).join("") : `<li class="hint">No layers are on. Turn one on under Layers and data.</li>`;
+}
+const sourcesPanel = $("#sources-panel");
+const sourcesBtn = $("#sources-open");
+function setSourcesOpen(open) {
+  sourcesPanel.hidden = !open;
+  sourcesBtn.setAttribute("aria-expanded", String(open));
+  if (open) { renderSources(); $("#sources-close").focus(); } else sourcesBtn.focus();
+}
+sourcesBtn.addEventListener("click", () => setSourcesOpen(sourcesPanel.hidden));
+$("#sources-close").addEventListener("click", () => setSourcesOpen(false));
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !sourcesPanel.hidden) setSourcesOpen(false); });
+
+// ------------------------------------------------------------------ splash
+const splash = $("#splash");
+function hideSplash() {
+  if (!splash || splash.classList.contains("done")) return;
+  splash.classList.add("done");
+  setTimeout(() => splash.remove(), 400);
+}
+setTimeout(hideSplash, 12000);
+
 const about = $("#about");
 $("#about-open").addEventListener("click", () => about.showModal());
 
@@ -473,6 +680,9 @@ async function boot() {
     index = await res.json();
   } catch (e) {
     statusEl.textContent = "Could not load the layer list. Check your connection and reload.";
+    const msg = $("#splash-msg");
+    if (msg) msg.textContent = "Could not load the layer list. Check your connection and reload.";
+    setTimeout(hideSplash, 2500);
     return;
   }
   for (const l of index.layers) {
@@ -481,6 +691,7 @@ async function boot() {
   }
   renderPanel([...layers.values()]);
   renderPlanned(index);
+  renderCredits();
   const vectors = [...layers.values()].filter((l) => l.type === "geojson");
   statusEl.textContent = savedAt
     ? `Offline. Showing the layer list saved on this device ${fmtTime(savedAt)}.`
@@ -489,6 +700,8 @@ async function boot() {
   const start = () => {
     for (const l of layers.values()) if (l.visible) setVisible(l, true);
     renderLegend();
+    renderCredits();
+    hideSplash();
   };
   if (map.isStyleLoaded()) start(); else map.once("load", start);
 }
@@ -555,14 +768,20 @@ function renderLegend() {
   const vis = [...layers.values()].filter((l) => l.visible)
     .sort((a, b) => CATEGORY_ORDER.indexOf(a.category) - CATEGORY_ORDER.indexOf(b.category));
   ul.innerHTML = vis.length ? vis.map((l) => {
-    const s = styleFor(l);
-    const bg = s.dashed || !s.fillOpacity ? "transparent" : `${esc(s.color)}55`;
-    const zoomNote = l.minzoom && map.getZoom() < l.minzoom ? ` <small>(zoom in to see)</small>` : "";
-    return `<li><span class="swatch ${s.dashed ? "dashed" : ""}" style="border-color:${esc(s.color)};background:${bg}" aria-hidden="true"></span>${esc(l.name)}${zoomNote}</li>`;
+    const zoomNote = l.minzoom && map.getZoom() < l.minzoom ? ` <small>(${esc(l.zoom_hint ? l.zoom_hint.toLowerCase() : "zoom in to see")})</small>` : "";
+    const agencyColors = l.type === "raster" && !l.drawn_in_palette ? ` <small>(agency colors)</small>` : "";
+    const classes = l.classes && !zoomNote ? classLegendHtml(l) : "";
+    return `<li class="${classes ? "has-classes" : ""}">${l.classes ? "" : swatchHtml(l)}<span>${esc(l.name)}${zoomNote}${agencyColors}${classes}</span></li>`;
   }).join("") : `<li class="hint">No layers turned on.</li>`;
 }
-map.on("zoomend", renderLegend);
-if (window.innerWidth < 760) $("#legend").removeAttribute("open");
+let lastZoomBand = null;
+map.on("zoomend", () => {
+  renderLegend();
+  // Re-draw rows whose "zoom in" badge changed.
+  const band = [...layers.values()].map((l) => zoomedOut(l)).join();
+  if (band !== lastZoomBand) { lastZoomBand = band; for (const l of layers.values()) if (l.minzoom) renderLayerRow(l); }
+});
+if (window.innerWidth <= 760 || window.innerHeight < 560) $("#legend").removeAttribute("open");
 
 // ------------------------------------------------------------------ search
 // search.js is loaded on first use. Suggestions come from a local Census
@@ -578,7 +797,7 @@ function goTo(r) {
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
   map.flyTo({ center: [r.lon, r.lat], zoom: r.zoom ?? 10, duration: reduce ? 0 : 800 });
   searchMarker?.remove();
-  searchMarker = new maplibregl.Marker({ color: "#0050b3" }).setLngLat([r.lon, r.lat]).addTo(map);
+  searchMarker = new maplibregl.Marker({ color: "#111418" }).setLngLat([r.lon, r.lat]).addTo(map);
   searchOut.innerHTML = `<li class="hint">Showing ${esc(r.name)}.</li>`;
 }
 function showResults(results, note) {
@@ -681,8 +900,9 @@ const themeBtn = $("#theme-toggle");
 let mapTheme = currentTheme();
 function syncThemeButton() {
   const dark = currentTheme() === "dark";
+  // The name stays "Dark map"; aria-pressed says whether it is on.
   themeBtn.setAttribute("aria-pressed", String(dark));
-  themeBtn.textContent = dark ? "Light map" : "Dark map";
+  themeBtn.title = dark ? "Switch to the light map" : "Switch to the dark map";
 }
 function applyTheme(theme) {
   syncThemeButton();
@@ -696,8 +916,7 @@ function applyTheme(theme) {
       if (l.type === "geojson" && l.loaded === true) addVector(l);
     }
   });
-  for (const l of layers.values()) renderLayerRow(l);
-  renderLegend();
+  // Layer colors do not depend on the theme, so rows and the legend stay as they are.
 }
 themeBtn.addEventListener("click", () => {
   const next = currentTheme() === "dark" ? "light" : "dark";
@@ -734,4 +953,5 @@ if ("serviceWorker" in navigator && window.isSecureContext) {
   navigator.serviceWorker.register("/sw.js").catch(() => {});
 }
 
+setSheet("peek");
 boot();

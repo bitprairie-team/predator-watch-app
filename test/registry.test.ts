@@ -29,10 +29,19 @@ describe("source registry", () => {
     }
   });
 
-  it("keeps wolf activity layers species-tagged and context layers species-free", () => {
+  it("keeps predator layers species-tagged and context layers species-free", () => {
     for (const s of SOURCES) {
       if (s.category === "context") expect(s.species).toBeNull();
+      else if (s.category === "bear") expect(s.species).toMatch(/bear/i);
       else expect(s.species).toMatch(/wolf/i);
     }
+  });
+
+  it("turns on only wolf layers by default; bears, wildfire and context start off", () => {
+    const on = SOURCES.filter((s) => s.style.defaultVisible);
+    expect(on.length).toBeGreaterThan(0);
+    for (const s of on) expect(s.category, s.id).toMatch(/^wolf-/);
+    expect(SOURCES.some((s) => s.category === "bear")).toBe(true);
+    for (const r of RASTER_LAYERS) expect((r.style as { defaultVisible?: boolean } | undefined)?.defaultVisible, r.id).toBeFalsy();
   });
 });

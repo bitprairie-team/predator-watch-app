@@ -20,6 +20,10 @@
   --old-bg: var(--paper-2); --old-ink: var(--ink-2);
   --shadow: rgba(17,20,24,.14);
   --panel-w: 360px;
+  /* Layer selector: one checked color and check mark in every theme. */
+  --check-on: #926137; --check-mark: #ffffff; --check-border: #545c66;
+  --swatch-ring: rgba(17,20,24,.28);
+  --credits-bg: rgba(255,255,255,.92);
   --sans: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
   color-scheme: light;
@@ -36,11 +40,14 @@
   --warn-bg: #2e2412; --warn-ink: #e6c48c;
   --err-bg: #331815; --err-ink: #f4b0a7;
   --shadow: rgba(0,0,0,.5);
+  --check-border: #949ca5; --swatch-ring: rgba(255,255,255,.4);
+  --credits-bg: rgba(14,16,18,.9);
   color-scheme: dark;
 }
 a { color: var(--link); text-underline-offset: .15em; }
 a:hover { color: var(--accent-hover); }
 :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+:focus:not(:focus-visible) { outline: none; }
 
 
 /* Masthead, as on bitprairie.com: BitPrairie symbol, rule, project mark and name. */
@@ -49,6 +56,7 @@ a:hover { color: var(--accent-hover); }
   padding: .45rem 1rem; background: var(--paper); color: var(--ink);
   border-bottom: 1px solid var(--rule-strong);
   padding-top: max(.45rem, env(safe-area-inset-top));
+  padding-left: max(1rem, env(safe-area-inset-left)); padding-right: max(1rem, env(safe-area-inset-right));
 }
 .brand { display: flex; align-items: center; gap: .7rem; min-width: 0; }
 .brand-home { display: inline-flex; align-items: center; gap: .55rem; color: var(--ink); text-decoration: none; min-height: 44px; flex: none; }
@@ -68,8 +76,17 @@ a:hover { color: var(--accent-hover); }
   font: inherit; font-size: .88rem; font-weight: 500; border-radius: 0; padding: .4rem .8rem; cursor: pointer;
   border: 1px solid var(--rule-strong); background: var(--card); color: var(--ink); min-height: 36px;
 }
-.btn:hover { border-color: var(--ink); }
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn:active { transform: translateY(1px); }
+.btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .btn-ghost { background: transparent; color: inherit; border-color: var(--rule-strong); }
+.btn-ghost:hover { color: var(--accent); }
+.btn-solid, dialog .btn { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn-solid:hover, dialog .btn:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: var(--accent-ink); }
+.btn-theme { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; }
+.btn-icon { width: 16px; height: 16px; flex: none; }
+.btn-theme[aria-pressed="true"] { border-color: var(--accent); }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 
 /* Credits, the same block on the map panel, /about and /status. */
 .credits { margin-top: 1.4rem; padding-top: .8rem; border-top: 2px solid var(--ink); font-size: .8rem; color: var(--ink-2); }
@@ -89,11 +106,25 @@ a:hover { color: var(--accent-hover); }
   .brand { gap: .5rem; }
   .byline { font-size: .62rem; }
 }
+@media (max-width: 560px) {
+  .btn-theme { min-width: 44px; padding-left: .5rem; padding-right: .5rem; }
+  .btn-theme .btn-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
+}
 @media (max-width: 420px) {
-  .brand-home, .brand-sep { display: none; }
+  .brand-home { min-width: 32px; }
+  .brand { gap: .45rem; }
+  .topbar { gap: .4rem; }
+  .proj-name { font-size: .95rem; }
+}
+@media (pointer: coarse) {
+  .btn { min-height: 44px; }
+  .proj-link { min-height: 44px; }
+  .byline a { display: inline-block; padding: 14px 4px; margin: -14px -4px; }
 }
 .brand-wordmark { display: block; height: 16px; aspect-ratio: 8355.7 / 1462; background: currentColor;
   -webkit-mask: url("/brand/bitprairie-wordmark.svg") no-repeat center / contain; mask: url("/brand/bitprairie-wordmark.svg") no-repeat center / contain; }
-.proj-link { display: flex; align-items: center; gap: .45rem; color: inherit; text-decoration: none; min-width: 0; }
+.proj-link { display: flex; align-items: center; gap: .45rem; color: inherit; text-decoration: none; min-width: 0; min-height: 32px; }
+.proj-link:hover .proj-name { color: var(--accent); }
 .proj-name { font: 600 1rem/1.2 var(--sans); margin: 0; white-space: nowrap; }
+@media (max-width: 760px) { .brand-wordmark { display: none; } }
 a.btn { display: inline-flex; align-items: center; text-decoration: none; color: var(--ink); }

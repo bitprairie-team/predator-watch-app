@@ -46,14 +46,33 @@ describe("BitPrairie brand", () => {
     expect(read("public/app.js")).toMatch(/THEME_KEY = "bp-theme"/);
   });
 
-  it("gives every vector layer a light and dark colour with at least 3:1 contrast on the basemap", () => {
-    const vectors = SOURCES.filter((s) => s.style);
-    expect(vectors.length).toBeGreaterThan(5);
-    for (const s of vectors) {
-      expect(s.style.colorDark, s.id).toMatch(/^#[0-9a-f]{6}$/i);
+  it("gives every layer one fixed color with at least 3:1 contrast on light and dark backgrounds", () => {
+    const styled = SOURCES.filter((s) => s.style);
+    expect(styled.length).toBeGreaterThan(5);
+    for (const s of styled) {
+      expect(s.style.color, s.id).toMatch(/^#[0-9a-f]{6}$/i);
+      expect("colorDark" in s.style, s.id).toBe(false);
       expect(contrast(s.style.color, "#f2f3f0"), s.id).toBeGreaterThanOrEqual(3);
-      expect(contrast(s.style.colorDark!, "#1b1d20"), s.id).toBeGreaterThanOrEqual(3);
+      expect(contrast(s.style.color, "#1b1d20"), s.id).toBeGreaterThanOrEqual(3);
     }
+  });
+
+  it("ships the lockup, favicon set and splash mark on every page", () => {
+    for (const f of ["brand/predator-watch-lockup.svg", "brand/predator-watch-lockup-dark.svg", "favicon.svg", "favicon.ico",
+      "icons/icon-32.png", "icons/apple-touch-icon.png", "icons/icon-192.png", "icons/icon-512.png", "icons/icon-maskable-512.png"]) {
+      expect(existsSync(`public/${f}`), f).toBe(true);
+    }
+    expect(read("public/brand/predator-watch-lockup.svg")).not.toMatch(/<text/);
+    for (const p of pages) {
+      const h = read(p);
+      expect(h, p).toMatch(/rel="icon" href="\/favicon\.svg" type="image\/svg\+xml"/);
+      expect(h, p).toMatch(/rel="icon" href="\/icons\/icon-32\.png" sizes="32x32"/);
+      expect(h, p).toMatch(/rel="apple-touch-icon" href="\/icons\/apple-touch-icon\.png" sizes="180x180"/);
+      expect(h, p).toMatch(/viewport-fit=cover/);
+    }
+    expect(read("public/index.html")).toMatch(/id="splash"/);
+    const m = JSON.parse(read("public/manifest.webmanifest"));
+    expect(m.icons.some((i: { purpose?: string; sizes?: string }) => i.purpose === "maskable" && i.sizes === "512x512")).toBe(true);
   });
 
   it("uses the brand colours in the manifest", () => {

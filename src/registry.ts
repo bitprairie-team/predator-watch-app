@@ -47,6 +47,7 @@ export function publicInfo(a: SourceAdapter): PublicSourceInfo {
     category: c.category,
     species: c.species,
     agency: c.agency,
+    credit_short: c.creditShort ?? c.agency,
     url: a.endpoint,
     info_url: c.infoUrl,
     license: c.license,

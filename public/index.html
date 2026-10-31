@@ -7,9 +7,10 @@
   <meta name="description" content="A free, open-source map that brings together publicly available government and agency predator data, with the source and time on every item.">
   <meta name="theme-color" content="#f3f4f6" data-light="#f3f4f6" data-dark="#0e1012">
   <script src="/theme.js"></script>
+  <link rel="icon" href="/favicon.ico" sizes="32x32">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="/icons/icon-32.png" sizes="32x32" type="image/png">
-  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" sizes="180x180">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="canonical" href="https://app.predatorwatch.org/">
   <meta property="og:type" content="website">
@@ -41,20 +42,25 @@
       <a class="brand-home" href="https://bitprairie.com/" aria-label="BitPrairie home"><img class="brand-symbol" src="/brand/bitprairie-symbol.svg" alt="" width="30" height="30"><span class="brand-wordmark" aria-hidden="true"></span></a>
       <span class="brand-sep" aria-hidden="true"></span>
       <div class="brand-proj">
-        <a class="proj-link" href="/"><svg class="proj-mark" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><ellipse cx="13" cy="6.6" rx="2" ry="3.2" transform="rotate(-6 13 6.6)"/><ellipse cx="19" cy="6.6" rx="2" ry="3.2" transform="rotate(6 19 6.6)"/><ellipse cx="8.4" cy="13.4" rx="1.9" ry="3" transform="rotate(-24 8.4 13.4)"/><ellipse cx="23.6" cy="13.4" rx="1.9" ry="3" transform="rotate(24 23.6 13.4)"/><path d="M16 15.8c-3 0-5.8 3.4-5.8 7 0 2.8 1.7 4.6 3.6 4.6 1 0 1.5-.6 2.2-.6s1.2.6 2.2.6c1.9 0 3.6-1.8 3.6-4.6 0-3.6-2.8-7-5.8-7z"/></svg><h1 class="proj-name">Predator Watch</h1></a>
+        <a class="proj-link" href="/"><svg class="proj-mark" viewBox="0 0 32 32" fill="currentColor" aria-hidden="true" focusable="false"><ellipse cx="12.4" cy="6.9" rx="2.7" ry="3.7" transform="rotate(-8 12.4 6.9)"/><ellipse cx="19.6" cy="6.9" rx="2.7" ry="3.7" transform="rotate(8 19.6 6.9)"/><ellipse cx="7" cy="14" rx="2.5" ry="3.4" transform="rotate(-26 7 14)"/><ellipse cx="25" cy="14" rx="2.5" ry="3.4" transform="rotate(26 25 14)"/><path d="M16 15.2c-3.7 0-7 4-7 8.3 0 3.2 2 5.4 4.4 5.4 1.2 0 1.8-.7 2.6-.7s1.4.7 2.6.7c2.4 0 4.4-2.2 4.4-5.4 0-4.3-3.3-8.3-7-8.3z"/></svg><h1 class="proj-name">Predator Watch</h1></a>
         <p class="byline">by <a href="https://bitprairie.com/predator-watch/">BitPrairie</a></p>
       </div>
       <p class="tagline">Public agency predator data, with the source and time on every item.</p>
     </div>
     <div class="topbar-actions">
       <button type="button" id="panel-toggle" class="btn" aria-controls="panel" aria-expanded="true">Layers</button>
-      <button type="button" id="theme-toggle" class="btn btn-ghost" aria-pressed="false">Dark map</button>
+      <button type="button" id="theme-toggle" class="btn btn-ghost btn-theme" aria-pressed="false"><svg class="btn-icon" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M15.6 12.4A6.5 6.5 0 0 1 7.6 4.4a6.5 6.5 0 1 0 8 8z" fill="currentColor"/></svg><span class="btn-label">Dark map</span></button>
       <button type="button" id="about-open" class="btn btn-ghost" aria-haspopup="dialog">About</button>
     </div>
   </header>
 
   <main class="layout">
-    <aside id="panel" class="panel" tabindex="-1" aria-label="Layers and data">
+    <aside id="panel" class="panel" tabindex="-1" aria-label="Layers and data" data-sheet="peek">
+      <div class="sheet-head">
+        <button type="button" id="sheet-handle" class="sheet-handle" aria-controls="panel-body" aria-expanded="false"><span class="sheet-grip" aria-hidden="true"></span><span class="sheet-title">Layers and data</span><span id="sheet-count" class="sheet-count"></span><span class="sr-only" id="sheet-state">, collapsed. Activate to show more.</span></button>
+        <button type="button" id="sheet-close" class="btn btn-ghost sheet-close" aria-controls="panel-body" hidden>Close<span class="sr-only"> layers</span></button>
+      </div>
+      <div id="panel-body" class="panel-body">
       <p id="status" class="status" role="status" aria-live="polite">Loading layers…</p>
 
       <form id="search" class="search" role="search">
@@ -73,6 +79,11 @@
       <section aria-labelledby="h-mgmt">
         <h2 id="h-mgmt">Wolf management areas</h2>
         <ul class="layer-list" data-category="wolf-management" style="--rows:5"></ul>
+      </section>
+      <section aria-labelledby="h-bear">
+        <h2 id="h-bear">Bears</h2>
+        <p class="hint">Off by default. Generalized agency ranges, not bear locations.</p>
+        <ul class="layer-list" data-category="bear" style="--rows:4"></ul>
       </section>
       <section aria-labelledby="h-context">
         <h2 id="h-context">Context</h2>
@@ -117,7 +128,7 @@
       <p class="disclaimer">Generalized public data from the agencies named on each layer. Locations are never shown more precisely than the agency publishes them. A highlighted area shows where the agency reports activity; it is not a current animal position. Check the agency's own notes before relying on any layer.</p>
 
       <footer class="credits" aria-label="Credits">
-        <p class="credits-proj"><svg class="proj-mark" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><ellipse cx="13" cy="6.6" rx="2" ry="3.2" transform="rotate(-6 13 6.6)"/><ellipse cx="19" cy="6.6" rx="2" ry="3.2" transform="rotate(6 19 6.6)"/><ellipse cx="8.4" cy="13.4" rx="1.9" ry="3" transform="rotate(-24 8.4 13.4)"/><ellipse cx="23.6" cy="13.4" rx="1.9" ry="3" transform="rotate(24 23.6 13.4)"/><path d="M16 15.8c-3 0-5.8 3.4-5.8 7 0 2.8 1.7 4.6 3.6 4.6 1 0 1.5-.6 2.2-.6s1.2.6 2.2.6c1.9 0 3.6-1.8 3.6-4.6 0-3.6-2.8-7-5.8-7z"/></svg>Predator Watch</p>
+        <p class="credits-proj"><svg class="proj-mark" viewBox="0 0 32 32" fill="currentColor" aria-hidden="true" focusable="false"><ellipse cx="12.4" cy="6.9" rx="2.7" ry="3.7" transform="rotate(-8 12.4 6.9)"/><ellipse cx="19.6" cy="6.9" rx="2.7" ry="3.7" transform="rotate(8 19.6 6.9)"/><ellipse cx="7" cy="14" rx="2.5" ry="3.4" transform="rotate(-26 7 14)"/><ellipse cx="25" cy="14" rx="2.5" ry="3.4" transform="rotate(26 25 14)"/><path d="M16 15.2c-3.7 0-7 4-7 8.3 0 3.2 2 5.4 4.4 5.4 1.2 0 1.8-.7 2.6-.7s1.4.7 2.6.7c2.4 0 4.4-2.2 4.4-5.4 0-4.3-3.3-8.3-7-8.3z"/></svg>Predator Watch</p>
         <p class="credits-brand"><a href="https://bitprairie.com/predator-watch/" aria-label="Predator Watch on bitprairie.com"><img class="brand-symbol" src="/brand/bitprairie-symbol.svg" alt="" width="28" height="28"></a><span>&copy; 2026 BitPrairie LLC. Predator Watch is a BitPrairie project. Code under Apache-2.0; data from the agencies named on each layer.</span></p>
         <ul class="credits-links">
           <li><a href="https://bitprairie.com/predator-watch/">bitprairie.com/predator-watch</a></li>
@@ -127,6 +138,7 @@
           <li><a href="/about#credits">Credits</a></li>
         </ul>
       </footer>
+      </div>
     </aside>
 
     <div class="map-wrap">
@@ -134,12 +146,20 @@
       <aside id="first-hint" class="first-hint" aria-labelledby="first-hint-title" hidden>
         <h2 id="first-hint-title">Welcome</h2>
         <ul>
-          <li>Turn agency layers on and off in the panel.</li>
+          <li>Turn agency layers on and off under Layers and data.</li>
           <li>Select a shaded area for its agency, dates and source link.</li>
           <li>Badges show how fresh each layer is.</li>
         </ul>
         <button type="button" id="first-hint-close" class="btn btn-solid">Got it</button>
       </aside>
+      <div id="splash" class="splash" aria-hidden="true">
+        <div class="splash-card">
+          <svg class="splash-mark" viewBox="0 0 32 32" fill="currentColor" aria-hidden="true" focusable="false"><ellipse cx="12.4" cy="6.9" rx="2.7" ry="3.7" transform="rotate(-8 12.4 6.9)"/><ellipse cx="19.6" cy="6.9" rx="2.7" ry="3.7" transform="rotate(8 19.6 6.9)"/><ellipse cx="7" cy="14" rx="2.5" ry="3.4" transform="rotate(-26 7 14)"/><ellipse cx="25" cy="14" rx="2.5" ry="3.4" transform="rotate(26 25 14)"/><path d="M16 15.2c-3.7 0-7 4-7 8.3 0 3.2 2 5.4 4.4 5.4 1.2 0 1.8-.7 2.6-.7s1.4.7 2.6.7c2.4 0 4.4-2.2 4.4-5.4 0-4.3-3.3-8.3-7-8.3z"/></svg>
+          <p class="splash-name">Predator Watch</p>
+          <p class="splash-msg" id="splash-msg">Loading agency layers…</p>
+          <span class="splash-bar" aria-hidden="true"></span>
+        </div>
+      </div>
       <details id="legend" class="legend" open>
         <summary>Legend</summary>
         <ul id="legend-list"></ul>
@@ -151,12 +171,28 @@
         </div>
         <div id="details-body"></div>
       </section>
+      <section id="sources-panel" class="sources-panel" aria-labelledby="sources-title" hidden>
+        <div class="details-head">
+          <h2 id="sources-title">Sources</h2>
+          <button type="button" id="sources-close" class="btn btn-ghost">Close<span class="sr-only"> sources</span></button>
+        </div>
+        <p class="hint">Layers that are on now, with the agency's full credit and when the agency last updated it.</p>
+        <ul id="sources-list" class="sources-list"></ul>
+        <p class="sources-more"><a href="/status">Source status and refresh history</a> · <a href="/about#sources">All sources and credits</a></p>
+      </section>
+      <div id="credits-bar" class="credits-bar">
+        <p class="credits-line">
+          <span class="credits-base"><span class="credits-label">Basemap</span> <a href="https://openfreemap.org/" rel="noopener">OpenFreeMap</a> <a href="https://openmaptiles.org/" rel="noopener">© OpenMapTiles</a> <a href="https://www.openstreetmap.org/copyright" rel="noopener">© OpenStreetMap contributors</a></span>
+          <span id="credits-agencies" class="credits-agencies"></span>
+        </p>
+        <button type="button" id="sources-open" class="credits-btn" aria-controls="sources-panel" aria-expanded="false">Sources</button>
+      </div>
     </div>
   </main>
 
   <dialog id="about" aria-labelledby="about-title">
     <h2 id="about-title">About Predator Watch</h2>
-    <p>Predator Watch is a free, open-source map. It brings together predator data that government agencies already publish, starting with gray wolves, and refreshes each source as often as the agency updates it.</p>
+    <p>Predator Watch is a free, open-source map. It brings together predator data that government agencies already publish, starting with gray wolves and bears, and refreshes each source as often as the agency updates it.</p>
     <p>Every item shows which agency published it, when the agency observed or last updated it, and when this map received it. Each layer has a freshness badge. Data is shown at the same precision the agency publishes, never finer.</p>
     <p>Only public agency data is used here. A private collaboration space for ranchers, community members, and agencies is <strong>Planned</strong>.</p>
     <p><a href="/about">Methodology, freshness and limitations</a> · <a href="/status">Source status</a> · <a href="https://github.com/steelhead99x/predator-watch-app/issues/new?template=new-source.yml">Suggest a source</a></p>
