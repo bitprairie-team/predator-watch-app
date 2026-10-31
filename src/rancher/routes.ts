@@ -3,11 +3,17 @@
 //   GET  /api/assistant/tools           tool list with JSON Schemas
 //   POST /api/assistant/chat            text chat, streamed as Server-Sent Events
 //   POST /api/assistant/voice/session   short-lived voice credential + session config
+//   POST /api/assistant/voice/guard     policy check on a voice transcript (input or output)
 //   POST /api/assistant/tools/:name     run one tool (used by the voice client)
 //   GET  /api/assistant/audit           the caller's own audit log
 import { sourcesFooter, type Citation } from "../agents/citations";
-import { runAgent, toolSpecs } from "../agents/runner";
+import { toolSpecs } from "../agents/runner";
+import { recordGuardEvent } from "../agents/audit";
 import { AgentError, type AuthContext } from "../agents/types";
+import { classifyInput } from "../guardrails/classifier";
+import { checkOutput } from "../guardrails/output-check";
+import { DISCLAIMER, refusalText } from "../guardrails/policy";
+import { runRancherTurn } from "./assistant";
 import { RANCHER_INSTRUCTIONS, RANCHER_VOICE_INSTRUCTIONS } from "./prompt";
 import type { RancherService } from "./service";
 
@@ -95,6 +101,8 @@ export async function handleAssistant(request: Request, url: URL, svc: RancherSe
         ranches: t?.ranches.map((r) => ({ id: r.id, name: r.name, allotments: r.allotments.map((a) => ({ id: a.id, name: a.name })) })) ?? [],
         voice_available: !!svc.provider,
         chat_available: !!svc.provider,
+        mock: svc.mock,
+        disclaimer: DISCLAIMER,
       });
     }
 
@@ -132,7 +140,37 @@ export async function handleAssistant(request: Request, url: URL, svc: RancherSe
       if (!(await svc.rateLimiter.hit(`voice:${ctx.tenantId}`, svc.limits.voiceSessionsPerHour, 3600, svc.now().getTime())))
         throw new AgentError("rate_limited", "Too many voice sessions this hour.", 429);
       const session = await svc.provider.createSession({ instructions: RANCHER_VOICE_INSTRUCTIONS, tools: toolSpecs(svc.registry, ctx) });
-      return json(session);
+      // The browser must send each final transcript to /voice/guard; tool calls go through the registry.
+      return json({ ...session, guard: { endpoint: "/api/assistant/voice/guard" }, mock: svc.mock, disclaimer: DISCLAIMER });
+    }
+
+    if (request.method === "POST" && path === "/api/assistant/voice/guard") {
+      await requireEntitled(svc, ctx);
+      const body = await readJson(request);
+      const stage = body.stage;
+      const text = body.text;
+      if ((stage !== "input" && stage !== "output") || typeof text !== "string" || text.length > 8000)
+        throw new AgentError("invalid_input", "stage must be input or output, and text a string up to 8000 characters.", 400);
+      if (!(await svc.rateLimiter.hit(`voiceguard:${ctx.tenantId}`, svc.guard.voiceGuardPerMinute, 60, svc.now().getTime())))
+        throw new AgentError("rate_limited", "Too many voice requests. Try again in a minute.", 429);
+      if (stage === "input") {
+        const d = classifyInput(text);
+        if (d.action === "decline" && d.category) {
+          await recordGuardEvent(svc.audit, ctx, { tool: "assistant.voice", outcome: "refused", category: d.category, rule: d.rule, text, at: svc.now() });
+          return json({ action: "decline", category: d.category, say: refusalText(d.category, { emergency: d.emergency }) });
+        }
+        return json({ action: "allow" });
+      }
+      const c = checkOutput({ text, catalog: [], grounding: false });
+      if (c.blocked) {
+        await recordGuardEvent(svc.audit, ctx, { tool: "assistant.voice", outcome: "blocked", category: c.blocked, flags: c.issues, text, at: svc.now() });
+        return json({ action: "block", category: c.blocked, text: c.text });
+      }
+      if (c.issues.includes("coordinates")) {
+        await recordGuardEvent(svc.audit, ctx, { tool: "assistant.voice", outcome: "blocked", category: "precise_location", flags: ["redacted"], text, at: svc.now() });
+        return json({ action: "redact", category: "precise_location", text: c.text });
+      }
+      return json({ action: "allow" });
     }
 
     if (request.method === "POST" && path === "/api/assistant/chat") {
@@ -141,17 +179,32 @@ export async function handleAssistant(request: Request, url: URL, svc: RancherSe
       const messages = parseMessages(await readJson(request));
       if (!(await svc.rateLimiter.hit(`chat:${ctx.tenantId}`, svc.limits.chatTurnsPerMinute, 60, svc.now().getTime())))
         throw new AgentError("rate_limited", "Too many questions in a minute. Try again shortly.", 429);
+      if (!(await svc.rateLimiter.hit(`chatday:${ctx.tenantId}`, svc.guard.chatTurnsPerDay, 86400, svc.now().getTime()))) {
+        await recordGuardEvent(svc.audit, ctx, { tool: "assistant.chat", outcome: "rate_limited", flags: ["daily"], at: svc.now() });
+        throw new AgentError("rate_limited", "You've reached today's question limit. It resets tomorrow.", 429);
+      }
       const provider = svc.provider;
       const stream = new ReadableStream<Uint8Array>({
         async start(controller) {
           try {
             controller.enqueue(sse("status", { state: "thinking" }));
-            for await (const ev of runAgent({ provider, registry: svc.registry, deps: svc.deps, ctx, instructions: RANCHER_INSTRUCTIONS, messages })) {
+            for await (const ev of runRancherTurn(svc, ctx, messages, { provider, instructions: RANCHER_INSTRUCTIONS })) {
               if (ev.type === "answer") {
-                // The answer is released only after the citation check passes.
+                // The answer is released only after the guardrail checks pass.
                 for (const c of chunks(ev.text)) controller.enqueue(sse("delta", { text: c }));
                 controller.enqueue(sse("citations", { citations: ev.citations, replaced: ev.replaced }));
-                controller.enqueue(sse("done", { text: ev.text, footer: sourcesFooter(ev.citations) }));
+                controller.enqueue(
+                  sse("done", {
+                    text: ev.text,
+                    footer: sourcesFooter(ev.citations),
+                    refused: !!ev.refused,
+                    category: ev.category ?? null,
+                    general: !!ev.general,
+                    blocked: ev.blocked ?? null,
+                    issues: ev.issues ?? [],
+                    limit: ev.limit ?? null,
+                  }),
+                );
               } else {
                 controller.enqueue(sse(ev.type, ev));
               }

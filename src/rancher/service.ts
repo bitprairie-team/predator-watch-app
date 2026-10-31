@@ -3,10 +3,11 @@
 import { StoreAuditLog, type AuditLog } from "../agents/audit";
 import { bearer, contextFromAccessKey } from "../agents/auth";
 import { Entitlements, StubBilling, type BillingProvider } from "../agents/entitlements";
-import { createProvider, type ProviderEnv } from "../agents/providers";
+import { createProvider, isMockProvider, type ProviderEnv } from "../agents/providers";
 import type { ModelProvider, VoiceProvider } from "../agents/providers/types";
 import { DEFAULT_RATE_LIMITS, StoreRateLimiter, type RateLimiter, type RateLimitPolicy } from "../agents/rate-limit";
 import type { ExecutorDeps, ToolRegistry } from "../agents/registry";
+import { DEFAULT_TURN_LIMITS, type TurnLimits } from "../agents/runner";
 import { KvStore, type PrivateStore } from "../agents/store";
 import type { AuthContext } from "../agents/types";
 import { Registry } from "../registry";
@@ -19,7 +20,28 @@ export interface PrivateEnv extends ProviderEnv {
   PRIVATE_KV?: KVNamespace;
   /** Token storage for the MCP OAuth provider. */
   OAUTH_KV?: KVNamespace;
+  /** "1" adds the optional model classifier after the deterministic rules. */
+  GUARD_MODEL_CLASSIFIER?: string;
 }
+
+/** Guardrail limits and switches. See docs/assistant-guardrails.md. */
+export interface GuardConfig {
+  turnLimits: TurnLimits;
+  /** Chat questions per account per day. */
+  chatTurnsPerDay: number;
+  /** Voice guard checks per account per minute. */
+  voiceGuardPerMinute: number;
+  toolTimeoutMs: number;
+  modelClassifier: boolean;
+}
+
+export const DEFAULT_GUARD: GuardConfig = {
+  turnLimits: DEFAULT_TURN_LIMITS,
+  chatTurnsPerDay: 300,
+  voiceGuardPerMinute: 60,
+  toolTimeoutMs: 10_000,
+  modelClassifier: false,
+};
 
 export interface ServiceOverrides {
   store?: PrivateStore;
@@ -28,6 +50,7 @@ export interface ServiceOverrides {
   billing?: BillingProvider;
   rateLimiter?: RateLimiter;
   limits?: RateLimitPolicy;
+  guard?: Partial<Omit<GuardConfig, "turnLimits">> & { turnLimits?: Partial<TurnLimits> };
   now?: () => Date;
 }
 
@@ -40,6 +63,9 @@ export interface RancherService {
   rateLimiter: RateLimiter;
   limits: RateLimitPolicy;
   provider: (ModelProvider & VoiceProvider) | null;
+  guard: GuardConfig;
+  /** True when the provider is the offline xAI mock. */
+  mock: boolean;
   now: () => Date;
   authenticate(request: Request, client: string): Promise<AuthContext | null>;
 }
@@ -59,12 +85,19 @@ export function rancherService(env: PrivateEnv, o: ServiceOverrides = {}): Ranch
   const entitlements = new Entitlements(o.billing ?? new StubBilling(store));
   const rateLimiter = o.rateLimiter ?? new StoreRateLimiter(store);
   const limits = o.limits ?? DEFAULT_RATE_LIMITS;
+  const guard: GuardConfig = {
+    ...DEFAULT_GUARD,
+    modelClassifier: env.GUARD_MODEL_CLASSIFIER === "1",
+    ...o.guard,
+    turnLimits: { ...DEFAULT_TURN_LIMITS, ...o.guard?.turnLimits },
+  };
   const deps: ExecutorDeps<RancherDeps> = {
     audit,
     entitlements,
     rateLimiter,
     limits,
     now,
+    toolTimeoutMs: guard.toolTimeoutMs,
     data: (ctx) => ({ data: new RancherData(store, publicLayers, ctx, now), audit }),
   };
   return {
@@ -76,6 +109,8 @@ export function rancherService(env: PrivateEnv, o: ServiceOverrides = {}): Ranch
     rateLimiter,
     limits,
     provider: o.provider !== undefined ? o.provider : createProvider(env),
+    guard,
+    mock: o.provider !== undefined ? o.provider?.id === "mock" : isMockProvider(env),
     now,
     async authenticate(request, client) {
       const key = bearer(request);

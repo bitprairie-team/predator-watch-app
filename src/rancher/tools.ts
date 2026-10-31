@@ -531,7 +531,7 @@ const deterrents: Tool = {
       })),
     };
     if (!scored.length) {
-      result.unknown = "I don't have an agency or extension document on file that covers that, so I won't describe deterrents from memory.";
+      result.unknown = "I don't have an agency or extension document on file that covers that. Anything else I say about it is general information, not from your Predator Watch documents.";
       result.planned = "A reviewed library of agency and extension publications on nonlethal deterrents.";
     }
     return result;
