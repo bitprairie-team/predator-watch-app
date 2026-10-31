@@ -3,6 +3,7 @@
 // keeps the agency's geometry exactly as published.
 
 import { politeFetch, type PoliteOptions } from "../lib/http";
+import { ensureUniqueIds, unwrapGeometry } from "../lib/geometry";
 import { buildFeature, type FieldMapping } from "../lib/normalize";
 import type { Geometry, NormalizedFeature } from "../schema";
 import type { AdapterResult, BaseSourceConfig, FetchContext, SourceAdapter } from "./types";
@@ -62,12 +63,12 @@ export class GeoJsonAdapter implements SourceAdapter {
     const cap = this.config.maxFeatures ?? 20_000;
     const features: NormalizedFeature[] = [];
     body.features.slice(0, cap).forEach((f, i) => {
-      const geom = f.geometry && GEOMETRY_TYPES.has(f.geometry.type) ? f.geometry : null;
+      const geom = f.geometry && GEOMETRY_TYPES.has(f.geometry.type) ? unwrapGeometry(f.geometry) : null;
       const attrs = f.properties ?? {};
       const idField = this.config.fields.idField;
       const native = idField && attrs[idField] != null ? `${String(attrs[idField])}-${i}` : String(f.id ?? i);
       features.push(buildFeature(this.config, this.endpoint, this.config.fields, attrs, geom, native, receivedAt, sourceUpdatedMs));
     });
-    return { changed: true, features, sourceUpdatedMs, validator };
+    return { changed: true, features: ensureUniqueIds(features), sourceUpdatedMs, validator };
   }
 }

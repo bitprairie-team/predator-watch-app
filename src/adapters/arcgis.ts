@@ -15,6 +15,7 @@
 
 import { fetchJson, type PoliteOptions } from "../lib/http";
 import { esriToGeoJson, type EsriGeometry } from "../lib/esri";
+import { ensureUniqueIds } from "../lib/geometry";
 import { buildFeature, fieldsUsed, type FieldMapping } from "../lib/normalize";
 import type { NormalizedFeature } from "../schema";
 import type { AdapterResult, BaseSourceConfig, FetchContext, SourceAdapter } from "./types";
@@ -160,7 +161,7 @@ export class ArcGisAdapter implements SourceAdapter {
         dataEdit,
       ),
     );
-    return { changed: true, features, sourceUpdatedMs: lastEdit, validator: null };
+    return { changed: true, features: ensureUniqueIds(features), sourceUpdatedMs: lastEdit, validator: null };
   }
 
   private async query(ctx: FetchContext, params: Record<string, string>): Promise<QueryResponse> {
