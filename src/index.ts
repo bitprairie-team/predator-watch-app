@@ -8,9 +8,10 @@ import { isOAuthPath, oauthProvider } from "./mcp/oauth";
 import { handleMcp, MCP_ROUTE } from "./mcp/server";
 import { handleAssistant } from "./rancher/routes";
 import { rancherService, type PrivateEnv, type ServiceOverrides } from "./rancher/service";
+import { demoOverrides, type DemoEnv } from "./rancher/demo";
 
 /** Public map bindings plus the optional private rancher plan bindings. */
-export type WorkerEnv = Env & PrivateEnv;
+export type WorkerEnv = Env & PrivateEnv & DemoEnv;
 
 const registry = new Registry();
 
@@ -62,6 +63,11 @@ export async function handleRequest(
   overrides: ServiceOverrides = {},
 ): Promise<Response> {
   const url = new URL(request.url);
+  if (url.pathname.startsWith("/api/assistant/") || url.pathname === MCP_ROUTE) {
+    // Local demo account for `npm run dev:mock` (localhost only, mock model only, no PRIVATE_KV).
+    const demo = Object.keys(overrides).length === 0 ? await demoOverrides(env, request) : null;
+    if (demo) overrides = demo;
+  }
 
   // Private rancher plan. Off unless PRIVATE_KV is bound (or a test injects a store).
   if (url.pathname.startsWith("/api/assistant/")) {

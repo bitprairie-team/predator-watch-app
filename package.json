@@ -15,7 +15,9 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "vendor": "node scripts/copy-vendor.mjs",
-    "postinstall": "node scripts/copy-vendor.mjs"
+    "postinstall": "node scripts/copy-vendor.mjs",
+    "dev:mock": "wrangler dev --var XAI_MOCK:1 --var ASSISTANT_DEMO:1",
+    "test:redteam": "REDTEAM_REPORT=redteam-report.json vitest run test/redteam.test.ts"
   },
   "dependencies": {
     "@cloudflare/workers-oauth-provider": "^1.2.4",
