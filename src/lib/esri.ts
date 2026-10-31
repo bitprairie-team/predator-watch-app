@@ -1,6 +1,7 @@
 // Convert Esri JSON geometries (from ArcGIS REST `f=json`) to GeoJSON.
 // Requested with outSR=4326, so coordinates are already longitude/latitude.
 import type { Geometry } from "../schema";
+import { unwrapLine } from "./geometry";
 
 export interface EsriGeometry {
   x?: number;
@@ -24,7 +25,7 @@ function ringSignedArea(ring: number[][]): number {
 }
 
 function closeRing(ring: number[][]): number[][] {
-  const r = ring.map(xy);
+  const r = unwrapLine(ring.map(xy));
   if (r.length === 0) return r;
   const f = r[0]!;
   const l = r[r.length - 1]!;
@@ -80,7 +81,7 @@ export function esriToGeoJson(g: EsriGeometry | null | undefined): Geometry | nu
   }
   if (g.points) return { type: "MultiPoint", coordinates: g.points.map(xy) };
   if (g.paths) {
-    const paths = g.paths.map((p) => p.map(xy));
+    const paths = g.paths.map((p) => unwrapLine(p.map(xy)));
     return paths.length === 1
       ? { type: "LineString", coordinates: paths[0]! }
       : { type: "MultiLineString", coordinates: paths };
