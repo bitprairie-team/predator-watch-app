@@ -26,6 +26,12 @@ const esc = (v) =>
   String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const safeUrl = (u) => (/^https:\/\//i.test(String(u ?? "")) ? String(u) : null);
 
+// Simple view (default) or Expert view, set by /prefs.js on <html>.
+const isSimple = () => document.documentElement.dataset.mode !== "expert";
+/** Layer name for the current view: plain words in Simple view. */
+const displayName = (l) => (isSimple() && l?.simple?.name) || l?.name || "";
+let simpleGroups = [];
+
 const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
 function fmtTime(iso, precision = "instant") {
   if (!iso) return "Not published";
@@ -41,8 +47,8 @@ function ago(iso) {
   const s = (Date.now() - Date.parse(iso)) / 1000;
   if (!Number.isFinite(s)) return null;
   if (s < 90) return "just now";
-  const m = s / 60; if (m < 90) return `${Math.round(m)} min ago`;
-  const h = m / 60; if (h < 36) return `${Math.round(h)} h ago`;
+  const m = s / 60; if (m < 90) return `${Math.round(m)} ${Math.round(m) === 1 ? "minute" : "minutes"} ago`;
+  const h = m / 60; if (h < 36) return `${Math.round(h)} ${Math.round(h) === 1 ? "hour" : "hours"} ago`;
   const d = h / 24; if (d < 60) return `${Math.round(d)} days ago`;
   const mo = d / 30.4; if (mo < 24) return `${Math.round(mo)} months ago`;
   return `${Math.round(d / 365)} years ago`;
@@ -107,7 +113,7 @@ function writeHash() {
   hashTimer = setTimeout(() => {
     const c = map.getCenter().wrap();
     const vis = [...layers.values()].filter((l) => l.visible).map((l) => l.id).join(",");
-    const h = `#map=${map.getZoom().toFixed(2)}/${c.lat.toFixed(4)}/${c.lng.toFixed(4)}&layers=${vis}`;
+    const h = `#map=${map.getZoom().toFixed(2)}/${c.lat.toFixed(4)}/${c.lng.toFixed(4)}&layers=${vis}${isSimple() ? "" : "&mode=expert"}`;
     if (h !== location.hash) history.replaceState(null, "", h);
   }, 250);
 }
@@ -216,7 +222,7 @@ function setVisible(layer, on, { announce: say = false, quiet = false } = {}) {
   renderCredits();
   writeHash();
   if (!quiet) updatePanelState();
-  if (say) announce(`${layer.name} turned ${on ? "on" : "off"}. ${countOn()}`);
+  if (say) announce(`${displayName(layer)} turned ${on ? "on" : "off"}. ${countOn()}`);
 }
 
 async function fetchWithTimeout(url, ms) {
@@ -252,6 +258,7 @@ async function loadVector(layer) {
   renderLayerRow(layer);
   updateItems();
   renderCredits();
+  scheduleListView();
 }
 
 // ---------------------------------------------------------------- panel UI
@@ -268,6 +275,13 @@ function renderLayerRow(layer) {
     : null;
   const wasOpen = li.querySelector("details")?.open;
   const nm = esc(layer.name);
+  if (isSimple()) {
+    li.innerHTML = simpleRowHtml(layer, inputId);
+    li.querySelector("input").addEventListener("change", (e) => setVisible(layer, e.target.checked, { announce: true }));
+    li.querySelector(".retry")?.addEventListener("click", () => loadVector(layer));
+    if (focusSel) li.querySelector("input")?.focus();
+    return;
+  }
   li.innerHTML = `
     <div class="layer-row">
       <span class="check"><input type="checkbox" id="${inputId}" ${layer.visible ? "checked" : ""} aria-describedby="badges-${layer.id}"><span class="check-box" aria-hidden="true"></span></span>
@@ -309,6 +323,34 @@ function renderLayerRow(layer) {
   if (focusSel) li.querySelector(focusSel)?.focus();
 }
 
+/** "Updated 3 days ago" in plain words, or null. */
+function updatedText(layer) {
+  if (layer.type === "raster") return "live map from the agency";
+  const at = layer.status?.source_updated_at || layer.status?.received_at;
+  const a = ago(at);
+  return a ? `updated ${a}` : null;
+}
+/** Simple view row: plain name, one line, the source and how fresh it is. */
+function simpleRowHtml(layer, inputId) {
+  const sv = layer.simple || {};
+  const info = safeUrl(layer.info_url);
+  const upd = updatedText(layer);
+  const problem = layer.loaded === false && layer.loadError;
+  return `
+    <div class="layer-row">
+      <span class="check"><input type="checkbox" id="${inputId}" ${layer.visible ? "checked" : ""} aria-describedby="plain-${layer.id}"><span class="check-box" aria-hidden="true"></span></span>
+      ${swatchHtml(layer)}
+      <label for="${inputId}"><span class="layer-name">${esc(displayName(layer))}</span></label>
+    </div>
+    <div class="layer-plain" id="plain-${layer.id}">
+      ${sv.summary ? `<p class="layer-summary">${esc(sv.summary)}</p>` : ""}
+      ${layer.classes ? classLegendHtml(layer) : ""}
+      ${zoomedOut(layer) ? `<p class="plain-note">${esc(layer.zoom_hint || "Zoom in to see this layer")}.</p>` : ""}
+      ${problem ? `<p class="plain-note">This layer could not load. <button type="button" class="btn btn-small retry">Try again<span class="sr-only">: ${esc(displayName(layer))}</span></button></p>` : ""}
+      <p class="layer-source">Source: ${info ? `<a href="${esc(info)}" target="_blank" rel="noopener">${esc(layer.credit_short || layer.agency)}<span class="sr-only"> (new tab)</span></a>` : esc(layer.credit_short || layer.agency)}${upd ? `, ${esc(upd)}` : ""}.</p>
+    </div>`;
+}
+
 /** True when a layer only draws closer in than the current zoom. */
 function zoomedOut(layer) {
   return Boolean(layer.visible && layer.minzoom && map.getZoom() < layer.minzoom);
@@ -337,18 +379,28 @@ function saveGroupOpen(id, open) {
   try { localStorage.setItem(GROUP_KEY, JSON.stringify(st)); } catch { /* private mode */ }
 }
 function groupLayers(g) {
+  if (g.layers) return g.layers.map((id) => layers.get(id)).filter(Boolean);
   return [...layers.values()].filter((l) => l.category === g.id)
     .sort((a, b) => (b.style?.order ?? 0) - (a.style?.order ?? 0));
+}
+/** Groups for the current view. Simple view: a few big groups, plus any layer turned on in Expert view. */
+function currentGroups() {
+  if (!isSimple()) return GROUPS;
+  const gs = simpleGroups.map((g) => ({ ...g, open: true, key: `simple-${g.id}` }));
+  const listed = new Set(gs.flatMap((g) => g.layers));
+  const extra = [...layers.values()].filter((l) => l.visible && !listed.has(l.id)).map((l) => l.id);
+  if (extra.length) gs.push({ id: "also-on", key: "simple-also-on", name: "Also on (from Expert view)", layers: extra, open: true });
+  return gs;
 }
 
 function renderPanel() {
   const root = $("#layer-groups");
   const st = groupOpenState();
   root.innerHTML = "";
-  for (const g of GROUPS) {
+  for (const g of currentGroups()) {
     const list = groupLayers(g);
     if (!list.length) continue;
-    const open = st[g.id] ?? Boolean(g.open);
+    const open = st[g.key || g.id] ?? Boolean(g.open);
     const sec = document.createElement("section");
     sec.className = "layer-group";
     sec.dataset.group = g.id;
@@ -372,7 +424,7 @@ function renderPanel() {
       const btn = e.currentTarget;
       const next = btn.getAttribute("aria-expanded") !== "true";
       setGroupOpen(sec, next);
-      saveGroupOpen(g.id, next);
+      saveGroupOpen(g.key || g.id, next);
     });
   }
   applyFilter();
@@ -391,8 +443,8 @@ function layerText(l) {
   return [l.name, l.agency, l.species, l.summary, l.credit_short, ...(l.classes || []).map((c) => c.label)].filter(Boolean).join(" ").toLowerCase();
 }
 function applyFilter() {
-  const q = filterInput.value.trim().toLowerCase();
-  const only = activeOnly.checked;
+  const q = isSimple() ? "" : filterInput.value.trim().toLowerCase();
+  const only = !isSimple() && activeOnly.checked;
   const filtering = Boolean(q) || only;
   let shown = 0;
   for (const sec of document.querySelectorAll(".layer-group")) {
@@ -407,7 +459,10 @@ function applyFilter() {
     sec.hidden = filtering && n === 0;
     if (filtering && n) sec.querySelector(".group-body").hidden = false;
     if (filtering && n) sec.querySelector(".group-toggle").setAttribute("aria-expanded", "true");
-    if (!filtering) setGroupOpen(sec, groupOpenState()[sec.dataset.group] ?? Boolean(GROUPS.find((g) => g.id === sec.dataset.group)?.open));
+    if (!filtering) {
+      const g = currentGroups().find((x) => x.id === sec.dataset.group);
+      setGroupOpen(sec, groupOpenState()[g?.key || sec.dataset.group] ?? Boolean(g?.open));
+    }
   }
   $("#filter-status").textContent = !filtering ? ""
     : shown ? `${shown} ${shown === 1 ? "layer" : "layers"} shown.`
@@ -419,7 +474,7 @@ activeOnly.addEventListener("change", applyFilter);
 
 /** Group counts, active chips, the panel legend and sources: run after any toggle. */
 function updatePanelState() {
-  for (const g of GROUPS) {
+  for (const g of currentGroups()) {
     const el = document.getElementById(`grp-${g.id}-count`);
     if (!el) continue;
     const list = groupLayers(g);
@@ -429,6 +484,7 @@ function updatePanelState() {
   }
   renderChips();
   renderPanelSources();
+  scheduleListView();
   if (activeOnly.checked) applyFilter();
 }
 
@@ -437,8 +493,8 @@ function renderChips() {
   const ul = $("#active-chips");
   const vis = visibleLayers();
   const focusedId = ul.contains(document.activeElement) ? document.activeElement.dataset.id : null;
-  ul.innerHTML = vis.length ? vis.map((l) => `<li><button type="button" class="chip" data-id="${esc(l.id)}" aria-label="Turn off ${esc(l.name)}">
-      ${swatchHtml(l)}<span class="chip-name">${esc(l.name)}</span><span class="chip-x" aria-hidden="true">×</span></button></li>`).join("")
+  ul.innerHTML = vis.length ? vis.map((l) => `<li><button type="button" class="chip" data-id="${esc(l.id)}" aria-label="Turn off ${esc(displayName(l))}">
+      ${swatchHtml(l)}<span class="chip-name">${esc(displayName(l))}</span><span class="chip-x" aria-hidden="true">×</span></button></li>`).join("")
     : `<li class="hint chips-empty">No layers are on.</li>`;
   if (focusedId) {
     const next = ul.querySelector(`[data-id="${CSS.escape(focusedId)}"]`) || ul.querySelector(".chip");
@@ -483,7 +539,22 @@ function announce(text) {
 }
 
 // ------------------------------------------------------- feature details
+/** Simple view popup: one plain sentence, the source and how fresh it is. */
+function plainFeatureHtml(p, layer) {
+  const sentence = layer?.simple?.popup || `This area is part of “${displayName(layer) || p.source_name}”.`;
+  const when = ago(p.observed_at) || (layer ? updatedText(layer)?.replace(/^updated /, "") : null);
+  const info = safeUrl(p.url) || safeUrl(layer?.info_url);
+  const credit = layer?.credit_short || p.agency;
+  return `<article class="feature plain">
+    <h3>${layer ? swatchHtml(layer) : ""} ${esc(displayName(layer) || p.source_name)}</h3>
+    <p class="plain-sentence">${esc(sentence)}</p>
+    <p>Source: ${esc(credit)}${when ? `, updated ${esc(when)}` : ""}.${info ? ` <a href="${esc(info)}" target="_blank" rel="noopener">Source page<span class="sr-only"> (new tab)</span></a>` : ""}</p>
+    ${layer?.status?.state === "fixture" ? `<p class="note">This is sample data. The agency could not be reached.</p>` : ""}
+    <p class="note">Areas are shown as the agency drew them. They are not exact animal locations.</p>
+  </article>`;
+}
 function featureHtml(p, layer) {
+  if (isSimple()) return plainFeatureHtml(p, layer);
   const details = Object.entries(p.details || {})
     .filter(([, v]) => v !== null && v !== "")
     .map(([k, v]) => {
@@ -514,7 +585,7 @@ let lastFocus = null;
 function showDetails(features) {
   if (!features.length) return;
   lastFocus = document.activeElement;
-  $("#details-title").textContent = features.length > 1 ? `${features.length} items here` : "Details";
+  $("#details-title").textContent = features.length > 1 ? (isSimple() ? `${features.length} things here` : `${features.length} items here`) : (isSimple() ? "What is here" : "Details");
   $("#details-body").innerHTML = features.map((f) => featureHtml(f.properties, layers.get(f.properties.source_id))).join("");
   detailsEl.hidden = false;
   $("#details-close").focus();
@@ -573,7 +644,12 @@ function landClassFor(layer, code) {
 function showLand(layer, code, append, error) {
   const cls = code === null ? null : landClassFor(layer, code);
   const info = safeUrl(layer.info_url);
-  const html = `<article class="feature land">
+  const html = isSimple() ? `<article class="feature land plain">
+    <h3>${cls ? `${swatchHtml({ style: { color: cls.color, fillOpacity: 1 } })} ` : ""}Who manages the land</h3>
+    <p class="plain-sentence">${cls ? `${esc(layer.simple?.popup || "This land is managed by")} ${esc(cls.label)}.` : esc(error || "No public land manager is listed here. It is usually private land or water.")}</p>
+    ${cls ? `<p>${esc(cls.meaning)}</p>` : ""}
+    <p>Source: ${info ? `<a href="${esc(info)}" target="_blank" rel="noopener">${esc(layer.credit_short || layer.agency)}<span class="sr-only"> (new tab)</span></a>` : esc(layer.credit_short || layer.agency)}.</p>
+  </article>` : `<article class="feature land">
     <h3>${cls ? `${swatchHtml({ style: { color: cls.color, fillOpacity: 1 } })} Managed by: ${esc(cls.label)}` : error ? "Who manages the land" : "Managed by: not listed"}</h3>
     ${cls ? `<p><strong>What this means:</strong> ${esc(cls.meaning)}</p>`
       : `<p>${esc(error || "BLM's data shows no surface manager at this spot. It is usually private or water.")}</p>`}
@@ -652,7 +728,74 @@ function updateItems() {
     ul.appendChild(li);
   }
 }
-map.on("moveend", () => { updateItems(); writeHash(); });
+map.on("moveend", () => { updateItems(); writeHash(); scheduleListView(); });
+
+// ------------------------------------------------------------- list view
+// A text alternative to the map: for each layer that is on, how many areas
+// are in view, the nearest ones to the map center, and when it was updated.
+let listTimer = 0;
+function scheduleListView() {
+  clearTimeout(listTimer);
+  listTimer = setTimeout(renderListView, 200);
+}
+function milesBetween([lon1, lat1], [lon2, lat2]) {
+  const r = Math.PI / 180;
+  const a = Math.sin(((lat2 - lat1) * r) / 2) ** 2 + Math.cos(lat1 * r) * Math.cos(lat2 * r) * Math.sin(((lon2 - lon1) * r) / 2) ** 2;
+  return 3958.8 * 2 * Math.asin(Math.min(1, Math.sqrt(a)));
+}
+function compass([lon1, lat1], [lon2, lat2]) {
+  const dirs = ["north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"];
+  const ang = (Math.atan2(lon2 - lon1, lat2 - lat1) * 180) / Math.PI;
+  return dirs[Math.round(((ang + 360) % 360) / 45) % 8];
+}
+function renderListView() {
+  const out = $("#list-view");
+  if (!out || !layers.size) return;
+  const vis = visibleLayers();
+  if (!vis.length) { out.innerHTML = `<p class="hint">No layers are on. Turn one on under Layers.</p>`; return; }
+  const b = map.getBounds();
+  const c = map.getCenter().wrap();
+  const center = [c.lng, c.lat];
+  const simple = isSimple();
+  out.innerHTML = `<ul class="list-view-list">${vis.map((l) => {
+    const upd = updatedText(l);
+    const head = `<h3 class="lv-name">${swatchHtml(l)} ${esc(displayName(l))}</h3>`;
+    if (l.type !== "geojson") {
+      const note = zoomedOut(l) ? (l.zoom_hint || "Zoom in to see this layer") + "." : "A map picture from the agency. Select a spot on the map to ask what is there.";
+      return `<li>${head}<p>${esc(note)}</p>${upd ? `<p class="lv-meta">${esc(l.credit_short || l.agency)}, ${esc(upd)}.</p>` : ""}</li>`;
+    }
+    if (l.loaded !== true) return `<li>${head}<p>${l.loaded === "loading" ? "Loading…" : "Not loaded yet."}</p></li>`;
+    const hits = [];
+    for (const f of l.data.features || []) {
+      if (!f.geometry) continue;
+      f._bbox ??= bboxOf(f.geometry);
+      if (!inView(f._bbox, b)) continue;
+      const mid = [(f._bbox[0] + f._bbox[2]) / 2, (f._bbox[1] + f._bbox[3]) / 2];
+      hits.push({ f, mid, d: milesBetween(center, mid) });
+    }
+    hits.sort((x, y) => x.d - y.d);
+    const n = hits.length;
+    const noun = simple ? (n === 1 ? "area" : "areas") : (n === 1 ? "item" : "items");
+    const nearest = hits.slice(0, 3).map((h) => {
+      const label = h.f.properties?.label || "Unnamed area";
+      const dist = h.d < 1 ? "at the map center" : `about ${Math.round(h.d)} miles ${compass(center, h.mid)} of the map center`;
+      return `<li><button type="button" class="lv-item" data-layer="${esc(l.id)}" data-fid="${esc(String(h.f.properties?.id ?? ""))}">${esc(label)}</button>, ${esc(dist)}</li>`;
+    }).join("");
+    return `<li>${head}<p>${n ? `${n} ${noun} in view.` : `None in this view.`}${n > 3 ? " Nearest three:" : n ? " Nearest:" : ""}</p>
+      ${nearest ? `<ul class="lv-nearest">${nearest}</ul>` : ""}
+      <p class="lv-meta">${esc(l.credit_short || l.agency)}${upd ? `, ${esc(upd)}` : ""}.</p></li>`;
+  }).join("")}</ul>`;
+}
+$("#list-view").addEventListener("click", (e) => {
+  const btn = e.target.closest(".lv-item");
+  if (!btn) return;
+  const l = layers.get(btn.dataset.layer);
+  const f = l?.data?.features?.find((x) => String(x.properties?.id ?? "") === btn.dataset.fid);
+  if (!f) return;
+  const [x0, y0, x1, y1] = f._bbox;
+  map.fitBounds([[x0, y0], [x1, y1]], { padding: 80, maxZoom: 8, duration: matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 600 });
+  showDetails([{ properties: { ...f.properties, details: parseMaybe(f.properties.details) } }]);
+});
 
 // ------------------------------------------------------------ panel / sheet
 // Wide screens: a side panel the header "Layers" button shows and hides.
@@ -704,7 +847,12 @@ for (const a of document.querySelectorAll(".jump-tabs a")) {
     if (isPhone() && panel.dataset.sheet !== "full") setSheet("full");
     const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
     requestAnimationFrame(() => {
-      target.scrollIntoView({ block: "start", behavior: reduce ? "auto" : "smooth" });
+      // Scroll only the panel (the sheet body on phones), never the page,
+      // and leave room for the sticky jump tabs.
+      const scroller = isPhone() ? $("#panel-body") : panel;
+      const tabs = $(".jump-tabs").getBoundingClientRect().height;
+      const top = target.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop - tabs - 8;
+      scroller.scrollTo({ top: Math.max(0, top), behavior: reduce ? "auto" : "smooth" });
       target.focus({ preventScroll: true });
     });
   });
@@ -825,7 +973,7 @@ function sourcesHtml() {
     const u = safeUrl(l.info_url);
     const updated = l.type === "raster" ? "Live agency map service" : l.status?.source_updated_at
       ? `Agency updated ${fmtTime(l.status.source_updated_at)}` : "Agency update date not published";
-    return `<li>${swatchHtml(l)}<div><strong>${esc(l.name)}</strong>
+    return `<li>${swatchHtml(l)}<div><strong>${esc(displayName(l))}</strong>
       <span>${esc(l.attribution)}</span>
       <span class="muted">${esc(updated)}</span>
       ${u ? `<a href="${esc(u)}" target="_blank" rel="noopener">Source page<span class="sr-only"> for ${esc(l.name)} (new tab)</span></a>` : ""}</div></li>`;
@@ -876,6 +1024,7 @@ async function boot() {
     setTimeout(hideSplash, 2500);
     return;
   }
+  simpleGroups = Array.isArray(index.simple_groups) ? index.simple_groups : [];
   for (const l of index.layers) {
     const visible = initial.ids ? initial.ids.has(l.id) : Boolean(l.style?.defaultVisible);
     layers.set(l.id, { ...l, visible, loaded: false });
@@ -961,7 +1110,7 @@ function legendHtml() {
     const zoomNote = l.minzoom && map.getZoom() < l.minzoom ? ` <small>(${esc(l.zoom_hint ? l.zoom_hint.toLowerCase() : "zoom in to see")})</small>` : "";
     const agencyColors = l.type === "raster" && !l.drawn_in_palette ? ` <small>(agency colors)</small>` : "";
     const classes = l.classes && !zoomNote ? classLegendHtml(l) : "";
-    return `<li class="${classes ? "has-classes" : ""}">${l.classes ? "" : swatchHtml(l)}<span>${esc(l.name)}${zoomNote}${agencyColors}${classes}</span></li>`;
+    return `<li class="${classes ? "has-classes" : ""}">${l.classes ? "" : swatchHtml(l)}<span>${esc(displayName(l))}${zoomNote}${isSimple() ? "" : agencyColors}${classes}</span></li>`;
   }).join("") : `<li class="hint">No layers turned on.</li>`;
 }
 function renderLegend() {
@@ -994,9 +1143,11 @@ function goTo(r) {
   searchMarker?.remove();
   searchMarker = new maplibregl.Marker({ color: "#111418" }).setLngLat([r.lon, r.lat]).addTo(map);
   searchOut.innerHTML = `<li class="hint">Showing ${esc(r.name)}.</li>`;
+  announce(`Showing ${r.name} on the map.`);
 }
 function showResults(results, note) {
   searchOut.innerHTML = "";
+  announce(`${results.length} ${results.length === 1 ? "place" : "places"} found. Use Tab to choose one.`);
   for (const r of results) {
     const li = document.createElement("li");
     const btn = document.createElement("button");
@@ -1147,6 +1298,54 @@ window.addEventListener("hashchange", () => {
 if ("serviceWorker" in navigator && window.isSecureContext) {
   navigator.serviceWorker.register("/sw.js").catch(() => {});
 }
+
+// ------------------------------------------------------- use my location
+const locateBtn = $("#locate-me");
+const locateMsg = $("#locate-status");
+let locateMarker = null;
+if (!("geolocation" in navigator)) locateBtn.hidden = true;
+locateBtn.addEventListener("click", () => {
+  locateMsg.textContent = "Finding your location…";
+  navigator.geolocation.getCurrentPosition((pos) => {
+    const { longitude: lon, latitude: lat } = pos.coords;
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    map.flyTo({ center: [lon, lat], zoom: Math.max(map.getZoom(), 8), duration: reduce ? 0 : 800 });
+    locateMarker?.remove();
+    locateMarker = new maplibregl.Marker({ color: "#111418" }).setLngLat([lon, lat]).addTo(map);
+    locateMsg.textContent = "Showing your location. It stays on this device.";
+    announce("Showing your location on the map.");
+  }, (err) => {
+    locateMsg.textContent = err.code === 1
+      ? "Location is turned off for this site. Type a town or ZIP code instead."
+      : "Your location could not be found. Type a town or ZIP code instead.";
+  }, { enableHighAccuracy: false, timeout: 15000, maximumAge: 300000 });
+});
+
+// ------------------------------------------------ view and display settings
+function syncModeLabel() {
+  $("#sheet-mode").textContent = isSimple() ? "Simple" : "Expert";
+  const d = document.documentElement.dataset;
+  $("#prefs-now").textContent = `${isSimple() ? "Simple" : "Expert"} view · text ${["A", "A+", "A++"][Number(d.text || 1) - 1] || "A"}${d.contrast === "high" ? " · high contrast" : ""}`;
+}
+// On phones the settings fold away so the layers come first in the sheet.
+if (isPhone()) $("#panel-prefs").open = false;
+document.addEventListener("pw:prefs", (e) => {
+  const what = e.detail?.changed;
+  if (what === "mode" || what === "storage") {
+    if (layers.size) {
+      renderPanel();
+      renderLegend();
+      renderCredits();
+      renderListView();
+      if (!detailsEl.hidden) hideDetails();
+    }
+    syncModeLabel();
+    writeHash();
+    announce(isSimple() ? "Simple view. Fewer layers with plain names." : "Expert view. All layers and full details.");
+  }
+  requestAnimationFrame(() => { syncOffsets(); map.resize(); });
+});
+syncModeLabel();
 
 setSheet("peek");
 boot();

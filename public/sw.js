@@ -1,7 +1,7 @@
 // Predator Watch service worker: keeps a last-good copy so the map opens
 // on a weak or missing connection. Only same-origin files are cached;
 // basemap and agency map tiles always come from their providers.
-const VERSION = "pw-7";
+const VERSION = "pw-8";
 const SHELL = `${VERSION}-shell`;
 const DATA = `${VERSION}-data`;
 const SHELL_FILES = [
@@ -11,6 +11,7 @@ const SHELL_FILES = [
   "/styles.css",
   "/brand.css",
   "/theme.js",
+  "/prefs.js",
   "/fonts/ibm-plex-sans.woff2",
   "/fonts/ibm-plex-mono-normal-500.woff2",
   "/brand/bitprairie-symbol.svg",
