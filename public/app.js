@@ -55,13 +55,18 @@ function badges(layer) {
   if (st.state === "never") out.push({ cls: "warn", text: "Loading…", title: "Not fetched yet." });
   if (st.state === "fixture") out.push({ cls: "warn", text: "Sample data", title: "The agency could not be reached; showing a bundled sample." });
   if (st.state === "error") out.push({ cls: "err", text: "Last check failed", title: st.error || "" });
-  const updated = st.source_updated_at || st.received_at;
-  if (updated) {
-    const ageDays = (Date.now() - Date.parse(updated)) / 864e5;
+  if (st.source_updated_at) {
+    const ageDays = (Date.now() - Date.parse(st.source_updated_at)) / 864e5;
     out.push({
       cls: ageDays <= 2 ? "ok" : ageDays <= 60 ? "warn" : "old",
-      text: `Last updated ${ago(updated)}`,
-      title: `${st.source_updated_at ? "Agency last updated" : "Received"}: ${fmtTime(updated)}`,
+      text: `Agency updated ${ago(st.source_updated_at)}`,
+      title: `Agency last updated: ${fmtTime(st.source_updated_at)}`,
+    });
+  } else if (st.received_at) {
+    out.push({
+      cls: "old",
+      text: "Agency update date not published",
+      title: `This service does not publish an edit date. Last received: ${fmtTime(st.received_at)}`,
     });
   }
   if (st.checked_at) out.push({ cls: "old", text: `Checked ${ago(st.checked_at)}`, title: `Last checked with the agency: ${fmtTime(st.checked_at)}` });
@@ -82,6 +87,19 @@ const map = new maplibregl.Map({
 map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), "top-left");
 map.addControl(new maplibregl.ScaleControl({ unit: "imperial" }), "bottom-left");
 map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-right");
+// Start the credits collapsed on small screens so they do not cover the map;
+// the (i) button still opens them. MapLibre re-opens the box whenever the
+// credits change, so keep it closed until the reader opens it.
+let creditsTouched = false;
+document.addEventListener("click", (e) => {
+  if (e.target instanceof Element && e.target.closest(".maplibregl-ctrl-attrib-button")) creditsTouched = true;
+});
+map.on("idle", () => {
+  if (creditsTouched || window.innerWidth >= 760) return;
+  const el = document.querySelector(".maplibregl-ctrl-attrib");
+  el?.classList.remove("maplibregl-compact-show");
+  el?.removeAttribute("open");
+});
 if ("geolocation" in navigator) {
   map.addControl(new maplibregl.GeolocateControl({ trackUserLocation: false, showAccuracyCircle: false }), "top-left");
 }
@@ -309,7 +327,7 @@ function updateItems() {
     btn.innerHTML = `${esc(p.label)}<small>${esc(p.agency)} · observed ${esc(fmtTime(p.observed_at, p.observed_at_precision))}</small>`;
     btn.addEventListener("click", () => {
       const [x0, y0, x1, y1] = f._bbox;
-      map.fitBounds([[x0, y0], [x1, y1]], { padding: 80, maxZoom: 9, duration: matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 600 });
+      map.fitBounds([[x0, y0], [x1, y1]], { padding: 80, maxZoom: 8, duration: matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 600 });
       showDetails([f]);
     });
     li.appendChild(btn);
