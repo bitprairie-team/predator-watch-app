@@ -126,3 +126,13 @@ describe("MCP over OAuth", () => {
     expect(res.status).toBe(200);
   });
 });
+
+describe("OAuth scope narrowing", () => {
+  it("never grants a token more than the access key that approved it", async () => {
+    const { narrowScopes } = await import("../src/mcp/oauth");
+    expect(narrowScopes(["rancher:read"], ["rancher:read"])).toEqual(["rancher:read"]);
+    expect(narrowScopes(["rancher:read"], ["alerts:read"])).toEqual(["alerts:read"]);
+    expect(narrowScopes(["activity:read"], ["alerts:read"])).toEqual([]);
+    expect(narrowScopes(["rancher:read"], undefined)).toEqual(["rancher:read"]);
+  });
+});
