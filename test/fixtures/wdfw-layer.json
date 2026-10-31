@@ -1,0 +1,65 @@
+{
+ "currentVersion": 11.5,
+ "id": 0,
+ "name": "Wolf_PackPolygons_CurrentYear",
+ "type": "Feature Layer",
+ "geometryType": "esriGeometryPolygon",
+ "fields": [
+  {
+   "name": "OBJECTID",
+   "type": "esriFieldTypeOID",
+   "alias": "OBJECTID",
+   "domain": null
+  },
+  {
+   "name": "Pack",
+   "type": "esriFieldTypeString",
+   "alias": "Pack",
+   "length": 50,
+   "domain": null
+  },
+  {
+   "name": "Year",
+   "type": "esriFieldTypeInteger",
+   "alias": "Year",
+   "domain": null
+  },
+  {
+   "name": "Shape",
+   "type": "esriFieldTypeGeometry",
+   "alias": "Shape",
+   "domain": null
+  },
+  {
+   "name": "PackID",
+   "type": "esriFieldTypeInteger",
+   "alias": "PackID",
+   "domain": null
+  },
+  {
+   "name": "Shape.STArea()",
+   "type": "esriFieldTypeDouble",
+   "alias": "Shape.STArea()",
+   "domain": null
+  },
+  {
+   "name": "Shape.STLength()",
+   "type": "esriFieldTypeDouble",
+   "alias": "Shape.STLength()",
+   "domain": null
+  },
+  {
+   "name": "PackStatus",
+   "type": "esriFieldTypeString",
+   "alias": "PackStatus",
+   "length": 50,
+   "domain": null
+  }
+ ],
+ "maxRecordCount": 2000,
+ "advancedQueryCapabilities": {
+  "supportsPagination": true
+ },
+ "supportedQueryFormats": "JSON, geoJSON, PBF",
+ "capabilities": "Query,Map,Data"
+}
