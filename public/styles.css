@@ -140,6 +140,8 @@ dialog .btn { border-color: var(--brand); background: var(--brand); color: #fff;
 .chat-log .bot { background: var(--panel); border: 1px solid var(--line); }
 .chat-log .tool { font-size: .8rem; color: var(--muted); padding: 0 .2rem; }
 .chat-log .err { background: var(--err-bg); color: var(--err-ink); }
+.chat-log .bot.declined { border-left: 3px solid var(--muted); }
+.assistant-disclaimer { margin-top: .6rem; }
 .sources { margin: .4rem 0 0; padding-left: 1.1rem; font-size: .8rem; color: var(--muted); white-space: normal; }
 .chat-form { display: flex; flex-direction: column; gap: .4rem; }
 .chat-actions { display: flex; justify-content: flex-end; gap: .4rem; }

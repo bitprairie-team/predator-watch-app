@@ -2,6 +2,9 @@
 // Events and a voice session that talks to the realtime voice service with a
 // short-lived credential. Tool calls made during voice run on our server, so
 // they get the same tenant checks, location tiers, and audit log as text.
+// Voice transcripts go through the same scope policy as text: each question is
+// checked by /api/assistant/voice/guard before tools run, and each spoken
+// answer's transcript is checked after.
 const $ = (s) => document.querySelector(s);
 const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const safeUrl = (u) => (/^https:\/\//i.test(String(u ?? "")) ? String(u) : null);
@@ -61,6 +64,8 @@ async function refresh() {
   const ranches = me.ranches.map((x) => x.name).join(", ") || "no ranch on file yet";
   $("#rancher-who").textContent = `${me.tenant.name ?? "Your account"}: ${ranches}.${me.chat_available ? "" : " Chat is not set up on this server yet."}`;
   $("#rancher-mic").disabled = !me.voice_available;
+  if (me.disclaimer) $("#rancher-disclaimer").textContent = `${me.disclaimer} It won't help locate individual animals or dens, or identify other ranchers. In an emergency, call 911 or the agency contact on file.`;
+  if (me.mock) $("#rancher-who").textContent += " Offline demo mode: answers come from a local test model.";
 }
 
 $("#rancher-key-form").addEventListener("submit", (e) => {
@@ -107,7 +112,14 @@ $("#rancher-chat").addEventListener("submit", async (e) => {
         if (ev === "tool_call") addMsg("tool", `Looking up: ${esc(data.name.replace(/_/g, " "))}`);
         else if (ev === "delta") { text += data.text; bot.textContent = text; }
         else if (ev === "citations") bot.insertAdjacentHTML("beforeend", sourcesHtml(data.citations));
-        else if (ev === "done") history.push({ role: "assistant", content: data.text });
+        else if (ev === "guard") bot.classList.add("declined");
+        else if (ev === "done") {
+          if (data.refused) {
+            // Keep declined topics out of the running conversation.
+            bot.classList.add("declined");
+            history.pop();
+          } else history.push({ role: "assistant", content: data.text });
+        }
         else if (ev === "error") { bot.className = "err"; bot.textContent = data.message; }
       }
     }
@@ -151,8 +163,35 @@ function playPcm16(ctx, b64, state) {
   state.sources.push(src);
 }
 
+async function guard(stage, text) {
+  try {
+    const r = await fetch("/api/assistant/voice/guard", {
+      method: "POST",
+      headers: authHeaders({ "content-type": "application/json" }),
+      body: JSON.stringify({ stage, text }),
+    });
+    // Fail closed: if the check can't run, treat the turn as declined.
+    if (!r.ok) return { action: "decline", say: (await r.json().catch(() => ({}))).message ?? "I can't answer that right now." };
+    return await r.json();
+  } catch {
+    return { action: "decline", say: "I can't answer that right now." };
+  }
+}
+
+function stopPlayback(state) {
+  state.sources.forEach((x) => { try { x.stop(); } catch {} });
+  state.sources = []; state.playAt = 0;
+}
+
 async function runVoiceTool(state, ev) {
   let output;
+  // Wait for the policy check on this turn's question before running any tool.
+  const verdict = await (state.inputGuard ?? Promise.resolve({ action: "allow" }));
+  if (verdict.action !== "allow") {
+    if (state.ws.readyState === 1)
+      state.ws.send(JSON.stringify({ type: "conversation.item.create", item: { type: "function_call_output", call_id: ev.call_id, output: JSON.stringify({ error: "policy_declined", message: verdict.say }) } }));
+    return;
+  }
   try {
     const t = await fetch(`/api/assistant/tools/${encodeURIComponent(ev.name)}`, {
       method: "POST",
@@ -177,10 +216,15 @@ async function startVoice() {
   const r = await fetch("/api/assistant/voice/session", { method: "POST", headers: authHeaders() });
   if (!r.ok) { status.textContent = (await r.json().catch(() => ({}))).message ?? "Voice is not available."; return; }
   const s = await r.json();
+  if (s.mock) {
+    // The offline mock mints a fake credential; there is no live audio service to connect to.
+    status.textContent = "Voice session setup works in offline demo mode, but live audio needs the realtime service. Use text chat to try the assistant.";
+    return;
+  }
   const ctx = new AudioContext({ sampleRate: 24000 });
   const mic = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
   const ws = new WebSocket(s.url, s.protocols);
-  const state = { ws, ctx, mic, playAt: 0, sources: [], pending: [], transcript: null, citations: [] };
+  const state = { ws, ctx, mic, playAt: 0, sources: [], pending: [], transcript: null, citations: [], inputGuard: null, declined: false };
   voice = state;
   $("#rancher-mic").setAttribute("aria-pressed", "true");
   $("#rancher-mic").textContent = "Stop";
@@ -206,14 +250,42 @@ async function startVoice() {
         state.sources = []; state.playAt = 0;
         break;
       case "conversation.item.input_audio_transcription.completed":
-        if (ev.transcript) addMsg("me", esc(ev.transcript));
+        if (ev.transcript) {
+          addMsg("me", esc(ev.transcript));
+          state.declined = false;
+          state.inputGuard = guard("input", ev.transcript);
+          const verdict = await state.inputGuard;
+          if (verdict.action !== "allow") {
+            // Stop whatever the model started, show the decline, and have it say only the decline.
+            state.declined = true;
+            if (ws.readyState === 1) ws.send(JSON.stringify({ type: "response.cancel" }));
+            stopPlayback(state);
+            state.transcript?.remove();
+            state.transcript = null;
+            state.citations = [];
+            addMsg("bot declined", esc(verdict.say));
+            if (ws.readyState === 1)
+              ws.send(JSON.stringify({ type: "response.create", response: { instructions: `Say only this, word for word, then stop: ${verdict.say}`, tool_choice: "none" } }));
+          }
+        }
         break;
       case "response.output_audio.delta":
         playPcm16(ctx, ev.delta, state);
         break;
       case "response.output_audio_transcript.delta":
+        if (state.declined) break; // the decline is already on screen
         state.transcript ??= addMsg("bot", "");
         state.transcript.textContent += ev.delta;
+        break;
+      case "response.output_audio_transcript.done":
+        if (ev.transcript && !state.declined) {
+          const verdict = await guard("output", ev.transcript);
+          if (verdict.action === "block") {
+            if (ws.readyState === 1) ws.send(JSON.stringify({ type: "response.cancel" }));
+            stopPlayback(state);
+          }
+          if ((verdict.action === "block" || verdict.action === "redact") && state.transcript) state.transcript.textContent = verdict.text;
+        }
         break;
       case "response.function_call_arguments.done":
         addMsg("tool", `Looking up: ${esc(ev.name.replace(/_/g, " "))}`);
@@ -226,6 +298,9 @@ async function startVoice() {
           state.pending = [];
           await Promise.all(p);
           if (ws.readyState === 1) ws.send(JSON.stringify({ type: "response.create" }));
+        } else if (state.declined) {
+          state.transcript = null;
+          state.citations = [];
         } else if (state.transcript) {
           // Sources are always shown on screen for spoken answers.
           if (state.citations.length) state.transcript.insertAdjacentHTML("beforeend", sourcesHtml(state.citations));
