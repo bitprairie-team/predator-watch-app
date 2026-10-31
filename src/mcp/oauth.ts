@@ -5,7 +5,7 @@
 // clients that can set a header.
 import { OAuthProvider, type AuthRequest, type OAuthHelpers } from "@cloudflare/workers-oauth-provider";
 import { contextFromAccessKey } from "../agents/auth";
-import type { AuthContext } from "../agents/types";
+import { READ_SCOPES, type AuthContext, type Scope } from "../agents/types";
 import { rancherService, type PrivateEnv } from "../rancher/service";
 import { handleMcp, MCP_ROUTE, scopesFrom } from "./server";
 
@@ -21,6 +21,23 @@ interface Props {
   userId: string;
   /** Set when the bearer was a rancher access key rather than an OAuth token. */
   accessKeyScopes?: string[];
+  /** For OAuth grants: the scopes of the access key that approved the grant. */
+  keyScopes?: string[];
+}
+
+/** Expand rancher:read into the read scopes it covers. */
+function expand(scopes: Scope[]): Set<Scope> {
+  const out = new Set(scopes);
+  if (out.has("rancher:read")) READ_SCOPES.forEach((s) => out.add(s));
+  return out;
+}
+
+/** An OAuth token never grants more than the access key that approved it. */
+export function narrowScopes(tokenScopes: Scope[], keyScopes: Scope[] | undefined): Scope[] {
+  if (!keyScopes) return tokenScopes;
+  const key = expand(keyScopes);
+  if (key.has("rancher:read")) return tokenScopes;
+  return [...expand(tokenScopes)].filter((s) => s !== "rancher:read" && key.has(s));
 }
 
 type Env = PrivateEnv & { OAUTH_PROVIDER?: OAuthHelpers };
@@ -30,7 +47,7 @@ async function contextFromProps(env: Env, props: Props, scope: string[], client:
   if (!svc || !props?.tenantId) return null;
   const tenant = await svc.store.get<{ plan?: "public" | "rancher" }>(`tenant:${props.tenantId}`);
   if (!tenant) return null;
-  return { tenantId: props.tenantId, userId: props.userId, plan: tenant.plan ?? "public", scopes: scopesFrom(scope), client };
+  return { tenantId: props.tenantId, userId: props.userId, plan: tenant.plan ?? "public", scopes: narrowScopes(scopesFrom(scope), props.keyScopes ? scopesFrom(props.keyScopes) : undefined), client };
 }
 
 const apiHandler = {
@@ -111,7 +128,7 @@ async function authorize(request: Request, env: Env): Promise<Response> {
       userId: encodeURIComponent(`${ctx.tenantId}:${ctx.userId}`),
       metadata: { tenant_id: ctx.tenantId, granted_at: new Date().toISOString() },
       scope: DEFAULT_SCOPES,
-      props: { tenantId: ctx.tenantId, userId: ctx.userId } satisfies Props,
+      props: { tenantId: ctx.tenantId, userId: ctx.userId, keyScopes: ctx.scopes } satisfies Props,
     });
     const h = new Headers(approved.headers);
     h.set("location", redirectTo);
