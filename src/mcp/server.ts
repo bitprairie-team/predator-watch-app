@@ -6,6 +6,8 @@ import { createMcpHandler } from "agents/mcp/server";
 import { McpServer, fromJsonSchema } from "@modelcontextprotocol/server";
 import type { RancherService } from "../rancher/service";
 import { AgentError, READ_SCOPES, type AuthContext, type Scope } from "../agents/types";
+import { MCP_INSTRUCTIONS } from "../rancher/prompt";
+import { DATA_NOTICE } from "../guardrails/sanitize";
 
 export const MCP_ROUTE = "/mcp";
 export const MCP_SERVER_INFO = { name: "predator-watch-rancher", version: "0.1.0" };
@@ -17,8 +19,7 @@ export function scopesFrom(granted: string[]): Scope[] {
 
 export function buildMcpServer(svc: RancherService, ctx: AuthContext): McpServer {
   const server = new McpServer(MCP_SERVER_INFO, {
-    instructions:
-      "Predator Watch rancher tools. Every result includes sources with observed and received times; cite them. If a result sets `unknown`, tell the user you don't know rather than guessing.",
+    instructions: `${MCP_INSTRUCTIONS} If a result sets \`unknown\`, tell the user you don't know rather than guessing.`,
   });
   for (const tool of svc.registry.listFor(ctx)) {
     server.registerTool(
@@ -34,7 +35,11 @@ export function buildMcpServer(svc: RancherService, ctx: AuthContext): McpServer
         try {
           const result = await svc.registry.execute(tool.name, args ?? {}, ctx, svc.deps);
           return {
-            content: [{ type: "text" as const, text: JSON.stringify(result) }],
+            // Same tiers, sanitizing, and policy check as the web assistant (all in registry.execute).
+            content: [
+              { type: "text" as const, text: JSON.stringify(result) },
+              { type: "text" as const, text: DATA_NOTICE },
+            ],
             structuredContent: result as unknown as Record<string, unknown>,
           };
         } catch (e) {
