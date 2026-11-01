@@ -7,7 +7,7 @@ import { McpServer, fromJsonSchema } from "@modelcontextprotocol/server";
 import type { RancherService } from "../rancher/service";
 import { AgentError, READ_SCOPES, type AuthContext, type Scope } from "../agents/types";
 import { MCP_INSTRUCTIONS } from "../rancher/prompt";
-import { DATA_NOTICE } from "../guardrails/sanitize";
+import { fenceToolOutput } from "../guardrails/sanitize";
 
 export const MCP_ROUTE = "/mcp";
 export const MCP_SERVER_INFO = { name: "predator-watch-rancher", version: "0.1.0" };
@@ -36,10 +36,8 @@ export function buildMcpServer(svc: RancherService, ctx: AuthContext): McpServer
           const result = await svc.registry.execute(tool.name, args ?? {}, ctx, svc.deps);
           return {
             // Same tiers, sanitizing, and policy check as the web assistant (all in registry.execute).
-            content: [
-              { type: "text" as const, text: JSON.stringify(result) },
-              { type: "text" as const, text: DATA_NOTICE },
-            ],
+            // The text the client's model reads is fenced like the web assistant's.
+            content: [{ type: "text" as const, text: fenceToolOutput(result) }],
             structuredContent: result as unknown as Record<string, unknown>,
           };
         } catch (e) {
