@@ -12,20 +12,20 @@ const config: CapacitorConfig = {
   appId: "org.predatorwatch.app",
   appName: "Predator Watch by BitPrairie",
   webDir: "dist/native",
-  backgroundColor: "#f3f4f6",
+  backgroundColor: "#f2ede4",
   ios: {
     contentInset: "never",
-    backgroundColor: "#f3f4f6",
+    backgroundColor: "#f2ede4",
   },
   android: {
-    backgroundColor: "#f3f4f6",
+    backgroundColor: "#f2ede4",
     allowMixedContent: false,
   },
   plugins: {
     SplashScreen: {
       launchShowDuration: 600,
       launchAutoHide: true,
-      backgroundColor: "#f3f4f6",
+      backgroundColor: "#f2ede4",
       showSpinner: false,
       androidScaleType: "CENTER_CROP",
     },

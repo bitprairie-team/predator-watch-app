@@ -23,7 +23,8 @@ describe("BitPrairie brand", () => {
       expect(existsSync(`public/${f}`), f).toBe(true);
     }
     expect(read("public/fonts/OFL-IBMPlexSans.txt")).toMatch(/SIL OPEN FONT LICENSE/i);
-    expect(read("public/brand.css")).toMatch(/--accent: #7a5530/);
+    // Warm BitPrairie tokens: paper, surface, ink and leather accent.
+    for (const t of ["--paper: #f2ede4", "--card: #fffcf6", "--ink: #141416", "--accent: #6b4a2e"]) expect(read("public/brand.css")).toContain(t);
     expect(read("public/brand.css")).not.toMatch(/fonts\.googleapis|https?:\/\//);
   });
 
@@ -36,7 +37,7 @@ describe("BitPrairie brand", () => {
       expect(h, p).toMatch(/by <a href="https:\/\/bitprairie\.com\/predator-watch\/">BitPrairie<\/a>/);
       expect(h, p).toMatch(/class="proj-mark"/);
       expect(h, p).toMatch(/<footer class="credits"/);
-      expect(h, p).toMatch(/name="theme-color" content="#f3f4f6"[^>]*data-dark="#0e1012"/);
+      expect(h, p).toMatch(/name="theme-color" content="#f2ede4"[^>]*data-dark="#161310"/);
       expect(h, p).not.toMatch(/<script>(?!<\/script>)/);
     }
   });
@@ -77,7 +78,7 @@ describe("BitPrairie brand", () => {
 
   it("uses the brand colours in the manifest", () => {
     const m = JSON.parse(read("public/manifest.webmanifest"));
-    expect(m.theme_color).toBe("#f3f4f6");
+    expect(m.theme_color).toBe("#f2ede4");
     expect(m.icons.some((i: { purpose?: string }) => i.purpose === "maskable")).toBe(true);
   });
 });

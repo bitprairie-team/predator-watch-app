@@ -10,7 +10,7 @@
   function meta(theme){
     var m = document.querySelector('meta[name="theme-color"]'); if (!m) return;
     if (!m.hasAttribute("data-light")) m.setAttribute("data-light", m.getAttribute("content") || "");
-    m.setAttribute("content", theme === "dark" ? (m.getAttribute("data-dark") || "#0e1012") : m.getAttribute("data-light"));
+    m.setAttribute("content", theme === "dark" ? (m.getAttribute("data-dark") || "#161310") : m.getAttribute("data-light"));
   }
   // Toggle buttons are named "Dark mode"; aria-pressed and the tooltip say whether it is on.
   function sync(theme){
