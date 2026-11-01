@@ -1,8 +1,21 @@
 /*
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
-  Permissions-Policy: geolocation=(self), camera=(), microphone=()
-  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://tiles.openfreemap.org https://gis.blm.gov https://apps.fs.usda.gov; connect-src 'self' https://tiles.openfreemap.org https://gis.blm.gov https://apps.fs.usda.gov; worker-src 'self' blob:; child-src blob:; font-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
+  Strict-Transport-Security: max-age=63072000; includeSubDomains
+  X-Frame-Options: DENY
+  Cross-Origin-Opener-Policy: same-origin
+  Permissions-Policy: geolocation=(self), camera=(), microphone=(), payment=(), usb=(), interest-cohort=()
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://tiles.openfreemap.org https://gis.blm.gov https://apps.fs.usda.gov https://tigerweb.geo.census.gov https://basemap.nationalmap.gov https://tiles.arcgis.com https://www.mrlc.gov; connect-src 'self' https://tiles.openfreemap.org https://gis.blm.gov https://apps.fs.usda.gov https://tigerweb.geo.census.gov https://basemap.nationalmap.gov https://tiles.arcgis.com https://www.mrlc.gov; worker-src 'self' blob:; child-src blob:; font-src 'self'; manifest-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests
 
 /vendor/*
   Cache-Control: public, max-age=86400
+
+/sw.js
+  Cache-Control: no-cache
+  Service-Worker-Allowed: /
+
+/app.js
+  Cache-Control: public, max-age=300, stale-while-revalidate=86400
+
+/styles.css
+  Cache-Control: public, max-age=300, stale-while-revalidate=86400

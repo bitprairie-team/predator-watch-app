@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/steelhead99x/predator-watch-app/schemas/integrations/pasturetrace/v1/outbound.schema.json",
+  "title": "Predator Watch outbound alert (v1)",
+  "description": "An alert sent from a private Predator Watch tenant to PastureTrace for a time window. It carries no location; PastureTrace matches it to the tenant's own pastures. Status: Planned.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "tenant_id",
+    "alert_level",
+    "species",
+    "window_start",
+    "window_end",
+    "reviewed"
+  ],
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{2,63}$"
+    },
+    "alert_level": {
+      "type": "string",
+      "enum": [
+        "info",
+        "watch",
+        "warning"
+      ],
+      "description": "info: context only. watch: activity reported nearby. warning: confirmed activity reported nearby."
+    },
+    "species": {
+      "type": "string",
+      "enum": [
+        "gray_wolf",
+        "mexican_wolf",
+        "grizzly_bear",
+        "black_bear",
+        "mountain_lion",
+        "coyote",
+        "unknown"
+      ]
+    },
+    "window_start": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "window_end": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "reviewed": {
+      "type": "boolean",
+      "description": "True when a person at the tenant or a partner agency reviewed the alert before it was sent."
+    }
+  },
+  "propertyNames": {
+    "description": "Location fields are never allowed, under any of these names.",
+    "not": {
+      "enum": [
+        "lat",
+        "lon",
+        "lng",
+        "latitude",
+        "longitude",
+        "geometry",
+        "geom",
+        "coordinates",
+        "coords",
+        "location",
+        "position",
+        "point",
+        "x",
+        "y",
+        "wkt",
+        "geojson",
+        "bbox"
+      ]
+    }
+  }
+}

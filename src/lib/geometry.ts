@@ -66,3 +66,38 @@ export function ensureUniqueIds(features: NormalizedFeature[]): NormalizedFeatur
   }
   return features;
 }
+
+export type BBox = [number, number, number, number];
+
+/** [minX, minY, maxX, maxY] of a geometry, or null if it has no coordinates. */
+export function bboxOf(g: Geometry | null): BBox | null {
+  if (!g) return null;
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  const walk = (c: unknown): void => {
+    if (Array.isArray(c) && typeof c[0] === "number") {
+      const [x, y] = c as number[];
+      if (x! < minX) minX = x!;
+      if (x! > maxX) maxX = x!;
+      if (y! < minY) minY = y!;
+      if (y! > maxY) maxY = y!;
+    } else if (Array.isArray(c)) c.forEach(walk);
+  };
+  walk(g.coordinates);
+  return Number.isFinite(minX) ? [minX, minY, maxX, maxY] : null;
+}
+
+/**
+ * Whether a feature box intersects a query box. Query boxes may cross the
+ * antimeridian (minX > maxX, as OGC API Features allows), and feature boxes
+ * may use longitudes beyond ±180 after unwrapping.
+ */
+export function bboxIntersects(f: BBox, q: BBox): boolean {
+  if (f[1] > q[3] || f[3] < q[1]) return false;
+  const spans: [number, number][] = q[0] <= q[2] ? [[q[0], q[2]]] : [[q[0], 180], [-180, q[2]]];
+  for (const shift of [0, 360, -360]) {
+    for (const [a, b] of spans) {
+      if (f[0] + shift <= b && f[2] + shift >= a) return true;
+    }
+  }
+  return false;
+}
