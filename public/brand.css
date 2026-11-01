@@ -132,7 +132,8 @@ a.btn { display: inline-flex; align-items: center; text-decoration: none; color:
 @media (pointer: coarse) {
   .proj-link { min-height: 44px; }
   .brand-home { min-width: 44px; justify-content: center; }
-  .byline a { padding: 16px 6px; margin: -16px -6px; }
+  .byline a { padding: 17px 6px; margin: -17px -6px; }
+  .btn { min-width: 44px; justify-content: center; }
   .credits-links a { min-width: 44px; justify-content: center; }
 }
 
