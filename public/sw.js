@@ -12,7 +12,7 @@
 //   returned only with an x-pw-saved-at header holding the time it was
 //   saved, and the pages show that time ("Saved copy", offline line). Saved
 //   data is never served silently.
-const VERSION = "pw-10";
+const VERSION = "pw-11";
 const SHELL = `${VERSION}-shell`;
 const DATA = `${VERSION}-data`;
 const NET_TIMEOUT_MS = 5000;
