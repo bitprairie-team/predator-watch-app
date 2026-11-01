@@ -1,0 +1,37 @@
+{
+  "name": "predator-watch-app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Free, open-source public map of agency-published predator data.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/steelhead99x/predator-watch-app.git"
+  },
+  "scripts": {
+    "dev": "wrangler dev",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "vendor": "node scripts/copy-vendor.mjs",
+    "postinstall": "node scripts/copy-vendor.mjs"
+  },
+  "dependencies": {
+    "maplibre-gl": "^5.24.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261031.1",
+    "@types/node": "^26.6.6",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.7",
+    "wrangler": "^4.156.0"
+  },
+  "overrides": {
+    "rollup": "4.60.0"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "workerd@1.20261023.1": true
+  }
+}
