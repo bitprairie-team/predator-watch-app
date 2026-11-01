@@ -14,7 +14,7 @@ import { assistantKilled } from "../agents/killswitch";
 import { AgentError, type AuthContext } from "../agents/types";
 import { classifyConversation } from "../guardrails/classifier";
 import { checkOutput } from "../guardrails/output-check";
-import { DISCLAIMER, refusalText } from "../guardrails/policy";
+import { ASSISTANT_NOTICE, CAN_HELP_WITH, DISCLAIMER, refusalText } from "../guardrails/policy";
 import { DATA_NOTICE } from "../guardrails/sanitize";
 import { handleAgentRoutes } from "./agents-service";
 import { ownNames, runRancherTurn } from "./assistant";
@@ -117,6 +117,8 @@ export async function handleAssistant(request: Request, url: URL, svc: RancherSe
         chat_available: !!svc.provider,
         mock: svc.mock,
         disclaimer: DISCLAIMER,
+        notice: ASSISTANT_NOTICE,
+        can_help_with: CAN_HELP_WITH,
       });
     }
 

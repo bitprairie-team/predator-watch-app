@@ -82,6 +82,9 @@ a { color: #0b4f9c; }
 .planned li { margin-bottom: .5rem; }
 .tag { font-size: .7rem; font-weight: 700; background: var(--old-bg); color: var(--old-ink); padding: .05rem .4rem; border-radius: 4px; }
 .disclaimer { font-size: .78rem; color: var(--muted); border-top: 1px solid var(--line); padding-top: .75rem; margin-top: 1.2rem; }
+.notice { font-size: .8rem; border-left: 3px solid var(--line); padding: .35rem .6rem; margin: 0 0 .5rem; }
+.rancher-help { font-size: .8rem; margin: 0 0 .6rem; }
+.rancher-help ul { margin: .3rem 0 0 1.1rem; padding: 0; }
 
 .map-wrap { flex: 1; position: relative; min-width: 0; }
 #map { position: absolute; inset: 0; }
