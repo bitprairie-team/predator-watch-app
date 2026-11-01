@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Privacy · Predator Watch</title>
+  <meta name="description" content="What Predator Watch collects (no accounts, no rancher data, no tracking) and what the map's data and search services receive.">
+  <meta name="theme-color" content="#f3f4f6" data-light="#f3f4f6" data-dark="#0e1012">
+  <script src="/theme.js"></script>
+  <script src="/prefs.js"></script>
+  <link rel="icon" href="/favicon.ico" sizes="32x32">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/icons/icon-32.png" sizes="32x32" type="image/png">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" sizes="180x180">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Predator Watch">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="application-name" content="Predator Watch">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="preload" href="/fonts/ibm-plex-sans.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/brand.css">
+  <link rel="stylesheet" href="/page.css">
+</head>
+<body class="page page-prose">
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="topbar">
+    <div class="brand">
+      <a class="brand-home" href="https://bitprairie.com/" aria-label="BitPrairie home"><img class="brand-symbol" src="/brand/bitprairie-symbol.svg" alt="" width="30" height="30"><span class="brand-wordmark" aria-hidden="true"></span></a>
+      <span class="brand-sep" aria-hidden="true"></span>
+      <div class="brand-proj">
+        <a class="proj-link" href="/"><svg class="proj-mark" viewBox="0 0 32 32" fill="currentColor" aria-hidden="true" focusable="false"><ellipse cx="12.4" cy="6.9" rx="2.7" ry="3.7" transform="rotate(-8 12.4 6.9)"/><ellipse cx="19.6" cy="6.9" rx="2.7" ry="3.7" transform="rotate(8 19.6 6.9)"/><ellipse cx="7" cy="14" rx="2.5" ry="3.4" transform="rotate(-26 7 14)"/><ellipse cx="25" cy="14" rx="2.5" ry="3.4" transform="rotate(26 25 14)"/><path d="M16 15.2c-3.7 0-7 4-7 8.3 0 3.2 2 5.4 4.4 5.4 1.2 0 1.8-.7 2.6-.7s1.4.7 2.6.7c2.4 0 4.4-2.2 4.4-5.4 0-4.3-3.3-8.3-7-8.3z"/></svg><span class="proj-name">Predator Watch</span></a>
+        <p class="byline">by <a href="https://bitprairie.com/predator-watch/">BitPrairie</a></p>
+      </div>
+    </div>
+    <nav class="topbar-actions" aria-label="Pages">
+      <a class="btn btn-ghost" href="/">Map</a>
+      <a class="btn btn-ghost" href="/about">About</a>
+      <a class="btn btn-ghost" href="/status">Status</a>
+      <button type="button" class="btn btn-ghost btn-theme" data-theme-toggle aria-pressed="false" title="Switch to dark mode"><svg class="btn-icon" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M15.6 12.4A6.5 6.5 0 0 1 7.6 4.4a6.5 6.5 0 1 0 8 8z" fill="currentColor"/></svg><span class="btn-label">Dark mode</span></button>
+    </nav>
+  </header>
+  <main id="main" tabindex="-1">
+    <div class="page-prefs" data-display-controls></div>
+    <p class="eyebrow">A BitPrairie project</p>
+    <h1>Privacy</h1>
+    <p class="muted">Applies to the Predator Watch website (app.predatorwatch.org) and the Predator Watch by BitPrairie apps for iPhone, iPad and Android. Last updated October 31, 2026.</p>
+    <p>Predator Watch is a free public map of predator data that government agencies publish. It has no accounts, no sign-in, no advertising and no analytics or tracking scripts. It holds no rancher data. This page lists everything the map sends anywhere, and why.</p>
+
+    <h2 id="summary">In short</h2>
+    <ul>
+      <li><strong>No accounts.</strong> There is nothing to sign up for, and no name, email or phone number is asked for.</li>
+      <li><strong>No rancher data.</strong> The public map shows only agency-published data. A private space for ranchers and agencies is <strong>Planned</strong> and would be separate, with its own terms.</li>
+      <li><strong>Your location stays on your device.</strong> If you tap “Use my location”, your device finds your position and the map moves there. The position is not sent to Predator Watch.</li>
+      <li><strong>No tracking.</strong> No cookies, no advertising identifiers, no analytics, no data sold or shared for advertising.</li>
+    </ul>
+
+    <h2 id="location">Location</h2>
+    <p>Location is used only when you ask for it, by tapping “Use my location” or the locate button on the map. Your browser or phone asks for permission first. The position is used on your device to center the map and draw a marker. It is not sent to Predator Watch servers, not saved, and not shared.</p>
+    <p>Like any map, once the map shows your area it downloads the map pictures (tiles) for that area from the basemap and agency map services listed on the <a href="/about#sources">sources list</a>. Those services see which map area was requested, not your exact position.</p>
+    <p>You can turn location off at any time in your browser or device settings; the map works the same with a typed town or ZIP code.</p>
+
+    <h2 id="search">Search</h2>
+    <ul>
+      <li><strong>Towns, counties and ZIP codes</strong> are matched on your device against a list of place names from the U.S. Census Bureau Gazetteer. The device downloads that list one letter at a time; what you type is not sent.</li>
+      <li><strong>Street addresses</strong> are sent to the Predator Watch server, which looks them up with the U.S. Census Bureau Geocoder and returns the match. The address is not linked to you. To keep the service fast and within the Census Bureau's limits, the answer for an address is kept in the server's cache for up to 7 days.</li>
+    </ul>
+
+    <h2 id="map">Tapping the map</h2>
+    <p>For a few agency map layers (for example, who manages the land), tapping the map sends the tapped point to that agency's public map service to look up what is there. The layer's “About this source” names the agency.</p>
+
+    <h2 id="device">Stored on your device</h2>
+    <p>The map saves a few settings in your browser or app storage: light or dark mode, Simple or Expert view, text size, contrast, which layer groups and panels are open, and whether you have seen the welcome note. It also keeps a saved copy of the layer list and agency data so the map opens without a connection; a saved copy is always labeled with the time it was saved. Clearing the site's data, or removing the app, deletes all of it.</p>
+
+    <h2 id="server">What our servers receive</h2>
+    <p>The site runs on Cloudflare. As with any website, each request reaches Cloudflare with your IP address and the address of the page or data requested. Cloudflare uses the IP address to deliver the site, protect it from abuse and apply per-visitor rate limits, and keeps short-lived request logs that we use only to keep the service working. We do not combine these with any other data, build profiles, or sell or share them. See <a href="https://www.cloudflare.com/privacypolicy/" rel="noopener">Cloudflare's privacy policy</a>.</p>
+
+    <h2 id="sharing">Sharing</h2>
+    <p>“Copy link to this view” puts a link on your device's clipboard. The link holds the map position and the layers that are on. Nothing is sent until you share it yourself.</p>
+
+    <h2 id="children">Children</h2>
+    <p>Predator Watch is a general-audience reference map. It is not directed at children and collects no personal information from anyone.</p>
+
+    <h2 id="changes">Changes and contact</h2>
+    <p>If this changes, this page will say so, with a new date at the top. The source code is public, so every claim here can be checked: <a href="https://github.com/steelhead99x/predator-watch-app">github.com/steelhead99x/predator-watch-app</a>.</p>
+    <p>Questions: <a href="https://bitprairie.com/contact">bitprairie.com/contact</a> or <a href="https://github.com/steelhead99x/predator-watch-app/issues/new?template=bug.yml">open an issue on GitHub</a>.</p>
+    <footer class="credits" aria-label="Credits">
+      <p class="credits-proj"><svg class="proj-mark" viewBox="0 0 32 32" fill="currentColor" aria-hidden="true" focusable="false"><ellipse cx="12.4" cy="6.9" rx="2.7" ry="3.7" transform="rotate(-8 12.4 6.9)"/><ellipse cx="19.6" cy="6.9" rx="2.7" ry="3.7" transform="rotate(8 19.6 6.9)"/><ellipse cx="7" cy="14" rx="2.5" ry="3.4" transform="rotate(-26 7 14)"/><ellipse cx="25" cy="14" rx="2.5" ry="3.4" transform="rotate(26 25 14)"/><path d="M16 15.2c-3.7 0-7 4-7 8.3 0 3.2 2 5.4 4.4 5.4 1.2 0 1.8-.7 2.6-.7s1.4.7 2.6.7c2.4 0 4.4-2.2 4.4-5.4 0-4.3-3.3-8.3-7-8.3z"/></svg>Predator Watch</p>
+      <p class="credits-brand"><a href="https://bitprairie.com/predator-watch/" aria-label="Predator Watch on bitprairie.com"><img class="brand-symbol" src="/brand/bitprairie-symbol.svg" alt="" width="28" height="28"></a><span>&copy; 2026 BitPrairie LLC. Predator Watch is a BitPrairie project. Code under Apache-2.0; data from the agencies named on each layer.</span></p>
+      <ul class="credits-links">
+        <li><a href="https://bitprairie.com/predator-watch/">bitprairie.com/predator-watch</a></li>
+        <li><a href="/about">About and methodology</a></li>
+        <li><a href="/status">Source status</a></li>
+        <li><a href="https://github.com/steelhead99x/predator-watch-app" rel="noopener">Source code</a></li>
+        <li><a href="/about#credits">Credits</a></li>
+        <li><a href="/privacy">Privacy</a></li>
+      </ul>
+    </footer>
+  </main>
+</body>
+</html>
