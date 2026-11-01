@@ -78,7 +78,7 @@ export async function handleRequest(
     const svc = rancherService(env, overrides);
     if (!svc) return json({ error: "not configured", message: "The private rancher plan is not set up on this server." }, 503, 0);
     const key = bearer(request);
-    const auth = key ? await contextFromAccessKey(svc.store, key, "mcp:access-key") : null;
+    const auth = key ? await contextFromAccessKey(svc.store, key, "mcp:access-key", svc.now()) : null;
     if (!auth) return json({ error: "unauthenticated", message: "Send a rancher access key as a Bearer token." }, 401, 0);
     return handleMcp(request, svc, auth);
   }

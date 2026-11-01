@@ -4,7 +4,7 @@
 // Rancher access keys are also accepted directly as bearer tokens on /mcp for
 // clients that can set a header.
 import { OAuthProvider, type AuthRequest, type OAuthHelpers } from "@cloudflare/workers-oauth-provider";
-import { contextFromAccessKey } from "../agents/auth";
+import { contextFromAccessKey, contextFromKeyHash, sha256Hex } from "../agents/auth";
 import { READ_SCOPES, type AuthContext, type Scope } from "../agents/types";
 import { rancherService, type PrivateEnv } from "../rancher/service";
 import { handleMcp, MCP_ROUTE, scopesFrom } from "./server";
@@ -23,6 +23,8 @@ interface Props {
   accessKeyScopes?: string[];
   /** For OAuth grants: the scopes of the access key that approved the grant. */
   keyScopes?: string[];
+  /** SHA-256 of the access key behind this grant, re-checked on every request. */
+  keyHash?: string;
 }
 
 /** Expand rancher:read into the read scopes it covers. */
@@ -42,9 +44,16 @@ export function narrowScopes(tokenScopes: Scope[], keyScopes: Scope[] | undefine
 
 type Env = PrivateEnv & { OAUTH_PROVIDER?: OAuthHelpers };
 
-async function contextFromProps(env: Env, props: Props, scope: string[], client: string): Promise<AuthContext | null> {
+export async function contextFromProps(env: Env, props: Props, scope: string[], client: string): Promise<AuthContext | null> {
   const svc = rancherService(env);
   if (!svc || !props?.tenantId) return null;
+  if (props.keyHash) {
+    // The key's current record decides: revoked or expired keys end the grant,
+    // and its tool list, daily cap, and scopes apply.
+    const k = await contextFromKeyHash(svc.store, props.keyHash, client, svc.now());
+    if (!k || k.tenantId !== props.tenantId) return null;
+    return { ...k, scopes: props.accessKeyScopes ? k.scopes : narrowScopes(scopesFrom(scope), k.scopes) };
+  }
   const tenant = await svc.store.get<{ plan?: "public" | "rancher" }>(`tenant:${props.tenantId}`);
   if (!tenant) return null;
   return { tenantId: props.tenantId, userId: props.userId, plan: tenant.plan ?? "public", scopes: narrowScopes(scopesFrom(scope), props.keyScopes ? scopesFrom(props.keyScopes) : undefined), client };
@@ -128,7 +137,7 @@ async function authorize(request: Request, env: Env): Promise<Response> {
       userId: encodeURIComponent(`${ctx.tenantId}:${ctx.userId}`),
       metadata: { tenant_id: ctx.tenantId, granted_at: new Date().toISOString() },
       scope: DEFAULT_SCOPES,
-      props: { tenantId: ctx.tenantId, userId: ctx.userId, keyScopes: ctx.scopes } satisfies Props,
+      props: { tenantId: ctx.tenantId, userId: ctx.userId, keyScopes: ctx.scopes, keyHash: await sha256Hex(key) } satisfies Props,
     });
     const h = new Headers(approved.headers);
     h.set("location", redirectTo);
@@ -167,7 +176,7 @@ export function oauthProvider(origin: string, fallback: (request: Request, env: 
         if (!svc || !token.startsWith("pwk_")) return null;
         const ctx = await contextFromAccessKey(svc.store, token, "mcp:access-key");
         if (!ctx) return null;
-        return { props: { tenantId: ctx.tenantId, userId: ctx.userId, accessKeyScopes: ctx.scopes } satisfies Props, audience: `${origin}${MCP_ROUTE}` };
+        return { props: { tenantId: ctx.tenantId, userId: ctx.userId, accessKeyScopes: ctx.scopes, keyHash: await sha256Hex(token) } satisfies Props, audience: `${origin}${MCP_ROUTE}` };
       },
     });
     providers.set(origin, p);
