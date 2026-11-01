@@ -151,3 +151,13 @@ describe("Android app links", () => {
     expect(PLACEHOLDER_FINGERPRINT).toMatch(/^(00:){31}00$/);
   });
 });
+
+describe("offline map", () => {
+  it("draws saved agency layers over a plain background when the basemap cannot load", () => {
+    const js = readFileSync(join(process.cwd(), "public/app.js"), "utf8");
+    expect(js).toMatch(/let plainBasemap = navigator\.onLine === false;/);
+    expect(js).toMatch(/type: "background"/);
+    expect(js).toMatch(/map\.on\("error"[\s\S]{0,200}map\.setStyle\(plainStyle\(\)/);
+    expect(js).toMatch(/map\.once\("style\.load", startOnce\)/);
+  });
+});

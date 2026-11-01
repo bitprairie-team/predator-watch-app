@@ -136,9 +136,20 @@ const DEFAULT_DATA_BOUNDS = [[-124.8, 31.3], [-103.0, 49.1]];
 let autoView = !initial.view;
 let autoBounds = DEFAULT_DATA_BOUNDS;
 let lastPadKey = "";
+// Offline, or when the basemap server cannot be reached, the agency layers
+// still draw (from saved copies) over a plain background in the page color,
+// instead of the map waiting forever for basemap tiles.
+let plainBasemap = navigator.onLine === false;
+function plainStyle() {
+  const bg = getComputedStyle(document.documentElement).getPropertyValue("--paper").trim() || "#f3f4f6";
+  return { version: 8, sources: {}, layers: [{ id: "background", type: "background", paint: { "background-color": bg } }] };
+}
+function basemapStyle(theme) {
+  return plainBasemap ? plainStyle() : BASEMAPS[theme];
+}
 const map = new maplibregl.Map({
   container: "map",
-  style: BASEMAPS[currentTheme()],
+  style: basemapStyle(currentTheme()),
   ...(initial.view
     ? { center: initial.view.center, zoom: initial.view.zoom }
     : { bounds: DEFAULT_DATA_BOUNDS, fitBoundsOptions: { padding: 24 } }),
@@ -146,6 +157,12 @@ const map = new maplibregl.Map({
   maxZoom: 15,
   attributionControl: false,
   cooperativeGestures: false,
+});
+map.on("error", () => {
+  // Only a failure before the style is ready means the basemap itself is out.
+  if (plainBasemap || map.isStyleLoaded()) return;
+  plainBasemap = true;
+  map.setStyle(plainStyle(), { diff: false });
 });
 // Phones: no compass and no touch rotation, so the control stack stays short
 // and north stays up (there is no way to see or reset a rotation without it).
@@ -1166,7 +1183,9 @@ async function boot() {
     renderCredits();
     hideSplash();
   };
-  if (map.isStyleLoaded()) start(); else map.once("load", start);
+  let started = false;
+  const startOnce = () => { if (!started) { started = true; start(); } };
+  if (map.isStyleLoaded()) startOnce(); else { map.once("load", startOnce); map.once("style.load", startOnce); }
   renderOffline();
 }
 
@@ -1382,7 +1401,8 @@ function applyTheme(theme) {
   if (theme === mapTheme) return;
   mapTheme = theme;
   // Swap the basemap, then put the agency layers back in their places.
-  map.setStyle(BASEMAPS[theme], { diff: false });
+  if (plainBasemap && navigator.onLine !== false) plainBasemap = false;
+  map.setStyle(basemapStyle(theme), { diff: false });
   map.once("style.load", () => {
     for (const l of layers.values()) {
       if (l.type === "raster" && l.visible) addRaster(l);

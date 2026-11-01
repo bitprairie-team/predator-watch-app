@@ -13,7 +13,7 @@ const PLATE = "#c4ae96";
 describe("brand marks", () => {
   it("uses the line paw (1.8 stroke, round caps, currentColor) as the Predator Watch mark on every page", () => {
     for (const p of PAGES) {
-      const marks = read(`public/${p}`).match(/<svg class="proj-mark"[^>]*>/g) ?? [];
+      const marks = read(`public/${p}`).match(/<svg class="(?:proj|splash)-mark"[^>]*>/g) ?? [];
       expect(marks.length, p).toBeGreaterThan(0);
       for (const m of marks) {
         expect(m).toContain('fill="none"');
