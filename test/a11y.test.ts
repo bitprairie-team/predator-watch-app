@@ -48,7 +48,7 @@ describe("screen reader and keyboard support", () => {
 
   it("has a text list view and a Use my location button", () => {
     expect(index).toMatch(/id="sec-list"/);
-    expect(index).toMatch(/data-jump="sec-list"/);
+    expect(index).toMatch(/<details class="fold" id="sec-list">/);
     expect(app).toMatch(/function renderListView/);
     // An icon button beside Go, named by aria-label with a matching tooltip.
     expect(index).toMatch(/<button type="button" id="locate-me" class="btn icon-btn locate-btn" aria-label="Use my location" title="Use my location">/);
@@ -62,7 +62,16 @@ describe("screen reader and keyboard support", () => {
     }
   });
 
-  it("keeps body text at 16px or more", () => {
-    expect(styles).toMatch(/\.hint, \.layer-agency, \.layer-summary[^{]*\{ font-size: 1rem; \}/);
+  it("keeps body text at 1rem and quiet meta lines no smaller than .875rem", () => {
+    // Body copy follows the text-size setting at 1rem; meta lines (source and
+    // updated time) are one step down, never smaller.
+    expect(styles).toMatch(/--t-body: 1rem;/);
+    expect(styles).toMatch(/--t-meta: \.875rem;/);
+    expect(styles).toMatch(/\.layer-more \{[^}]*font-size: var\(--t-body\)/);
+    expect(styles).toMatch(/\.feature p \{[^}]*font-size: var\(--t-body\)/);
+    // The S / M text-size buttons show their own size on purpose.
+    const text = styles.split("\n").filter((l) => !l.includes(".pref-text-")).join("\n");
+    const sizes = [...text.matchAll(/font-size: (\d*\.?\d+)rem/g)].map((m) => Number(m[1]));
+    for (const s of sizes) expect(s).toBeGreaterThanOrEqual(0.8125);
   });
 });

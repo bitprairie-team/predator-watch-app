@@ -45,16 +45,19 @@ describe("text size: small is the default", () => {
   });
   it("scales the panel in rem on mouse screens and keeps 44 px targets on touch screens", () => {
     const css = read("styles.css");
-    const block = css.slice(css.indexOf("/* ---- Text size scale (stage 7)"));
-    expect(block).toMatch(/@media \(pointer: fine\) \{[\s\S]*\.chip, :root\[data-mode="simple"\] \.chip \{ min-height: 1\.75rem/);
-    expect(block).toMatch(/\.group-toggle \{ min-height: 2\.75rem; \}/);
+    const block = css;
+    // Control heights are in rem on mouse screens, so they follow the text size...
+    expect(block).toMatch(/--ctl: calc\(2rem \+ 4px\);/);
+    expect(block).toMatch(/\.group-toggle \{[^}]*min-height: var\(--ctl\);/);
+    // ...and a fixed 44 px on touch screens.
+    expect(block).toMatch(/@media \(pointer: coarse\) \{\n\s+:root \{ --ctl: 44px;/);
     expect(block).toMatch(/@media \(pointer: coarse\) \{[\s\S]*\.panel-prefs \.pref-btn \{ min-height: 44px; min-width: 44px; \}/);
     expect(block).toMatch(/font-size: max\(1rem, 16px\)/);
     expect(css).toMatch(/--panel-w: min\(22\.5rem, 50vw\)/);
   });
   it("makes 'View and text size' a small quiet control", () => {
     const css = read("styles.css");
-    expect(css).toMatch(/\.panel-prefs > summary, :root\[data-mode="simple"\] \.panel-prefs > summary \{\s*display: inline-flex;[\s\S]*?font: 500 var\(--fs-tag\)/);
-    expect(css).toMatch(/\.panel-prefs > summary:focus-visible \{ outline: 2px solid var\(--focus\)/);
+    expect(css).toMatch(/\.panel-prefs > summary, :root\[data-mode="simple"\] \.panel-prefs > summary \{[^}]*font: 500 var\(--t-body\)/);
+    expect(css).toMatch(/\.fold > summary:focus-visible \{ outline: 2px solid var\(--focus\)/);
   });
 });

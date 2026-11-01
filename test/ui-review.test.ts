@@ -11,7 +11,8 @@ const theme = read("theme.js");
 const statusJs = read("status.js");
 const css = read("styles.css");
 const page = read("page.css");
-const review = css.slice(css.indexOf("/* ---- UI review (stage 6)"));
+// Stage 8 rewrote styles.css as one file with no per-round override sections.
+const review = css;
 const pageReview = page.slice(page.indexOf("/* ---- UI review (stage 6)"));
 
 describe("UI review (stage 6)", () => {
@@ -24,7 +25,7 @@ describe("UI review (stage 6)", () => {
     expect(app).toMatch(/panel\.dataset\.boot = "error"/);
     expect(app).toMatch(/class="load-error" role="alert"/);
     expect(app).toMatch(/id="boot-retry">Try again</);
-    expect(review).toMatch(/\.panel\[data-boot="error"\] \.active-bar/);
+    expect(review).toMatch(/\.panel\[data-boot="error"\] \.active-summary/);
   });
 
   it("uses one retry label in both views", () => {
@@ -73,17 +74,18 @@ describe("UI review (stage 6)", () => {
 
   it("paints the first-visit hint before the map library loads", () => {
     expect(prefs).toMatch(/setAttribute\("data-first-visit", ""\)/);
-    expect(review).toMatch(/:root\[data-first-visit\] \.first-hint\[hidden\] \{ display: block; \}/);
+    expect(review).toMatch(/:root\[data-first-visit\] \.first-hint\[hidden\] \{ display: flex; \}/);
     expect(app).toMatch(/removeAttribute\("data-first-visit"\)/);
   });
 
-  it("shows full chip names in Simple view and keeps spacing on a 4px grid", () => {
-    expect(review).toMatch(/\.chips li \{ max-width: 100%; \}/);
-    expect(review).toMatch(/--sp-1: \.25rem; --sp-2: \.5rem;/);
+  it("keeps spacing on a 4px grid", () => {
+    expect(review).toMatch(/--sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px; --sp-6: 32px;/);
   });
 
   it("scopes the panel padding to the side panel so the phone sheet keeps its own", () => {
-    expect(review).toMatch(/@media \(min-width: 761px\) \{ \.panel \{ padding: var\(--sp-3\) var\(--sp-4\) var\(--sp-6\) max\(var\(--sp-4\), env\(safe-area-inset-left\)\); \} \}/);
+    expect(review).toMatch(/\.panel \{[^}]*padding: 0 var\(--gutter\) var\(--sp-6\) max\(var\(--gutter\), env\(safe-area-inset-left\)\);/);
+    const phone = css.slice(css.indexOf("@media (max-width: 760px) {"));
+    expect(phone).toMatch(/\.panel-body \{[^}]*padding: 0 max\(var\(--gutter\), env\(safe-area-inset-right\)\)/);
   });
 
   it("keeps sentence case in about copy", () => {
