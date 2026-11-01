@@ -43,7 +43,7 @@ would rather Play always run the live site.
 - **App icon, favicon, launch screen:** the BitPrairie bison tile
   (`public/brand/bitprairie-symbol.svg`, always on its warm #c4ae96 plate,
   never recolored). `npm run app:assets` draws every size from it, then
-  `npx capacitor-assets generate --ios --android --iconBackgroundColor '#c4ae96' --iconBackgroundColorDark '#c4ae96' --splashBackgroundColor '#f3f4f6' --splashBackgroundColorDark '#0e1012'`
+  `npx capacitor-assets generate --ios --android --iconBackgroundColor '#c4ae96' --iconBackgroundColorDark '#c4ae96' --splashBackgroundColor '#f2ede4' --splashBackgroundColorDark '#161310'`
   writes the native sizes. Do not edit the generated PNGs by hand.
 - **Predator Watch mark:** the line paw (`public/brand/predator-watch-mark.svg`,
   1.8 stroke, round caps, currentColor), next to "Predator Watch" in IBM Plex

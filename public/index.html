@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Predator Watch: public agency predator data map</title>
   <meta name="description" content="A free, open-source map that brings together publicly available government and agency predator data, with the source and time on every item.">
-  <meta name="theme-color" content="#f3f4f6" data-light="#f3f4f6" data-dark="#0e1012">
+  <meta name="theme-color" content="#f2ede4" data-light="#f2ede4" data-dark="#161310">
   <script src="/theme.js"></script>
   <script src="/prefs.js"></script>
   <link rel="icon" href="/favicon.ico" sizes="32x32">
@@ -53,11 +53,11 @@
         <a class="proj-link" href="/"><svg class="proj-mark" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><ellipse cx="13" cy="6.6" rx="2" ry="3.2" transform="rotate(-6 13 6.6)"/><ellipse cx="19" cy="6.6" rx="2" ry="3.2" transform="rotate(6 19 6.6)"/><ellipse cx="8.4" cy="13.4" rx="1.9" ry="3" transform="rotate(-24 8.4 13.4)"/><ellipse cx="23.6" cy="13.4" rx="1.9" ry="3" transform="rotate(24 23.6 13.4)"/><path d="M16 15.8c-3 0-5.8 3.4-5.8 7 0 2.8 1.7 4.6 3.6 4.6 1 0 1.5-.6 2.2-.6s1.2.6 2.2.6c1.9 0 3.6-1.8 3.6-4.6 0-3.6-2.8-7-5.8-7z"/></svg><h1 class="proj-name">Predator Watch</h1></a>
         <p class="byline">by <a href="https://bitprairie.com/predator-watch/">BitPrairie</a><span class="byline-site"><span class="byline-sep" aria-hidden="true">·</span><a href="https://predatorwatch.org/">predatorwatch.org</a></span></p>
       </div>
-      <p class="tagline">Public agency predator data, with the source and time on every item.</p>
     </div>
     <div class="topbar-actions">
-      <button type="button" id="panel-toggle" class="btn" aria-controls="panel" aria-expanded="true">Layers</button>
-      <button type="button" id="theme-toggle" class="btn btn-ghost btn-theme" aria-pressed="false"><svg class="btn-icon" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M15.6 12.4A6.5 6.5 0 0 1 7.6 4.4a6.5 6.5 0 1 0 8 8z" fill="currentColor"/></svg><span class="btn-label">Dark mode</span></button>
+      <button type="button" id="panel-toggle" class="btn btn-ghost btn-tool" aria-controls="panel" aria-expanded="true"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M10 2.5 2.5 6.5 10 10.5l7.5-4z"/><path d="M2.5 10 10 14l7.5-4"/><path d="M2.5 13.5 10 17.5l7.5-4"/></svg><span>Layers</span></button>
+      <span class="tool-div" aria-hidden="true"></span>
+      <button type="button" id="theme-toggle" class="btn btn-ghost btn-theme" aria-pressed="false"><svg class="btn-icon ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M16.5 12.5A7 7 0 0 1 7.5 3.5a7 7 0 1 0 9 9z"/></svg><span class="btn-label">Dark mode</span></button>
       <button type="button" id="about-open" class="btn btn-ghost" aria-haspopup="dialog">About</button>
       <a id="status-link" class="btn btn-ghost" href="/status">Status</a>
     </div>
@@ -66,100 +66,83 @@
   <main class="layout">
     <aside id="panel" class="panel" tabindex="-1" aria-label="Layers and data" data-sheet="peek">
       <div class="sheet-head">
-        <button type="button" id="sheet-handle" class="sheet-handle" aria-controls="panel-body" aria-expanded="false"><span class="sheet-grip" aria-hidden="true"></span><span class="sheet-title">Layers<span class="sheet-title-more"> and data</span></span><span class="sheet-mode" id="sheet-mode"></span><span id="sheet-count" class="sheet-count"></span><span class="sr-only" id="sheet-state">, collapsed. Activate to show more.</span></button>
-        <button type="button" id="sheet-close" class="btn btn-ghost sheet-close" aria-controls="panel-body" hidden>Close<span class="sr-only"> layers</span></button>
+        <button type="button" id="sheet-handle" class="sheet-handle" aria-controls="panel-body" aria-expanded="false"><span class="sheet-grip" aria-hidden="true"></span><span class="sheet-title">Layers</span><span id="sheet-count" class="sheet-count"></span><span class="sheet-mode" id="sheet-mode"></span><span class="sr-only" id="sheet-state">, collapsed. Activate to show more.</span></button>
+        <button type="button" id="sheet-close" class="icon-btn sheet-close" aria-controls="panel-body" aria-label="Close layers" title="Close" hidden><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m5 5 10 10M15 5 5 15"/></svg></button>
       </div>
       <div id="panel-body" class="panel-body">
-      <details class="panel-prefs" id="panel-prefs">
-        <summary><span class="prefs-title">View and text size</span> <span class="prefs-now" id="prefs-now"></span></summary>
-        <div class="prefs-body" data-display-controls data-with-mode></div>
-      </details>
-      <nav class="jump-tabs" aria-label="Jump to">
-        <a href="#sec-layers" data-jump="sec-layers">Layers</a>
-        <a href="#sec-list" data-jump="sec-list">List</a>
-        <a href="#sec-legend" data-jump="sec-legend">Legend</a>
-        <a href="#sec-sources" data-jump="sec-sources">Sources</a>
-      </nav>
       <p id="status" class="status expert-only" role="status" aria-live="polite">Loading layers…</p>
 
       <form id="search" class="search" role="search">
         <label for="search-q">Find my place</label>
         <div class="search-row">
-          <input id="search-q" name="q" type="search" placeholder="Town, county, ZIP or address" autocomplete="off" maxlength="120" enterkeyhint="search">
-          <button class="btn btn-solid" type="submit">Go</button>
-          <button type="button" id="locate-me" class="btn icon-btn locate-btn" aria-label="Use my location" title="Use my location"><svg class="btn-icon" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><circle cx="10" cy="10" r="3.2" fill="currentColor"/><path d="M10 1v3M10 16v3M1 10h3M16 10h3" stroke="currentColor" stroke-width="2"/><circle cx="10" cy="10" r="6.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button>
+          <span class="search-field"><svg class="ico search-ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m12.5 12.5 4.5 4.5"/></svg><input id="search-q" name="q" type="search" placeholder="Town, county, ZIP or address" autocomplete="off" maxlength="120" enterkeyhint="search"></span>
+          <button class="btn btn-solid search-go" type="submit">Go</button>
+          <button type="button" id="locate-me" class="btn icon-btn locate-btn" aria-label="Use my location" title="Use my location"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="10" cy="10" r="6"/><circle cx="10" cy="10" r="2"/><path d="M10 1.5V4M10 16v2.5M1.5 10H4M16 10h2.5"/></svg></button>
         </div>
         <p id="locate-status" class="hint locate-status" role="status" aria-live="polite"></p>
       </form>
       <ul id="search-results" class="item-list search-results"></ul>
 
       <section id="sec-layers" class="jump-target" aria-labelledby="h-layers" tabindex="-1">
-        <h2 id="h-layers">Layers</h2>
-        <div class="active-bar">
-          <p class="active-label" id="active-label">On now</p>
-          <ul id="active-chips" class="chips" aria-labelledby="active-label"></ul>
+        <div class="sec-head">
+          <h2 id="h-layers">Layers</h2>
+          <p class="active-summary" id="active-summary" aria-live="off"></p>
+          <span class="tool-links"><button type="button" id="reset-layers" class="link-btn" aria-label="Reset layers to defaults">Reset</button><span class="tool-sep" aria-hidden="true">·</span><button type="button" id="all-off" class="link-btn">Turn all off</button></span>
         </div>
         <div class="layer-tools">
-          <div class="expert-only">
+          <div class="expert-only filter-field">
           <label for="layer-filter">Filter layers</label>
           <input id="layer-filter" type="search" placeholder="Name, agency or animal" autocomplete="off" maxlength="60" enterkeyhint="search" aria-describedby="filter-status">
           </div>
-          <div class="tools-row">
-            <label class="tool-check expert-only" for="active-only"><span class="check"><input type="checkbox" id="active-only"><span class="check-box" aria-hidden="true"></span></span><span>Show active only</span></label>
-            <span class="tool-links"><button type="button" id="reset-layers" class="link-btn">Reset to defaults</button><span class="tool-sep" aria-hidden="true">·</span><button type="button" id="all-off" class="link-btn">Turn all off</button></span>
+          <div class="tools-row expert-only">
+            <label class="tool-check" for="active-only"><span class="check"><input type="checkbox" id="active-only"><span class="check-box" aria-hidden="true"></span></span><span>Show only layers that are on</span></label>
           </div>
           <p id="filter-status" class="hint filter-status" role="status" aria-live="polite"></p>
         </div>
         <div id="layer-groups" class="layer-groups"></div>
       </section>
 
-      <section id="sec-list" class="jump-target" aria-labelledby="h-list" tabindex="-1">
-        <h2 id="h-list">List view</h2>
-        <p class="hint">What each layer that is on shows in the current map view, in words.</p>
+      <details class="fold" id="sec-list">
+        <summary><h2 id="h-list">List view</h2></summary>
         <div id="list-view" class="list-view"><p class="hint">Loading…</p></div>
-      </section>
+      </details>
 
-      <section id="sec-legend" class="jump-target" aria-labelledby="h-panel-legend" tabindex="-1">
-        <h2 id="h-panel-legend">Legend</h2>
-        <p class="hint">Each layer has one color, the same in the list, the legend and on the map.</p>
-        <ul id="panel-legend" class="panel-legend"></ul>
-      </section>
-
-      <section aria-labelledby="h-items" class="expert-only">
-        <h2 id="h-items">Items in view</h2>
-        <p class="hint">Wolf activity items in the current map view. Select one for its source and times.</p>
+      <details class="fold expert-only" id="sec-items">
+        <summary><h2 id="h-items">Items in view</h2></summary>
         <ul id="items" class="item-list"></ul>
-      </section>
+      </details>
 
-      <section aria-labelledby="h-changes" class="expert-only">
-        <h2 id="h-changes">Recent changes</h2>
-        <p class="hint">What changed in each agency layer since this map last received it.</p>
+      <details class="fold expert-only" id="sec-changes">
+        <summary><h2 id="h-changes">Recent changes</h2></summary>
         <ul id="changes-feed" class="item-list changes-feed"><li class="hint">Loading…</li></ul>
-      </section>
+      </details>
 
-      <section id="sec-sources" class="jump-target" aria-labelledby="h-panel-sources" tabindex="-1">
-        <h2 id="h-panel-sources">Sources</h2>
-        <p class="hint">Agencies behind the layers that are on now, with their full credit and when they last updated the data.</p>
+      <details class="fold" id="sec-sources">
+        <summary><h2 id="h-panel-sources">Sources</h2></summary>
         <ul id="panel-sources" class="sources-list"></ul>
         <p class="sources-more"><a href="/status">Source status and refresh history</a> · <a href="/about#sources">All sources and credits</a></p>
-      </section>
+      </details>
 
-      <section aria-labelledby="h-share">
-        <h2 id="h-share"><span class="expert-only">Share and download</span><span class="simple-only">Share this map</span></h2>
-        <p class="hint simple-only">The link keeps this map view and the layers that are on.</p>
+      <details class="fold" id="sec-share">
+        <summary><h2 id="h-share"><span class="expert-only">Share and download</span><span class="simple-only">Share this map</span></h2></summary>
+        <p class="hint simple-only">The link keeps this view and the layers that are on.</p>
         <p class="hint expert-only">The address bar keeps this view and the layers that are on. Each layer's “About this source” has GeoJSON, KML, and CSV downloads. GIS tools can connect to the <a href="/ogc">OGC API Features</a> service.</p>
-        <button type="button" id="share-link" class="btn">Copy link to this view</button>
+        <button type="button" id="share-link" class="btn btn-quiet">Copy link to this view</button>
         <p id="share-status" class="hint" role="status" aria-live="polite"></p>
-      </section>
+      </details>
 
-      <section aria-labelledby="h-planned" class="planned expert-only">
-        <h2 id="h-planned">Planned</h2>
-        <p class="hint">Features and agency sources that are not built yet. Sources are listed here until their data and terms are checked.</p>
+      <details class="fold planned expert-only" id="sec-planned">
+        <summary><h2 id="h-planned">Planned</h2></summary>
         <ul id="planned-list">
           <li><strong>Private collaboration space</strong> <span class="tag">Planned</span><br>
             A paid, private space for ranchers, community members, and local, state, and federal agencies to share data under agreements, with points of contact, schedules, and an audit log.</li>
         </ul>
-      </section>
+      </details>
+
+      <details class="panel-prefs fold" id="panel-prefs">
+        <summary><svg class="ico prefs-ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 6h8M15 6h2M3 14h2M9 14h8"/><circle cx="13" cy="6" r="2"/><circle cx="7" cy="14" r="2"/></svg><span class="prefs-title">Display</span> <span class="prefs-now" id="prefs-now"></span></summary>
+        <div class="prefs-body" data-display-controls data-with-mode></div>
+      </details>
 
       <nav class="panel-links" aria-label="More">
         <a href="/about">How this works</a>
@@ -191,15 +174,8 @@
       <p id="offline-bar" class="offline-bar" role="status" aria-live="polite" hidden></p>
       <div id="map" role="region" aria-label="Map. Use arrow keys to pan and plus or minus to zoom when focused." tabindex="0"></div>
       <aside id="first-hint" class="first-hint" aria-labelledby="first-hint-title" hidden>
-        <h2 id="first-hint-title">Welcome</h2>
-        <ul>
-          <li>Turn agency layers on and off under Layers and data.</li>
-          <li class="simple-only">Tap a colored area to read what it means and who reported it.</li>
-          <li class="simple-only">Type your town or use your location to see your area.</li>
-          <li class="expert-only">Select a shaded area for its agency, dates and source link.</li>
-          <li class="expert-only">Badges show how fresh each layer is.</li>
-        </ul>
-        <button type="button" id="first-hint-close" class="btn btn-solid">Got it</button>
+        <p><span id="first-hint-title" class="first-hint-title">Tip:</span> <span class="simple-only">tap a colored area to see what it is and who reported it.</span><span class="expert-only">select an area for its agency, dates and source.</span></p>
+        <button type="button" id="first-hint-close" class="icon-btn" aria-label="Dismiss tip" title="Dismiss"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m5 5 10 10M15 5 5 15"/></svg></button>
       </aside>
       <div id="splash" class="splash" aria-hidden="true">
         <div class="splash-card">
@@ -210,22 +186,22 @@
         </div>
       </div>
       <details id="legend" class="legend" open>
-        <summary><svg class="legend-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><rect x="1" y="2" width="5" height="5" fill="currentColor"/><rect x="1.75" y="9.75" width="3.5" height="3.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8.5 4.5h6.5M8.5 11.5h6.5" stroke="currentColor" stroke-width="1.5"/></svg><span>Legend</span></summary>
+        <summary><svg class="ico legend-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="2.5" y="3.5" width="4" height="4"/><rect x="2.5" y="12.5" width="4" height="4"/><path d="M9.5 5.5h8M9.5 14.5h8"/></svg><span>Legend</span></summary>
         <ul id="legend-list"></ul>
       </details>
       <section id="details" class="details" aria-labelledby="details-title" hidden>
         <div class="details-head">
           <h2 id="details-title">Details</h2>
-          <button type="button" id="details-close" class="btn btn-ghost" aria-label="Close details">Close</button>
+          <button type="button" id="details-close" class="icon-btn close-btn" aria-label="Close details" title="Close"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m5 5 10 10M15 5 5 15"/></svg></button>
         </div>
         <div id="details-body"></div>
+        <p class="details-note" id="details-note">Areas are shown as the agency drew them, not as exact animal locations.</p>
       </section>
       <section id="sources-panel" class="sources-panel" aria-labelledby="sources-title" hidden>
         <div class="details-head">
           <h2 id="sources-title">Sources</h2>
-          <button type="button" id="sources-close" class="btn btn-ghost">Close<span class="sr-only"> sources</span></button>
+          <button type="button" id="sources-close" class="icon-btn close-btn" aria-label="Close sources" title="Close"><svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m5 5 10 10M15 5 5 15"/></svg></button>
         </div>
-        <p class="hint">Layers that are on now, with the agency's full credit and when the agency last updated it.</p>
         <ul id="sources-list" class="sources-list"></ul>
         <p class="sources-more"><a href="/status">Source status and refresh history</a> · <a href="/about#sources">All sources and credits</a></p>
       </section>
@@ -234,7 +210,7 @@
           <span class="credits-base"><span class="credits-label">Basemap<span class="credits-colon">:</span></span> <a href="https://openfreemap.org/" rel="noopener">OpenFreeMap</a> <a href="https://openmaptiles.org/" rel="noopener">© OpenMapTiles</a> <a href="https://www.openstreetmap.org/copyright" rel="noopener">© <span class="osm-full">OpenStreetMap</span><span class="osm-short" aria-hidden="true">OSM</span> contributors</a></span>
           <span id="credits-agencies" class="credits-agencies"></span>
         </p>
-        <button type="button" id="sources-open" class="credits-btn" aria-controls="sources-panel" aria-expanded="false"><span class="src-wide">Sources</span><span class="src-phone">Data: <span id="credits-count">0 sources</span></span></button>
+        <button type="button" id="sources-open" class="credits-btn" aria-controls="sources-panel" aria-expanded="false"><span class="src-wide">Sources</span><span class="src-phone"><span id="credits-count">0 sources</span></span></button>
       </div>
     </div>
   </main>

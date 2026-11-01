@@ -75,11 +75,20 @@ export const CONTROL_COLORS = {
   check: "#ffffff",
 } as const;
 
-/** Theme backgrounds the palette is checked against. */
+/**
+ * Backgrounds the layer palette is checked against (warm BitPrairie tokens):
+ * light is surface #fffcf6 (popups, legend) and the map land tint #f4efe7, a
+ * hair lighter than paper #f2ede4 so every layer keeps 3:1; dark is night
+ * #161310 (map and page), surface #221c17 and band #1c1814. public/brand.css
+ * --map-bg and the basemap tint in app.js use index 1 (light) and 0 (dark).
+ */
 export const THEME_BACKGROUNDS = {
-  light: ["#ffffff", "#f3f4f6", "#f2f3f0"],
-  dark: ["#0e1012", "#15181b", "#1b1d20"],
+  light: ["#fffcf6", "#f4efe7"],
+  dark: ["#161310", "#221c17", "#1c1814"],
 } as const;
+
+/** Page paper in each theme (brand tokens), for the installed app and launch screens. */
+export const PAPER = { light: "#f2ede4", dark: "#161310" } as const;
 
 /**
  * Installed-app colors (web app manifest, iOS meta tags, store app splash
@@ -89,11 +98,11 @@ export const THEME_BACKGROUNDS = {
  */
 export const APP_COLORS = {
   /** Browser and status bar color; also the manifest theme_color. */
-  theme: THEME_BACKGROUNDS.light[1],
+  theme: PAPER.light,
   /** Splash and window background before the page paints. */
-  background: THEME_BACKGROUNDS.light[1],
+  background: PAPER.light,
   /** Dark theme bar color (meta theme-color data-dark). */
-  themeDark: THEME_BACKGROUNDS.dark[0],
+  themeDark: PAPER.dark,
   /** The BitPrairie mark plate behind the bison symbol (brand fixed, light and dark). */
   icon: "#c4ae96",
 } as const;
