@@ -106,6 +106,37 @@ Keep the key private. Anyone with it can read your account's data.
 `tools/list` shows only the tools your credential's scopes allow. Write scopes
 are Planned.
 
+`agents:run` and `outbox:approve` are for the web app. They give nothing over
+MCP: background agents can't be run and outbox items can't be approved from an
+MCP client.
+
+## Key options
+
+Every MCP tool is read-only. The owner can narrow a key further when creating
+it:
+
+```sh
+node scripts/rancher-access-key.mjs <tenant> <user> activity:read alerts:read \
+  --tools recent_predator_activity,fire_weather_alerts \
+  --expires 90d --calls-per-day 200 --label "laptop MCP client"
+```
+
+| Option | Effect |
+| --- | --- |
+| `--tools a,b` | Only these tools are listed and callable, even if the scopes allow more. Others return `403`. |
+| `--expires 90d` or an ISO time | The key stops working after that. Default 365 days; `--expires never` for no expiry. |
+| `--calls-per-day N` | Tool calls per day for this key. Over the limit returns `429`. |
+| `--label TEXT` | A note for the owner. |
+
+An OAuth token is re-checked against its access key on every request, so
+revoking or expiring the key stops the token too. Each audit entry records
+the first 12 characters of the key's hash (`key_id`), so you can see which key
+made a call without storing the key.
+
+The same guardrails apply over MCP as in the app: the argument check, the
+tool-data sanitizer and fence notice, location tiers, rate limits, the audit
+log, and the kill switches.
+
 ## Using the results well
 
 Tell your assistant to:

@@ -36,6 +36,9 @@
   // Rancher assistant settings (optional vars): MODEL_PROVIDER (default "xai"),
   // XAI_MODEL (default "grok-4.7"), XAI_VOICE_MODEL (default "grok-voice-latest"),
   // XAI_VOICE (default "eve").
+  // Kill switches (optional vars): ASSISTANT_DISABLED=1 turns the whole assistant
+  // off, AGENTS_DISABLED=1 turns background agents off. KV switches that need no
+  // deploy are in docs/background-agents.md.
   // Secrets (optional): `npx wrangler secret put ARCGIS_API_KEY`,
   // `npx wrangler secret put XAI_API_KEY` (rancher assistant text and voice).
   // Locally, put them in .dev.vars (gitignored).
