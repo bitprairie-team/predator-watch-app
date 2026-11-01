@@ -4,6 +4,8 @@
 // go to the server, which looks them up with the Census Bureau Geocoder.
 // Loaded on first use, so it adds nothing to the first page load.
 
+import { api } from "./net.js";
+
 const STATES = {
   alabama: "AL", alaska: "AK", arizona: "AZ", arkansas: "AR", california: "CA", colorado: "CO", connecticut: "CT",
   delaware: "DE", "district of columbia": "DC", florida: "FL", georgia: "GA", hawaii: "HI", idaho: "ID", illinois: "IL",
@@ -92,7 +94,7 @@ export async function searchLocal(q, limit = 8) {
 }
 
 export async function searchAddress(q) {
-  const res = await fetch(`/api/geocode?q=${encodeURIComponent(q)}`, { signal: AbortSignal.timeout(12000) });
+  const res = await fetch(api(`/api/geocode?q=${encodeURIComponent(q)}`), { signal: AbortSignal.timeout(12000) });
   if (res.status === 429) return { busy: true, results: [] };
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const body = await res.json();

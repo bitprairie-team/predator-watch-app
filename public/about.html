@@ -13,6 +13,12 @@
   <link rel="icon" href="/icons/icon-32.png" sizes="32x32" type="image/png">
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" sizes="180x180">
   <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Predator Watch">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="application-name" content="Predator Watch">
+  <meta name="format-detection" content="telephone=no">
   <link rel="preload" href="/fonts/ibm-plex-sans.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/brand.css">
   <link rel="stylesheet" href="/page.css">
@@ -79,6 +85,7 @@
 
     <h2 id="sources">Sources and credits</h2>
     <p class="muted">Every layer on the map, with the agency's full credit, a link to its source page and when the agency last updated it. The map shows a short name for each layer that is on; this is the full list.</p>
+    <p id="sources-saved" class="offline-note" role="status" aria-live="polite"></p>
     <div class="table-wrap" tabindex="0" role="region" aria-label="Sources and credits table">
       <table class="sources-table stack-table" aria-labelledby="sources">
         <thead><tr><th scope="col">Layer</th><th scope="col">Credit</th><th scope="col">Agency updated</th></tr></thead>
@@ -99,6 +106,7 @@
         <li><a href="/status">Source status</a></li>
         <li><a href="https://github.com/steelhead99x/predator-watch-app" rel="noopener">Source code</a></li>
         <li><a href="/about#credits">Credits</a></li>
+        <li><a href="/privacy">Privacy</a></li>
       </ul>
     </footer>
   </main>

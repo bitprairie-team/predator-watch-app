@@ -1,6 +1,7 @@
 // Predator Watch front end. Plain ES module, no build step.
 /* global maplibregl */
 import { creditGroups, swatchHtml, vectorPaint, vectorTilePaint } from "/layer-style.js";
+import { NATIVE, api, apiFetch } from "/net.js";
 
 const BASEMAPS = {
   light: "https://tiles.openfreemap.org/styles/positron",
@@ -244,7 +245,7 @@ async function fetchWithTimeout(url, ms) {
   const ctl = new AbortController();
   const t = setTimeout(() => ctl.abort(), ms);
   try {
-    return await fetch(url, { signal: ctl.signal });
+    return await apiFetch(url, { signal: ctl.signal });
   } catch (e) {
     throw new Error(e.name === "AbortError" ? "timed out" : e.message || String(e));
   } finally {
@@ -328,10 +329,10 @@ function renderLayerRow(layer) {
         ${infoUrl ? `<dt>Agency page</dt><dd><a href="${esc(infoUrl)}" target="_blank" rel="noopener">Open<span class="sr-only"> (new tab)</span></a></dd>` : ""}
         ${endpoint ? `<dt>Endpoint</dt><dd><a href="${esc(endpoint)}" target="_blank" rel="noopener">Service</a></dd>` : ""}
         ${layer.type === "geojson" ? `<dt>Download</dt><dd class="exports">
-          <a href="${esc(layer.data_url)}.geojson" download>GeoJSON<span class="sr-only"> for ${nm}</span></a>
-          <a href="${esc(layer.data_url)}.kml" download>KML<span class="sr-only"> for ${nm}</span></a>
-          <a href="${esc(layer.data_url)}.csv" download>CSV<span class="sr-only"> for ${nm}</span></a>
-          <a href="/ogc/collections/${esc(layer.id)}/items" target="_blank" rel="noopener">OGC API<span class="sr-only"> for ${nm} (new tab)</span></a></dd>` : ""}
+          <a href="${esc(api(layer.data_url + ".geojson"))}" download>GeoJSON<span class="sr-only"> for ${nm}</span></a>
+          <a href="${esc(api(layer.data_url + ".kml"))}" download>KML<span class="sr-only"> for ${nm}</span></a>
+          <a href="${esc(api(layer.data_url + ".csv"))}" download>CSV<span class="sr-only"> for ${nm}</span></a>
+          <a href="${esc(api(`/ogc/collections/${layer.id}/items`))}" target="_blank" rel="noopener">OGC API<span class="sr-only"> for ${nm} (new tab)</span></a></dd>` : ""}
         ${layer.type === "geojson" ? `<dt>Recent changes</dt><dd>${changesHtml(changesBySource.get(layer.id), 3)}</dd>` : ""}
       </dl>
     </details>`;
@@ -1447,7 +1448,8 @@ addEventListener("online", () => {
 // ---------------------------------------------------------- offline cache
 // sw.js keeps the last good copy of the layer list and agency data on this
 // device, so the map still opens with a weak or missing connection.
-if ("serviceWorker" in navigator && window.isSecureContext) {
+// The store apps bundle their files and keep saved copies in net.js instead.
+if ("serviceWorker" in navigator && window.isSecureContext && !NATIVE) {
   navigator.serviceWorker.register("/sw.js").catch(() => {});
 }
 
@@ -1490,7 +1492,7 @@ geoControl?.on("error", locateFailed);
 function syncModeLabel() {
   $("#sheet-mode").textContent = isSimple() ? "Simple" : "Expert";
   const d = document.documentElement.dataset;
-  $("#prefs-now").textContent = `${isSimple() ? "Simple" : "Expert"} view · text ${["A", "A+", "A++"][Number(d.text || 1) - 1] || "A"}${d.contrast === "high" ? " · high contrast" : ""}`;
+  $("#prefs-now").textContent = `${isSimple() ? "Simple" : "Expert"} · ${({ 0: "small", 1: "medium", 2: "large", 3: "largest" })[d.text] || "small"} text${d.contrast === "high" ? " · high contrast" : ""}`;
 }
 // "View and text size" starts folded on every screen (closed in the HTML),
 // so the layers come first.

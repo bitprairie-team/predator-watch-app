@@ -1,6 +1,7 @@
 // /about: the full source list with credits, links and agency update times,
 // from /api/layers (credits are defined once, in src/config/sources.ts).
 import { swatchHtml } from "/layer-style.js";
+import { apiFetch } from "/net.js";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const safeUrl = (u) => (/^https:\/\//i.test(String(u ?? "")) ? String(u) : null);
@@ -11,8 +12,12 @@ async function load() {
   const tbody = document.getElementById("sources-rows");
   if (!tbody) return;
   try {
-    const res = await fetch("/api/layers");
+    const res = await apiFetch("/api/layers");
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    // A saved copy (offline) is never shown silently.
+    const saved = res.headers.get("x-pw-saved-at");
+    const note = document.getElementById("sources-saved");
+    if (note) note.textContent = saved ? `Offline. This list is the copy saved on this device ${new Date(saved).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}; agency dates may have changed since.` : "";
     const { layers } = await res.json();
     const rows = [];
     for (const [cat, title] of Object.entries(GROUPS)) {
