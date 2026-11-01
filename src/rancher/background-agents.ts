@@ -9,6 +9,7 @@
 // Anything addressed outside (email or text) goes to the outbox for the
 // rancher to approve; sending itself is Planned.
 import type { AgentDefinition, AgentOutput, AgentRunContext, Delivery } from "../agents/background";
+import type { AgentItem } from "../agents/overrides";
 import type { Citation } from "../agents/citations";
 import type { SourceRef, ToolResult } from "../agents/types";
 import { sanitizeText } from "../guardrails/sanitize";
@@ -18,9 +19,14 @@ export interface AgentProfile {
   ranches: { id: string; name: string; allotments: { id: string; name: string }[] }[];
 }
 
-/** Agent settings stored on the tenant record under `agents.<id>`. */
+/**
+ * Agent settings. The rancher's own choices live in their preferences
+ * (prefs.ts); the tenant record's `agents.<id>` block only sets defaults.
+ * `enabled` on the tenant record is ignored: every agent is off until the
+ * rancher turns it on.
+ */
 export interface AgentSettings {
-  enabled: boolean;
+  enabled?: boolean;
   /** UTC hour for the morning digest (default 14, about 6 or 7 in the morning Pacific). */
   hour_utc?: number;
   /** Minutes between new-report checks (default 60, at least 15). */
@@ -31,6 +37,8 @@ export interface AgentSettings {
   contact_index?: number;
   meeting_at?: string;
   topics?: string[];
+  /** Ranch or allotment ids to cover. Empty or missing means all of them. */
+  areas?: string[];
 }
 
 // ------------------------------------------------------------------ helpers
@@ -85,6 +93,15 @@ interface Activity {
   gaps: string[];
 }
 
+/** The ranches and allotments an agent covers, after the rancher's alert areas. */
+export function inAreas(profile: AgentProfile, config: Record<string, unknown>) {
+  const areas = Array.isArray(config.areas) ? config.areas.filter((a): a is string => typeof a === "string") : [];
+  if (!areas.length) return { ranches: profile.ranches, allotments: profile.ranches.flatMap((x) => x.allotments) };
+  const ranches = profile.ranches.filter((x) => areas.includes(x.id));
+  const allotments = profile.ranches.flatMap((x) => (areas.includes(x.id) ? x.allotments : x.allotments.filter((a) => areas.includes(a.id))));
+  return { ranches, allotments };
+}
+
 const NOT_PROOF = "This covers only the layers and records listed here; it is not proof that nothing else happened.";
 
 // ------------------------------------------------------------------ morning digest
@@ -103,11 +120,12 @@ export const morningDigest: AgentDefinition<AgentProfile> = {
   },
   async run(r) {
     const days = num(r.config.days, 1, 7, 1);
-    const allotments = r.profile.ranches.flatMap((x) => x.allotments).slice(0, 5);
-    if (!allotments.length && !r.profile.ranches.length) return { skip: "No ranches or allotments are on file.", title: "", body: "", citations: [] };
+    const area = inAreas(r.profile, r.config);
+    const allotments = area.allotments.slice(0, 5);
+    if (!allotments.length && !area.ranches.length) return { skip: "No ranches or allotments are on file, or none are in your chosen areas.", title: "", citations: [] };
     const src = new Sources();
     // Dates go in the title: a sentence with a number and no source is dropped by the output check.
-    const lines: string[] = [];
+    const lines: (string | AgentItem)[] = [];
     for (const al of allotments) {
       const res = await r.tool("allotment_wolf_activity", { allotment_id: al.id, days });
       const d = res.data as Activity;
@@ -117,10 +135,11 @@ export const morningDigest: AgentDefinition<AgentProfile> = {
         lines.push(
           `${al.name}, last ${plural(days, "day")}: ${plural(d.public_layers.length, "agency layer item")}, ${plural(d.your_records.length, "of your records", "of your records")}, ${plural(d.shared_cells.length, "shared report cell")} ${marks}.`,
         );
-      for (const row of d.public_layers.slice(0, 3)) lines.push(`- ${row.label ?? "Agency item"}, observed ${day(row.observed_at)} ${marks}.`);
+      for (const row of d.public_layers.slice(0, 3))
+        lines.push({ key: `pub|${row.source_id}|${row.label}|${row.observed_at}`, text: `- ${row.label ?? "Agency item"}, observed ${day(row.observed_at)} ${marks}.` });
       for (const g of d.gaps) lines.push(`- Data note: ${g}`);
     }
-    for (const ranch of r.profile.ranches.slice(0, 3)) {
+    for (const ranch of area.ranches.slice(0, 3)) {
       const res = await r.tool("fire_weather_alerts", { ranch_id: ranch.id, radius_miles: 50 });
       const d = res.data as { alerts: Row[]; gaps: string[] };
       const marks = src.add(res.sources);
@@ -136,7 +155,7 @@ export const morningDigest: AgentDefinition<AgentProfile> = {
       for (const l of stale) lines.push(`Data note: ${l.name} (${l.publisher}) was last received ${stamp(l.received_at)} ${marks}.`);
     }
     lines.push(NOT_PROOF);
-    return { title: `Morning digest, ${day(r.now.toISOString())}`, body: lines.join("\n"), citations: src.list, delivery: delivery(r.config, "You") };
+    return { title: `Morning digest, ${day(r.now.toISOString())}`, lines, citations: src.list, delivery: delivery(r.config, "You") };
   },
 };
 
@@ -159,34 +178,41 @@ export const newReportAlert: AgentDefinition<AgentProfile> = {
   },
   async run(r) {
     const radius = num(r.config.radius_miles, 1, 50, 10);
+    const days = num(r.config.days, 1, 14, 3);
+    const area = inAreas(r.profile, r.config);
     const state = (await r.state.get<AlertState>()) ?? { seen: [] };
     const seen = new Set(state.seen);
     const src = new Sources();
-    const fresh: string[] = [];
+    const fresh: AgentItem[] = [];
     const add = (key: string, line: (marks: string) => string, sources: SourceRef[]) => {
       if (seen.has(key)) return;
       seen.add(key);
-      fresh.push(line(src.add(sources)));
+      fresh.push({ key, text: line(src.add(sources)) });
     };
     const pick = (res: ToolResult, kind: string) => res.sources.filter((s) => s.kind === kind);
-    for (const ranch of r.profile.ranches.slice(0, 3)) {
-      const res = await r.tool("recent_predator_activity", { ranch_id: ranch.id, radius_miles: radius, days: 3, include_shared: true });
+    for (const ranch of area.ranches.slice(0, 3)) {
+      const res = await r.tool("recent_predator_activity", { ranch_id: ranch.id, radius_miles: radius, days, include_shared: true });
       const d = res.data as Activity;
       for (const row of d.public_layers)
         add(`pub|${row.source_id}|${row.label}|${row.observed_at}`, (m) => `- ${row.label ?? "Agency item"}, observed ${day(row.observed_at)}, about ${row.distance_miles} miles from ${ranch.name} ${m}.`, pick(res, "public-layer"));
       for (const c of d.shared_cells)
         add(`cell|${c.cell_id}|${c.latest_observed_on}|${c.report_count}`, (m) => `- A shared rancher report cell about ${c.distance_miles} miles from ${ranch.name}, latest report ${c.latest_observed_on} (generalized and delayed) ${m}.`, pick(res, "shared-data"));
     }
-    for (const al of r.profile.ranches.flatMap((x) => x.allotments).slice(0, 5)) {
-      const res = await r.tool("allotment_wolf_activity", { allotment_id: al.id, days: 3 });
+    for (const al of area.allotments.slice(0, 5)) {
+      const res = await r.tool("allotment_wolf_activity", { allotment_id: al.id, days });
       const d = res.data as Activity;
       for (const row of d.public_layers)
         add(`pub|${row.source_id}|${row.label}|${row.observed_at}`, (m) => `- ${row.label ?? "Agency item"} in or touching the ${al.name} allotment, observed ${day(row.observed_at)} ${m}.`, pick(res, "public-layer"));
     }
     await r.state.put({ seen: [...seen].slice(-1000) } satisfies AlertState);
-    if (!fresh.length) return { skip: "No new reports since the last check.", title: "", body: "", citations: [] };
-    const body = [`New wolf activity near your pastures (${plural(fresh.length, "new item")}):`, ...fresh, NOT_PROOF].join("\n");
-    return { title: `New wolf report near your pastures, ${day(r.now.toISOString())}`, body, citations: src.list, delivery: delivery(r.config, "You") };
+    if (!fresh.length) return { skip: "No new reports since the last check.", title: "", citations: [] };
+    return {
+      title: `New wolf report near your pastures, ${day(r.now.toISOString())}`,
+      lines: ["New wolf activity near your pastures:", ...fresh, NOT_PROOF],
+      allHiddenSkip: "Nothing new to show: every new item matched something you dismissed, marked wrong, or snoozed.",
+      citations: src.list,
+      delivery: delivery(r.config, "You"),
+    };
   },
 };
 
@@ -207,25 +233,26 @@ export const meetingPrep: AgentDefinition<AgentProfile> = {
   },
   async run(r) {
     const days = num(r.config.days, 7, 90, 30);
+    const area = inAreas(r.profile, r.config);
     const src = new Sources();
     const contacts = await r.tool("agency_contacts_and_reporting", { topic: "depredation" });
     const list = (contacts.data as { contacts: { role: string; name: string; organization: string; email?: string }[] }).contacts;
     const contact = list[num(r.config.contact_index, 0, 20, 0)];
-    const lines: string[] = [];
+    const lines: (string | AgentItem)[] = [];
     if (contact) lines.push(`Meeting prep packet for ${contact.name} (${contact.role}, ${contact.organization}) ${src.add(contacts.sources.slice(0, 1))}.`);
     else lines.push("Meeting prep packet. No agency contact is on file, so this packet is for your own use.");
     lines.push(`Prepared for ${r.profile.tenantName}. Covers the last ${plural(days, "day")}.`);
 
     lines.push("", "Your records:");
     let ownCount = 0;
-    for (const ranch of r.profile.ranches.slice(0, 3)) {
+    for (const ranch of area.ranches.slice(0, 3)) {
       const res = await r.tool("recent_predator_activity", { ranch_id: ranch.id, radius_miles: 25, days, include_shared: true });
       const d = res.data as Activity;
       const ownMarks = src.add(res.sources.filter((s) => s.kind === "tenant-data"));
       for (const o of d.your_records.slice(0, 20)) {
         ownCount++;
         const note = o.notes ? `: "${sanitizeText(o.notes).text.slice(0, 160)}"` : "";
-        lines.push(`- ${day(o.observed_at)}, ${o.species} ${o.kind} near ${ranch.name}${note} ${ownMarks}.`);
+        lines.push({ key: `own|${o.id}`, text: `- ${day(o.observed_at)}, ${o.species} ${o.kind} near ${ranch.name}${note} ${ownMarks}.` });
       }
       if (d.shared_cells.length)
         lines.push(`Shared rancher reports within 25 miles of ${ranch.name}: ${plural(d.shared_cells.length, "generalized cell")}, no names or exact places ${src.add(res.sources.filter((s) => s.kind === "shared-data"))}.`);
@@ -234,7 +261,7 @@ export const meetingPrep: AgentDefinition<AgentProfile> = {
     if (!ownCount) lines.push("- None of your records fall in this window.");
 
     lines.push("", "Agency layer activity on your allotments:");
-    for (const al of r.profile.ranches.flatMap((x) => x.allotments).slice(0, 5)) {
+    for (const al of area.allotments.slice(0, 5)) {
       const res = await r.tool("allotment_wolf_activity", { allotment_id: al.id, days });
       const d = res.data as Activity;
       const marks = src.add(res.sources.filter((s) => s.kind === "public-layer"));
@@ -250,9 +277,9 @@ export const meetingPrep: AgentDefinition<AgentProfile> = {
     }
     lines.push(`- ${NOT_PROOF}`);
 
-    const out: AgentOutput = { title: `${contact ? `Meeting packet for ${contact.name}` : "Meeting packet"}, ${day(r.now.toISOString())}`, body: lines.join("\n"), citations: src.list };
     const topics = Array.isArray(r.config.topics) ? r.config.topics.filter((t): t is string => typeof t === "string").slice(0, 5) : [];
-    if (topics.length) out.body += `\n\nTopics you want to raise (your words):\n${topics.map((t) => `- ${sanitizeText(t.slice(0, 200)).text}`).join("\n")}`;
+    if (topics.length) lines.push("", "Topics you want to raise (your words):", ...topics.map((t) => `- ${sanitizeText(t.slice(0, 200)).text}`));
+    const out: AgentOutput = { title: `${contact ? `Meeting packet for ${contact.name}` : "Meeting packet"}, ${day(r.now.toISOString())}`, lines, citations: src.list };
     if (contact?.email) out.delivery = { channel: "email", to: contact.email, label: `${contact.name}, ${contact.organization}` };
     return out;
   },

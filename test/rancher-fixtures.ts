@@ -173,13 +173,24 @@ export async function seededStore(): Promise<MemoryStore> {
   await addKey(s, KEYS.pub, "tenant-p", "user-p", ["rancher:read"]);
   await addKey(s, KEYS.lapsed, "tenant-l", "user-l", ["rancher:read"]);
   await addKey(s, KEYS.narrow, "tenant-a", "user-a2", ["alerts:read"]);
-  await addKey(s, KEYS.ops, "tenant-a", "user-a", ["rancher:read", "agents:run", "outbox:approve"]);
+  await addKey(s, KEYS.ops, "tenant-a", "user-a", ["rancher:read", "agents:run", "outbox:approve", "settings:write"]);
+  // Everything is off by default. These two test accounts have turned the assistant on.
+  for (const t of ["tenant-a", "tenant-b"]) await s.put(`prefs:${t}`, { assistant: { on: true, at: "2026-10-01T00:00:00.000Z", by: "fixture" }, agents: {} });
   await s.put(`obs:tenant-a:${OBS_A.id}`, OBS_A);
   await s.put(`obs:tenant-b:${OBS_B.id}`, OBS_B);
   await s.put("group:grp1", await groupWithMembers());
   for (const r of await sharedRecords()) await s.put(`shared:grp1:${r.id}`, r);
   await s.put(`doc:${DOC.id}`, DOC);
   return s;
+}
+
+/** Turn agents on for a test account, the way a rancher does in Settings. `enabled: false` leaves one off. */
+export async function turnOn(store: MemoryStore, tenant: string, agents: Record<string, Record<string, unknown>>, assistant = true) {
+  const at = "2026-10-01T00:00:00.000Z";
+  await store.put(`prefs:${tenant}`, {
+    assistant: { on: assistant, at, by: "fixture" },
+    agents: Object.fromEntries(Object.entries(agents).map(([id, { enabled, ...settings }]) => [id, { on: enabled !== false, at, by: "fixture", settings, snooze_until: null }])),
+  });
 }
 
 export async function testService(o: ServiceOverrides = {}) {

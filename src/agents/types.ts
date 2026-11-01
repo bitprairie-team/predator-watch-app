@@ -35,7 +35,9 @@ export type Scope =
   /** Run or pause background agents. Not part of rancher:read, never granted to MCP. */
   | "agents:run"
   /** Approve or reject outbox items (anything meant to leave the system). Not part of rancher:read, never granted to MCP. */
-  | "outbox:approve";
+  | "outbox:approve"
+  /** Change your own settings: turn the assistant and agents on or off, thresholds, overrides. Web only, never granted to MCP. */
+  | "settings:write";
 
 export const READ_SCOPES: Scope[] = [
   "activity:read",
@@ -116,7 +118,8 @@ export class AgentError extends Error {
       | "provider_error"
       | "policy_declined"
       | "timeout"
-      | "disabled",
+      | "disabled"
+      | "turned_off",
     message: string,
     public readonly status: number,
   ) {
