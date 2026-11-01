@@ -1,6 +1,7 @@
 // Plain declines with a short list of what the assistant can help with, and a
 // notice that is always visible in the app.
 import { readFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { MockProvider } from "../src/agents/providers/mock";
 import { ASSISTANT_NOTICE, CAN_HELP_WITH, POLICY, GUARD_CATEGORIES } from "../src/guardrails/policy";
@@ -57,7 +58,7 @@ describe("copy rules for the help list and notice", () => {
     expect(copy).not.toMatch(/\d/);
   });
   it("the page shows the same notice before the script loads", () => {
-    const html = readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
+    const html = readFileSync(join(resolve(__dirname, ".."), "public/index.html"), "utf8");
     expect(html).toContain(ASSISTANT_NOTICE);
     expect(html).toMatch(/id="rancher-can-help"/);
   });
