@@ -91,9 +91,38 @@ export interface SharedObservation {
   sensitive?: "den";
 }
 
+/**
+ * One rancher's place in a sharing group, as set by the signed data-sharing
+ * agreement. Only active, unexpired members can read the group, and only
+ * their reports made while they were members are shared.
+ */
+export interface GroupMember {
+  /** originHash(tenant id), never the tenant id itself. */
+  origin: string;
+  status: "active" | "suspended" | "left";
+  joined_at: string;
+  /** When the membership ends (left, or the agreement term ends). */
+  ends_at?: string | null;
+  /** Defaults to true. */
+  can_read?: boolean;
+  /** Defaults to true. */
+  can_contribute?: boolean;
+}
+
+export interface SharingAgreement {
+  id: string;
+  version: string;
+  signed_at: string;
+  expires_at?: string | null;
+}
+
 export interface SharingGroupPolicy {
   id: string;
   name: string;
+  /** The data-sharing agreement. With none on file, nothing is shared. */
+  agreement?: SharingAgreement;
+  /** Who may read and contribute. With no list on file, nothing is shared. */
+  members?: GroupMember[];
   /** Cell size for shared data, 1 to 2 miles. */
   cell_miles: number;
   /** Delay before shared data is visible, 48 to 72 hours. */

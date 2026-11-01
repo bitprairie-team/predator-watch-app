@@ -29,6 +29,8 @@ export async function contextFromAccessKey(store: PrivateStore, key: string, cli
   if (!/^pwk_[A-Za-z0-9_-]{16,}$/.test(key)) return null;
   const rec = await store.get<AccessKeyRecord>(`accesskey:${await sha256Hex(key)}`);
   if (!rec || rec.revoked) return null;
+  // Tenant and user ids become parts of storage keys; refuse any with separators.
+  if (!/^[a-z0-9][a-z0-9_-]{0,63}$/.test(rec.tenant_id) || !/^[A-Za-z0-9][A-Za-z0-9_.@-]{0,127}$/.test(rec.user_id)) return null;
   const tenant = await store.get<{ plan?: Plan }>(`tenant:${rec.tenant_id}`);
   if (!tenant) return null;
   return { tenantId: rec.tenant_id, userId: rec.user_id, plan: tenant.plan ?? "public", scopes: rec.scopes, client };

@@ -221,6 +221,7 @@ async function activityNear(deps: RancherDeps, a: ActivityArgs): Promise<ToolRes
   const shared: (SharedCell & { distance_miles: number })[] = [];
   if (a.include_shared) {
     for (const g of await d.sharedCells()) {
+      if (g.gap) gaps.push(g.gap);
       const cells = g.cells
         .filter((c) => c.latest_observed_on >= iso(since).slice(0, 10))
         .map((c) => ({ ...c, distance_miles: round1(distanceMiles(here, c.geometry)) }))
@@ -335,6 +336,7 @@ const allotmentActivity: Tool = {
     if (own.length) sources.push(ownSource(own, t?.name ?? "Your account"));
     const shared: SharedCell[] = [];
     for (const g of await d.sharedCells()) {
+      if (g.gap) gaps.push(g.gap);
       const cells = g.cells.filter((c) => c.latest_observed_on >= iso(since).slice(0, 10) && intersects(c.geometry, al.geometry));
       if (cells.length) {
         shared.push(...cells);

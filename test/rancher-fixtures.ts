@@ -88,7 +88,19 @@ export const OBS_B: Observation = {
   lat: 41.8123, lon: -120.8877, observed_at: daysAgo(5), received_at: daysAgo(5), notes: "B private note", share: true,
 };
 
-export const GROUP: SharingGroupPolicy = { id: "grp1", name: "Valley ranchers group", cell_miles: 1.5, delay_hours: 72, den_season: { start: "04-01", end: "06-30" } };
+export const AGREEMENT = { id: "agr-1", version: "1", signed_at: daysAgo(400), expires_at: null };
+export const GROUP: SharingGroupPolicy = { id: "grp1", name: "Valley ranchers group", cell_miles: 1.5, delay_hours: 72, den_season: { start: "04-01", end: "06-30" }, agreement: AGREEMENT };
+
+/** Group policy with its member list (origins are hashes, so this is async). */
+export async function groupWithMembers(): Promise<SharingGroupPolicy> {
+  return {
+    ...GROUP,
+    members: [
+      { origin: await originHash("tenant-a"), status: "active", joined_at: daysAgo(365) },
+      { origin: await originHash("tenant-b"), status: "active", joined_at: daysAgo(365) },
+    ],
+  };
+}
 
 export async function sharedRecords(): Promise<SharedObservation[]> {
   const ob = await originHash("tenant-b");
@@ -161,7 +173,7 @@ export async function seededStore(): Promise<MemoryStore> {
   await addKey(s, KEYS.narrow, "tenant-a", "user-a2", ["alerts:read"]);
   await s.put(`obs:tenant-a:${OBS_A.id}`, OBS_A);
   await s.put(`obs:tenant-b:${OBS_B.id}`, OBS_B);
-  await s.put("group:grp1", GROUP);
+  await s.put("group:grp1", await groupWithMembers());
   for (const r of await sharedRecords()) await s.put(`shared:grp1:${r.id}`, r);
   await s.put(`doc:${DOC.id}`, DOC);
   return s;

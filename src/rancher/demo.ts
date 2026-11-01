@@ -142,8 +142,15 @@ async function seed(now: Date): Promise<MemoryStore> {
     id: "demo-obs-1", ranch_id: "demo-home", species: "Gray wolf", kind: "sighting",
     lat: HOME.lat + 0.004, lon: HOME.lon + 0.011, observed_at: ago(2), received_at: ago(2), notes: "Two animals crossing the lane at dusk", share: true,
   });
-  await s.put("group:demo-group", { id: "demo-group", name: "Demo valley ranchers", cell_miles: 1.5, delay_hours: 72, den_season: { start: "04-01", end: "06-30" } });
   const other = await originHash("demo-neighbor");
+  await s.put("group:demo-group", {
+    id: "demo-group", name: "Demo valley ranchers", cell_miles: 1.5, delay_hours: 72, den_season: { start: "04-01", end: "06-30" },
+    agreement: { id: "demo-agreement", version: "1", signed_at: ago(400), expires_at: null },
+    members: [
+      { origin: await originHash("demo-ranch"), status: "active", joined_at: ago(365) },
+      { origin: other, status: "active", joined_at: ago(365) },
+    ],
+  });
   await s.put("shared:demo-group:ds1", { id: "ds1", group: "demo-group", origin: other, species: "Gray wolf", kind: "depredation", lat: HOME.lat + 0.03, lon: HOME.lon - 0.02, observed_at: ago(5), received_at: ago(5) });
   await s.put("shared:demo-group:ds2", { id: "ds2", group: "demo-group", origin: other, species: "Gray wolf", kind: "sign", lat: HOME.lat - 0.05, lon: HOME.lon + 0.05, observed_at: ago(6), received_at: ago(6), sensitive: "den" });
   await s.put("doc:demo-fladry", {
