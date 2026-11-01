@@ -31,7 +31,7 @@
   <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
   <meta name="color-scheme" content="light dark">
   <link rel="preload" href="/api/layers" as="fetch" crossorigin="anonymous">
-  <link rel="stylesheet" href="/vendor/maplibre-gl/maplibre-gl.css">
+  <link rel="stylesheet" href="/vendor/maplibre-gl-5.24.0/maplibre-gl.css">
   <link rel="preload" href="/fonts/ibm-plex-sans.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/brand.css">
   <link rel="stylesheet" href="/styles.css">
@@ -53,13 +53,14 @@
       <button type="button" id="panel-toggle" class="btn" aria-controls="panel" aria-expanded="true">Layers</button>
       <button type="button" id="theme-toggle" class="btn btn-ghost btn-theme" aria-pressed="false"><svg class="btn-icon" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M15.6 12.4A6.5 6.5 0 0 1 7.6 4.4a6.5 6.5 0 1 0 8 8z" fill="currentColor"/></svg><span class="btn-label">Dark mode</span></button>
       <button type="button" id="about-open" class="btn btn-ghost" aria-haspopup="dialog">About</button>
+      <a id="status-link" class="btn btn-ghost" href="/status">Status</a>
     </div>
   </header>
 
   <main class="layout">
     <aside id="panel" class="panel" tabindex="-1" aria-label="Layers and data" data-sheet="peek">
       <div class="sheet-head">
-        <button type="button" id="sheet-handle" class="sheet-handle" aria-controls="panel-body" aria-expanded="false"><span class="sheet-grip" aria-hidden="true"></span><span class="sheet-title">Layers and data</span><span class="sheet-mode" id="sheet-mode"></span><span id="sheet-count" class="sheet-count"></span><span class="sr-only" id="sheet-state">, collapsed. Activate to show more.</span></button>
+        <button type="button" id="sheet-handle" class="sheet-handle" aria-controls="panel-body" aria-expanded="false"><span class="sheet-grip" aria-hidden="true"></span><span class="sheet-title">Layers<span class="sheet-title-more"> and data</span></span><span class="sheet-mode" id="sheet-mode"></span><span id="sheet-count" class="sheet-count"></span><span class="sr-only" id="sheet-state">, collapsed. Activate to show more.</span></button>
         <button type="button" id="sheet-close" class="btn btn-ghost sheet-close" aria-controls="panel-body" hidden>Close<span class="sr-only"> layers</span></button>
       </div>
       <div id="panel-body" class="panel-body">
@@ -179,6 +180,7 @@
     <button type="button" id="panel-edge" class="panel-edge" aria-controls="panel" aria-expanded="true" aria-keyshortcuts="[" title="Hide the layers panel (shortcut: [ )"><span class="edge-arrow" aria-hidden="true"></span><span class="sr-only" id="panel-edge-label">Hide the layers panel</span></button>
 
     <div class="map-wrap">
+      <p id="offline-bar" class="offline-bar" role="status" aria-live="polite" hidden></p>
       <div id="map" role="region" aria-label="Map. Use arrow keys to pan and plus or minus to zoom when focused." tabindex="0"></div>
       <aside id="first-hint" class="first-hint" aria-labelledby="first-hint-title" hidden>
         <h2 id="first-hint-title">Welcome</h2>
@@ -241,7 +243,7 @@
     <form method="dialog"><button class="btn" autofocus>Close</button></form>
   </dialog>
 
-  <script src="/vendor/maplibre-gl/maplibre-gl.js" defer></script>
+  <script src="/vendor/maplibre-gl-5.24.0/maplibre-gl.js" defer></script>
   <script type="module" src="/app.js"></script>
 </body>
 </html>

@@ -99,3 +99,34 @@ thead th:nth-child(5) { text-align: right; }
 .page-prefs:empty { min-height: 32px; }
 @media (pointer: coarse) { .page-prefs:empty { min-height: 44px; } }
 thead th { white-space: nowrap; }
+
+/* ---- Mobile and app round (stage 7) -------------------------------------- */
+/* /about sources: on phones each layer becomes a card (name, then credit,
+   then the agency update date) like the status table, never a table that
+   scrolls sideways. */
+@media (max-width: 640px) {
+  .sources-table.stack-table tr { grid-template-columns: 1fr; gap: var(--sp-2); }
+  .sources-table.stack-table tr.group { padding: var(--sp-4) 0 0; border-bottom: 0; }
+  .sources-table.stack-table tr.group th { grid-column: 1 / -1; padding: 0; border: 0; }
+  .sources-table.stack-table td { overflow-wrap: anywhere; }
+  .sources-table th .muted { padding-left: calc(16px + .5rem); }
+}
+/* Offline note on the text pages (filled by status.js and credits.js). */
+.offline-note { margin: var(--sp-3) 0; padding: var(--sp-2) var(--sp-3); border-left: 4px solid var(--warn-ink); background: var(--warn-bg); color: var(--warn-ink); }
+.offline-note:empty { display: none; }
+/* Short landscape phones: a slimmer masthead leaves more page. */
+@media (max-height: 500px) and (orientation: landscape) {
+  .page .byline { display: none; }
+  .page .topbar { padding-top: max(.25rem, env(safe-area-inset-top)); padding-bottom: .25rem; }
+}
+/* Text pages at larger text on phones: the name and the three page links
+   stay on one line without overlapping (sizes match the map masthead). */
+@media (max-width: 560px) {
+  :root[data-text="2"] .page .proj-name, :root[data-text="3"] .page .proj-name { font-size: 16px; }
+  :root[data-text="2"] .page .byline, :root[data-text="3"] .page .byline { font-size: 10px; }
+  :root[data-text="2"] .page .topbar .btn, :root[data-text="3"] .page .topbar .btn { font-size: 15px; padding: 0 10px; min-height: 44px; }
+  :root[data-text="2"] .page .topbar, :root[data-text="3"] .page .topbar { gap: 8px; padding-left: max(10px, env(safe-area-inset-left)); padding-right: max(10px, env(safe-area-inset-right)); }
+  .page .brand { flex: 1 1 auto; min-width: 0; }
+  .page .proj-name { overflow: hidden; text-overflow: ellipsis; }
+}
+@media (max-width: 420px) { :root[data-text="3"] .page .proj-mark { display: none; } :root[data-text="3"] .page .byline { padding-left: 0; } }

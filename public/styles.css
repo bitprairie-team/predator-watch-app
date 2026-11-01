@@ -678,3 +678,64 @@ dialog::backdrop { background: rgba(0,0,0,.4); }
    something to read while the map loads. */
 :root[data-first-visit] .first-hint[hidden] { display: block; }
 .map-wrap:has(.splash:not(.done)) .first-hint { z-index: 21; }
+
+/* ---- Mobile and app round (stage 7) -------------------------------------- */
+/* The map page never scrolls as a whole: no pull-to-refresh or rubber-band
+   bounce when a drag starts on the masthead, sheet or credits. Scrolling
+   inside the sheet, details and sources keeps working (overscroll contained). */
+html, body { overscroll-behavior: none; }
+.details, .sources-panel, .legend ul { overscroll-behavior: contain; }
+
+/* Header Status link sits with the other page links. */
+#status-link { text-decoration: none; }
+
+@media (max-width: 760px) {
+  /* Sheet title: "Layers" is never cut. At larger text sizes the words
+     "and data" drop and the Simple/Expert tag gives way first. */
+  .sheet-title, :root[data-text] .sheet-title { flex: none; overflow: visible; text-overflow: clip; }
+  :root[data-text="2"] .sheet-title-more, :root[data-text="3"] .sheet-title-more { display: none; }
+  .sheet-mode, :root[data-text] .sheet-mode { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  /* Masthead with four page links at larger text: the BitPrairie symbol
+     (also in the footer credits) gives way before the name or a button. */
+  :root[data-text="3"] .topbar .brand-home, :root[data-text="3"] .topbar .brand-sep { display: none; }
+}
+@media (max-width: 420px) {
+  .topbar .brand-sep { display: none; }
+  .topbar-actions { gap: 4px; }
+  .topbar .btn, :root[data-text] .topbar .btn { padding: 0 8px; }
+}
+@media (max-width: 360px) {
+  .topbar .brand-home { display: none; }
+}
+
+/* Short landscape phones (bottom-sheet layout): a one-line masthead and a
+   lower half sheet, so the map keeps most of the screen. The side notch is
+   cleared by the safe-area padding on the masthead, controls and sheet. */
+@media (max-width: 760px) and (max-height: 500px) {
+  .byline, .tagline { display: none; }
+  .topbar, :root[data-text] .topbar { padding-top: max(.2rem, env(safe-area-inset-top)); padding-bottom: .2rem; min-height: 0; }
+  .proj-name, :root[data-text] .proj-name { font-size: 15px; }
+  .panel[data-sheet="half"] { height: max(120px, 50%); }
+  .panel[data-sheet="full"] { height: calc(100% - var(--credits-h, 44px)); }
+  .first-hint { top: 8px; max-height: calc(100% - var(--sheet-h, 0px) - var(--credits-h, 0px) - 16px); overflow-y: auto; }
+}
+.maplibregl-ctrl-top-right { padding-right: env(safe-area-inset-right); }
+.legend { margin-right: env(safe-area-inset-right); }
+
+/* Touch: links in the Sources lists are full 44 px targets. */
+@media (pointer: coarse) {
+  .sources-list a, .sources-more a { display: inline-flex; align-items: center; min-height: 44px; }
+}
+
+/* Offline: one clear line at the top of the map while the device has no
+   connection, with the time of the saved copy being shown. */
+.offline-bar {
+  position: absolute; left: 50%; top: 8px; z-index: 8; transform: translateX(-50%);
+  max-width: min(32rem, calc(100% - 120px)); margin: 0; padding: .45rem .75rem;
+  background: var(--warn-bg); color: var(--warn-ink); border: 1px solid currentColor;
+  font-size: .875rem; line-height: 1.35; box-shadow: 0 2px 10px var(--shadow);
+}
+.offline-bar[hidden] { display: none; }
+@media (max-width: 760px) { .offline-bar { top: 60px; max-width: calc(100% - 16px - env(safe-area-inset-left) - env(safe-area-inset-right)); } }
+/* Installed app (standalone): no browser bar, so the masthead clears the
+   status bar itself; already handled by safe-area-inset-top in brand.css. */

@@ -21,8 +21,8 @@ const SHELL_FILES = [
   "/brand/predator-watch-mark.svg",
   "/icons/icon-32.png",
   "/credits.js",
-  "/vendor/maplibre-gl/maplibre-gl.js",
-  "/vendor/maplibre-gl/maplibre-gl.css",
+  "/vendor/maplibre-gl-5.24.0/maplibre-gl.js",
+  "/vendor/maplibre-gl-5.24.0/maplibre-gl.css",
 ];
 const DATA_RE = /^\/api\/(layers|changes|sources\/[a-z0-9-]+(\/changes)?)$/;
 
