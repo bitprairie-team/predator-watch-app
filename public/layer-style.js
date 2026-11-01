@@ -51,7 +51,7 @@ export function vectorPaint(layer, theme = "light") {
     fill: { "fill-color": c, "fill-opacity": s.fillOpacity ?? 0.2 },
     line: { "line-color": c, "line-width": s.dashed ? 1.5 : 2, ...(markOf(layer).dash ? { "line-dasharray": markOf(layer).dash } : {}) },
     // The point outline follows the basemap so the dot stands out; the dot keeps its color.
-    circle: { "circle-color": c, "circle-radius": 5, "circle-stroke-color": theme === "dark" ? "#0e1012" : "#ffffff", "circle-stroke-width": 1.5 },
+    circle: { "circle-color": c, "circle-radius": 5, "circle-stroke-color": theme === "dark" ? "#161310" : "#ffffff", "circle-stroke-width": 1.5 },
   };
 }
 
