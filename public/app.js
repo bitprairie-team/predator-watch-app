@@ -157,9 +157,8 @@ if (PHONE_AT_START) {
 map.addControl(new maplibregl.ScaleControl({ unit: "imperial" }), "bottom-left");
 // Credits are drawn by renderCredits() below, not MapLibre's control, so the
 // basemap credit stays visible on every screen and agency credits are short.
-if ("geolocation" in navigator) {
-  map.addControl(new maplibregl.GeolocateControl({ trackUserLocation: false, showAccuracyCircle: false }), "top-left");
-}
+const geoControl = "geolocation" in navigator ? new maplibregl.GeolocateControl({ trackUserLocation: false, showAccuracyCircle: false }) : null;
+if (geoControl) map.addControl(geoControl, "top-left");
 
 function firstSymbolLayer() {
   return map.getStyle().layers.find((l) => l.type === "symbol")?.id;
@@ -313,7 +312,7 @@ function renderLayerRow(layer) {
     <div class="badges" id="badges-${layer.id}">
       ${zoomedOut(layer) ? `<span class="badge warn">${esc(layer.zoom_hint || "Zoom in to see this layer")}</span>` : ""}
       ${badges(layer).map((b) => `<span class="badge ${b.cls}" title="${esc(b.title)}">${esc(b.text)}</span>`).join("")}
-      ${layer.loaded === false && layer.loadError ? `<button type="button" class="btn btn-small retry">Retry<span class="sr-only"> loading ${nm}</span></button>` : ""}
+      ${layer.loaded === false && layer.loadError ? `<button type="button" class="btn btn-small retry">Try again<span class="sr-only">: ${nm}</span></button>` : ""}
     </div>
     <details${wasOpen ? " open" : ""}>
       <summary>About this source<span class="sr-only">: ${nm}</span></summary>
@@ -363,7 +362,7 @@ function simpleRowHtml(layer, inputId) {
       ${sv.summary ? `<p class="layer-summary">${esc(sv.summary)}</p>` : ""}
       ${layer.classes ? classLegendHtml(layer) : ""}
       ${zoomedOut(layer) ? `<p class="plain-note">${esc(layer.zoom_hint || "Zoom in to see this layer")}.</p>` : ""}
-      ${problem ? `<p class="plain-note">This layer could not load. <button type="button" class="btn btn-small retry">Try again<span class="sr-only">: ${esc(displayName(layer))}</span></button></p>` : ""}
+      ${problem ? `<p class="plain-note load-note">This layer could not load. <button type="button" class="btn btn-small retry">Try again<span class="sr-only">: ${esc(displayName(layer))}</span></button></p>` : ""}
       <p class="layer-source">Source: ${info ? `<a href="${esc(info)}" target="_blank" rel="noopener">${esc(layer.credit_short || layer.agency)}<span class="sr-only"> (new tab)</span></a>` : esc(layer.credit_short || layer.agency)}${upd ? `, ${esc(upd)}` : ""}.</p>
     </div>`;
 }
@@ -599,9 +598,17 @@ function featureHtml(p, layer) {
 
 const detailsEl = $("#details");
 let lastFocus = null;
+// Phones: details open above the sheet, so a half or full sheet would leave
+// them only a header strip. Fold the sheet while details show, then put it
+// back the way it was when they close.
+let sheetBeforeDetails = null;
 function showDetails(features) {
   if (!features.length) return;
   lastFocus = document.activeElement;
+  if (isPhone() && !panel.hidden && panel.dataset.sheet !== "peek") {
+    sheetBeforeDetails ??= panel.dataset.sheet;
+    setSheet("peek");
+  }
   $("#details-title").textContent = features.length > 1 ? (isSimple() ? `${features.length} things here` : `${features.length} items here`) : (isSimple() ? "What is here" : "Details");
   $("#details-body").innerHTML = features.map((f) => featureHtml(f.properties, layers.get(f.properties.source_id))).join("");
   detailsEl.hidden = false;
@@ -609,7 +616,9 @@ function showDetails(features) {
 }
 function hideDetails() {
   detailsEl.hidden = true;
-  if (lastFocus && document.contains(lastFocus)) lastFocus.focus();
+  if (sheetBeforeDetails && isPhone()) setSheet(sheetBeforeDetails);
+  sheetBeforeDetails = null;
+  if (lastFocus && document.contains(lastFocus) && lastFocus.getClientRects().length) lastFocus.focus();
 }
 $("#details-close").addEventListener("click", hideDetails);
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !detailsEl.hidden) hideDetails(); });
@@ -812,8 +821,8 @@ $("#list-view").addEventListener("click", (e) => {
   if (!f) return;
   const [x0, y0, x1, y1] = f._bbox;
   autoView = false;
-  map.fitBounds([[x0, y0], [x1, y1]], { padding: 80, maxZoom: 8, duration: matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 600 });
   showDetails([{ properties: { ...f.properties, details: parseMaybe(f.properties.details) } }]);
+  map.fitBounds([[x0, y0], [x1, y1]], { padding: 80, maxZoom: 8, duration: matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 600 });
 });
 
 // ------------------------------------------------------------ panel / sheet
@@ -1118,12 +1127,23 @@ async function boot() {
     savedAt = res.headers.get("x-pw-saved-at");
     index = await res.json();
   } catch (e) {
-    statusEl.textContent = "Could not load the layer list. Check your connection and reload.";
+    const text = "The layer list could not load. Check your connection, then try again.";
+    statusEl.textContent = text;
     const msg = $("#splash-msg");
-    if (msg) msg.textContent = "Could not load the layer list. Check your connection and reload.";
+    if (msg) msg.textContent = text;
     setTimeout(hideSplash, 2500);
+    // Say so where the layers would be (Simple view hides the status line),
+    // and hide the chips and Reset links, which have nothing to act on yet.
+    panel.dataset.boot = "error";
+    $("#layer-groups").innerHTML = `<div class="load-error" role="alert"><p>${text}</p><button type="button" class="btn btn-solid" id="boot-retry">Try again</button></div>`;
+    $("#list-view").innerHTML = `<p class="hint">No layers yet. ${text}</p>`;
+    $("#boot-retry").addEventListener("click", () => {
+      $("#layer-groups").innerHTML = `<p class="hint">Loading…</p>`;
+      boot();
+    }, { once: true });
     return;
   }
+  delete panel.dataset.boot;
   simpleGroups = Array.isArray(index.simple_groups) ? index.simple_groups : [];
   for (const l of index.layers) {
     const visible = initial.ids ? initial.ids.has(l.id) : Boolean(l.style?.defaultVisible);
@@ -1329,10 +1349,12 @@ searchForm.addEventListener("submit", async (e) => {
   const KEY = "pw-hint-dismissed";
   let seen = false;
   try { seen = localStorage.getItem(KEY) === "1"; } catch {}
+  if (seen || initial.view) document.documentElement.removeAttribute("data-first-visit");
   if (!seen && !initial.view) {
     hint.hidden = false;
     const close = () => {
       hint.hidden = true;
+      document.documentElement.removeAttribute("data-first-visit");
       try { localStorage.setItem(KEY, "1"); } catch {}
       document.removeEventListener("keydown", onKey);
     };
@@ -1347,9 +1369,9 @@ const themeBtn = $("#theme-toggle");
 let mapTheme = currentTheme();
 function syncThemeButton() {
   const dark = currentTheme() === "dark";
-  // The name stays "Dark map"; aria-pressed says whether it is on.
+  // The name stays "Dark mode" on every page; aria-pressed says whether it is on.
   themeBtn.setAttribute("aria-pressed", String(dark));
-  themeBtn.title = dark ? "Switch to the light map" : "Switch to the dark map";
+  themeBtn.title = dark ? "Switch to light mode" : "Switch to dark mode";
 }
 function applyTheme(theme) {
   syncThemeButton();
@@ -1419,14 +1441,21 @@ locateBtn.addEventListener("click", () => {
     locateMarker = new maplibregl.Marker({ color: "#111418" }).setLngLat([lon, lat]).addTo(map);
     locateMsg.textContent = "Showing your location. It stays on this device.";
     announce("Showing your location on the map.");
-  }, (err) => {
-    // Code 1 also comes back when location is off in the browser or the
-    // device settings, not only when this site was refused.
-    locateMsg.textContent = err.code === 1
-      ? "Location is blocked in this browser or device's settings. Type a town or ZIP code instead."
-      : "Your location could not be found. Type a town or ZIP code instead.";
-  }, { enableHighAccuracy: false, timeout: 15000, maximumAge: 300000 });
+  }, locateFailed, { enableHighAccuracy: false, timeout: 15000, maximumAge: 300000 });
 });
+// The only place the location note is set to an error: after a tap on
+// "Use my location" (or the map's locate button) fails. Code 1 also comes
+// back when location is off in the browser or the device settings, not only
+// when this site was refused.
+function locateFailed(err) {
+  const text = err?.code === 1
+    ? "Location is blocked in this browser or device's settings. Type a town or ZIP code instead."
+    : "Your location could not be found. Type a town or ZIP code instead.";
+  locateMsg.textContent = text;
+  // The note sits in the panel; on phones the sheet may be folded, so say it.
+  if (isPhone() && panel.dataset.sheet === "peek") announce(text);
+}
+geoControl?.on("error", locateFailed);
 
 // ------------------------------------------------ view and display settings
 function syncModeLabel() {
