@@ -185,3 +185,8 @@ a.btn { display: inline-flex; align-items: center; text-decoration: none; color:
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
+
+/* Project site link after "by BitPrairie": same quiet mono line, hidden on
+   phones and touch tablets to keep the masthead compact (the footer always has it). */
+.byline-sep { margin: 0 .4em; }
+@media (max-width: 480px), (pointer: coarse) and (max-width: 1100px) { .byline-site { display: none; } }
