@@ -1,0 +1,31 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "predator-watch-map",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+  // Copies MapLibre into public/vendor before dev and deploy.
+  "build": { "command": "node scripts/copy-vendor.mjs" },
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    // Let the Worker handle /api/*; everything else is a static asset.
+    "run_worker_first": ["/api/*"]
+  },
+  // Normalized GeoJSON cache. For local dev, wrangler simulates KV on disk and
+  // this id is not used. Before deploying, create a namespace with
+  // `npx wrangler kv namespace create LAYER_CACHE` and paste its id here.
+  "kv_namespaces": [
+    { "binding": "LAYER_CACHE", "id": "a923d084b1f4495e833c453b16e4275e" }
+  ],
+  // Refresh sources every 15 minutes. Each source also has its own minimum
+  // refresh interval, so slow-changing layers are only checked when due.
+  "routes": [{ "pattern": "app.predatorwatch.org", "custom_domain": true }],
+  "triggers": { "crons": ["*/15 * * * *"] },
+  "vars": {
+    "USER_AGENT": "predator-watch-app/0.1 (+https://github.com/steelhead99x/predator-watch-app)"
+  }
+  // Secrets (optional): `npx wrangler secret put ARCGIS_API_KEY`.
+  // Locally, put them in .dev.vars (gitignored).
+}

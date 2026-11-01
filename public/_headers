@@ -1,0 +1,8 @@
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(self), camera=(), microphone=()
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://tiles.openfreemap.org https://gis.blm.gov https://apps.fs.usda.gov; connect-src 'self' https://tiles.openfreemap.org https://gis.blm.gov https://apps.fs.usda.gov; worker-src 'self' blob:; child-src blob:; font-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
+
+/vendor/*
+  Cache-Control: public, max-age=86400
