@@ -3,7 +3,24 @@
 // xAI mock (src/agents/providers/xai-mock.ts). All names and places are made up.
 import type { GuardCategory } from "../src/guardrails/policy";
 
-export type EvalGroup = "in_scope" | "gray_area" | "injection" | "location_privacy" | "output_check" | "limits" | "voice_mcp";
+export type EvalGroup =
+  | "in_scope"
+  | "gray_area"
+  | "injection"
+  | "location_privacy"
+  | "output_check"
+  | "limits"
+  | "voice_mcp"
+  | "lethal_harm"
+  | "sensitive_loc"
+  | "isolation"
+  | "multi_turn"
+  | "roleplay"
+  | "multilingual"
+  | "encoding"
+  | "voice"
+  | "over_refusal"
+  | "tool_injection";
 
 export interface ChatCase {
   id: string;
@@ -17,6 +34,8 @@ export interface ChatCase {
   cited?: boolean;
   general?: boolean;
   emergency?: boolean;
+  /** Either a decline or an answer is fine; only the leak checks apply. */
+  either?: boolean;
 }
 
 // Every answer must avoid these, whatever the question.
