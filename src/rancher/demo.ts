@@ -1,7 +1,9 @@
 // Local demo mode for `npm run dev:mock`: a seeded, in-memory rancher account
 // so the whole assistant (chat, tools, citations, guardrails, voice session
 // setup, MCP) can be tried in `wrangler dev` with no KV namespaces and no xAI
-// key. All names, places, and records are made up.
+// key. All names, places, and records are made up. Like a real account, the
+// demo account starts with the assistant and every agent off; turn them on in
+// Ranch tools (/ranch.html, Settings).
 //
 // It only turns on when every one of these holds:
 //   - ASSISTANT_DEMO=1 and XAI_MOCK=1 (the offline xAI mock, never a real key)
@@ -111,6 +113,7 @@ async function seed(now: Date): Promise<MemoryStore> {
         name: "Sam Demo",
         organization: "State wildlife agency, district office (demo)",
         phone: "555-0199",
+        email: "sam.demo@example.invalid",
         source: { publisher: "State wildlife agency (demo)", url: "https://example.invalid/demo-contacts", verified_at: ago(10) },
       },
       {
@@ -137,7 +140,7 @@ async function seed(now: Date): Promise<MemoryStore> {
     ],
     updated_at: ago(1),
   });
-  await s.put(`accesskey:${await sha256Hex(DEMO_ACCESS_KEY)}`, { tenant_id: "demo-ranch", user_id: "demo-user", scopes: ["rancher:read"], created_at: ago(1) });
+  await s.put(`accesskey:${await sha256Hex(DEMO_ACCESS_KEY)}`, { tenant_id: "demo-ranch", user_id: "demo-user", scopes: ["rancher:read", "settings:write", "agents:run", "outbox:approve"], created_at: ago(1) });
   await s.put("obs:demo-ranch:demo-obs-1", {
     id: "demo-obs-1", ranch_id: "demo-home", species: "Gray wolf", kind: "sighting",
     lat: HOME.lat + 0.004, lon: HOME.lon + 0.011, observed_at: ago(2), received_at: ago(2), notes: "Two animals crossing the lane at dusk", share: true,

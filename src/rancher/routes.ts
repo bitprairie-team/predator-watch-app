@@ -7,6 +7,11 @@
 //   POST /api/assistant/tools/:name     run one tool (used by the voice client)
 //   GET  /api/assistant/audit           the caller's own audit log
 //   /api/assistant/agents*, /outbox*    background agents and approvals (see agents-service.ts)
+//   /api/ranch/*                        ranch tools: settings, activity log, by-hand jobs (see ranch-routes.ts)
+//
+// The assistant is off until the rancher turns it on in Settings. Until then
+// chat, voice, and assistant tool calls answer 403 "turned_off". Every answer
+// and decline writes a "what I did" record to the activity log.
 import { sourcesFooter, type Citation } from "../agents/citations";
 import { toolSpecs } from "../agents/runner";
 import { recordGuardEvent } from "../agents/audit";
@@ -17,7 +22,10 @@ import { checkOutput } from "../guardrails/output-check";
 import { ASSISTANT_NOTICE, CAN_HELP_WITH, DISCLAIMER, refusalText } from "../guardrails/policy";
 import { DATA_NOTICE } from "../guardrails/sanitize";
 import { handleAgentRoutes } from "./agents-service";
-import { ownNames, runRancherTurn } from "./assistant";
+import { ownNames, runRancherTurn, type TurnEvent } from "./assistant";
+import { describeArgs, issueRules, recordActivity, sourcesOf, type ActivityRecord } from "../agents/activity";
+import { assistantOn } from "./prefs";
+import { handleRanch } from "./ranch-routes";
 
 /** Spoken turns older than this are not joined with a new question. */
 const VOICE_TURN_WINDOW_MS = 10 * 60 * 1000;
@@ -89,6 +97,72 @@ function chunks(text: string, size = 24): string[] {
   return out;
 }
 
+const TURNED_OFF = "The assistant is off for your account. Turn it on in Ranch tools, Settings. Everything it looks up also works by hand there.";
+
+async function requireAssistantOn(svc: RancherService, ctx: AuthContext) {
+  if (!(await assistantOn(svc.store, ctx.tenantId))) throw new AgentError("turned_off", TURNED_OFF, 403);
+}
+
+const CATEGORY_WORDS: Record<string, string> = {
+  legal: "legal advice",
+  compensation: "compensation claim strategy",
+  veterinary: "veterinary advice",
+  financial: "financial advice",
+  lethal: "instructions for killing animals",
+  evasion: "getting around rules",
+  harm_location: "finding animals or dens",
+  precise_location: "exact locations",
+  personal_data: "other people's information",
+  injection: "changing the assistant's rules",
+  contested: "an opinion on a contested topic",
+  off_topic: "something outside ranch data",
+};
+
+/** Build the "what I did" record for one chat turn from its events. */
+async function answerRecord(svc: RancherService, ctx: AuthContext, question: string, events: TurnEvent[], channel: "chat" | "voice"): Promise<ActivityRecord> {
+  const t = await svc.deps.data(ctx).data.tenant();
+  const names = Object.fromEntries((t?.ranches ?? []).flatMap((r) => [[r.id, r.name], ...r.allotments.map((a) => [a.id, a.name])]));
+  const answer = events.find((e): e is Extract<TurnEvent, { type: "answer" }> => e.type === "answer");
+  const guard = events.find((e): e is Extract<TurnEvent, { type: "guard" }> => e.type === "guard");
+  const calls = events.filter((e): e is Extract<TurnEvent, { type: "tool_call" }> => e.type === "tool_call");
+  const refused = !!answer?.refused || !!guard;
+  const category = answer?.category ?? guard?.category;
+  const q = question.replace(/\s+/g, " ").trim();
+  const rules = [
+    "Checked the question against what the assistant helps with: ranch data, alerts, contacts, reporting, and general nonlethal practice.",
+    ...(calls.length ? ["Read only the data your access key allows, through the same lookups you can run by hand."] : []),
+    ...(refused ? [] : ["Every fact in the answer needs a source from this turn; exact coordinates not from your own records are held back; links are removed."]),
+    ...issueRules(answer?.issues),
+    ...(answer?.blocked ? [`Stopped the answer because it read as ${CATEGORY_WORDS[answer.blocked] ?? answer.blocked}.`] : []),
+    ...(answer?.replaced ? ["Said \"I don't know\" because no source backed the answer."] : []),
+    ...(answer?.limit ? [`Stopped at the ${answer.limit === "tool_calls" ? "lookup" : answer.limit === "rounds" ? "step" : "time"} limit for one question.`] : []),
+  ];
+  return recordActivity(svc.store, {
+    tenant_id: ctx.tenantId,
+    at: svc.now().toISOString(),
+    kind: refused ? "decline" : "answer",
+    actor: "assistant",
+    title: `${channel === "voice" ? "Voice" : "Question"}: ${q.slice(0, 80)}${q.length > 80 ? "..." : ""}`,
+    outcome: refused
+      ? `Declined: the question asked for ${CATEGORY_WORDS[category ?? ""] ?? "something the assistant does not help with"}.`
+      : answer?.replaced
+        ? "Answered \"I don't know\" because no source backed an answer."
+        : `Answered with ${answer?.citations.length ?? 0} source${answer?.citations.length === 1 ? "" : "s"}.`,
+    read: calls.map((c) => ({ tool: c.name, title: svc.registry.get(c.name)?.title ?? c.name, detail: describeArgs((c.arguments ?? {}) as Record<string, unknown>, names) })),
+    sources: sourcesOf(answer?.citations),
+    rules,
+    skipped: refused ? [{ what: "Your question", why: `It asked for ${CATEGORY_WORDS[category ?? ""] ?? "something outside what the assistant helps with"}, which the assistant does not give.` }] : [],
+  });
+}
+
+export async function handleRanchRequest(request: Request, url: URL, svc: RancherService | null): Promise<Response> {
+  try {
+    return await handleRanch(request, url, svc, json, () => readJson(request));
+  } catch (e) {
+    return errorResponse(e);
+  }
+}
+
 export async function handleAssistant(request: Request, url: URL, svc: RancherService | null): Promise<Response> {
   if (!svc) return json({ error: "not_configured", message: "The private rancher plan is not set up on this server." }, 503);
   const path = url.pathname.replace(/\/+$/, "");
@@ -97,6 +171,12 @@ export async function handleAssistant(request: Request, url: URL, svc: RancherSe
     if (!ctx) throw new AgentError("unauthenticated", "Sign in with your rancher access key.", 401);
     const killed = await assistantKilled(svc.store, svc.env, ctx.tenantId);
     if (killed) throw new AgentError("disabled", killed, 503);
+
+    // Chat, voice, and assistant tool calls need the assistant turned on.
+    if (path === "/api/assistant/chat" || path.startsWith("/api/assistant/voice/") || path.startsWith("/api/assistant/tools/")) {
+      await requireEntitled(svc, ctx);
+      await requireAssistantOn(svc, ctx);
+    }
 
     if (path.startsWith("/api/assistant/agents") || path.startsWith("/api/assistant/outbox")) {
       await requireEntitled(svc, ctx);
@@ -119,6 +199,8 @@ export async function handleAssistant(request: Request, url: URL, svc: RancherSe
         disclaimer: DISCLAIMER,
         notice: ASSISTANT_NOTICE,
         can_help_with: CAN_HELP_WITH,
+        assistant_on: await assistantOn(svc.store, ctx.tenantId),
+        turned_off_message: TURNED_OFF,
       });
     }
 
@@ -147,8 +229,23 @@ export async function handleAssistant(request: Request, url: URL, svc: RancherSe
       const body = await readJson(request);
       const result = await svc.registry.execute(toolMatch[1]!, body.arguments ?? {}, ctx, svc.deps);
       const citations: Citation[] = result.sources.map((s, i) => ({ ...s, cite: `S${i + 1}` }));
+      const t = await svc.deps.data(ctx).data.tenant();
+      const names = Object.fromEntries((t?.ranches ?? []).flatMap((r) => [[r.id, r.name], ...r.allotments.map((a) => [a.id, a.name])]));
+      const title = svc.registry.get(toolMatch[1]!)?.title ?? toolMatch[1]!;
+      const rec = await recordActivity(svc.store, {
+        tenant_id: ctx.tenantId,
+        at: svc.now().toISOString(),
+        kind: "answer",
+        actor: "assistant",
+        title: `Voice lookup: ${title}`,
+        outcome: result.unknown ? `No data: ${result.unknown}` : `Read ${citations.length} source${citations.length === 1 ? "" : "s"} for a spoken answer.`,
+        read: [{ tool: toolMatch[1]!, title, detail: describeArgs((body.arguments ?? {}) as Record<string, unknown>, names) }],
+        sources: sourcesOf(citations),
+        rules: ["Read only the data your access key allows.", "The spoken answer is checked again before it is played: blocked content is stopped and exact coordinates are held back."],
+        skipped: [],
+      });
       // The voice client wraps the result in the same <untrusted_data> fence the server uses.
-      return json({ ...result, citations, notice: DATA_NOTICE });
+      return json({ ...result, citations, notice: DATA_NOTICE, activity_id: rec.id });
     }
 
     if (request.method === "POST" && path === "/api/assistant/voice/session") {
@@ -180,7 +277,8 @@ export async function handleAssistant(request: Request, url: URL, svc: RancherSe
         const d = classifyConversation([...held.map((t) => t.text), text], { ownNames: await ownNames(svc, ctx) });
         if (d.action === "decline" && d.category) {
           await recordGuardEvent(svc.audit, ctx, { tool: "assistant.voice", outcome: "refused", category: d.category, rule: d.rule, text, at: svc.now() });
-          return json({ action: "decline", category: d.category, say: refusalText(d.category, { emergency: d.emergency }) });
+          const rec = await answerRecord(svc, ctx, text, [{ type: "guard", stage: "input", category: d.category, rule: d.rule, emergency: !!d.emergency }], "voice");
+          return json({ action: "decline", category: d.category, say: refusalText(d.category, { emergency: d.emergency }), activity_id: rec.id });
         }
         return json({ action: "allow" });
       }
@@ -211,8 +309,11 @@ export async function handleAssistant(request: Request, url: URL, svc: RancherSe
         async start(controller) {
           try {
             controller.enqueue(sse("status", { state: "thinking" }));
+            const seen: TurnEvent[] = [];
             for await (const ev of runRancherTurn(svc, ctx, messages, { provider, instructions: RANCHER_INSTRUCTIONS })) {
+              seen.push(ev);
               if (ev.type === "answer") {
+                const record = await answerRecord(svc, ctx, messages.at(-1)!.content, seen, "chat");
                 // The answer is released only after the guardrail checks pass.
                 for (const c of chunks(ev.text)) controller.enqueue(sse("delta", { text: c }));
                 controller.enqueue(sse("citations", { citations: ev.citations, replaced: ev.replaced }));
@@ -226,6 +327,7 @@ export async function handleAssistant(request: Request, url: URL, svc: RancherSe
                     blocked: ev.blocked ?? null,
                     issues: ev.issues ?? [],
                     limit: ev.limit ?? null,
+                    what_i_did: record,
                   }),
                 );
               } else {
