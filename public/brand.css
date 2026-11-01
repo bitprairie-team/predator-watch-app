@@ -137,7 +137,9 @@ a.btn { display: inline-flex; align-items: center; text-decoration: none; color:
 }
 
 /* ---- Display settings (set by /prefs.js on every page) ---- */
-/* Text size: A, A+, A++. Everything sized in rem grows with it. */
+/* Text size: small (default), medium, large, largest. Everything sized in
+   rem follows it. Medium (100%) is the size that was the default before. */
+:root[data-text="0"] { font-size: 87.5%; }
 :root[data-text="2"] { font-size: 112.5%; }
 :root[data-text="3"] { font-size: 131.25%; }
 .skip-link { position: absolute; left: -999px; top: 0; background: var(--card); color: var(--ink); padding: .6rem 1rem; z-index: 100; font-weight: 600; }
@@ -151,7 +153,7 @@ a.btn { display: inline-flex; align-items: center; text-decoration: none; color:
 .pref-btn:hover { border-color: var(--ink); }
 .pref-btn[aria-pressed="true"] { background: var(--ink); color: var(--card); border-color: var(--ink); font-weight: 600; }
 .pref-btn[aria-pressed="true"]::before { content: "✓ "; }
-.pref-text-1 { font-size: .95rem; } .pref-text-2 { font-size: 1.1rem; } .pref-text-3 { font-size: 1.28rem; }
+.pref-text-0 { font-size: .85rem; } .pref-text-1 { font-size: .95rem; } .pref-text-2 { font-size: 1.1rem; } .pref-text-3 { font-size: 1.28rem; }
 .pref-text[aria-pressed="true"]::before, .pref-contrast[aria-pressed="true"]::before { content: none; }
 .pref-contrast[aria-pressed="true"]::after { content: " on"; font-weight: 400; }
 .view-switch .pref-btn { flex: 1 1 6rem; font-weight: 600; }

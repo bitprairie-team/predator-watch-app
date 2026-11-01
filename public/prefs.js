@@ -6,7 +6,7 @@
 // the visitor picks it on or off here.
 (function () {
   var root = document.documentElement;
-  var KEYS = { mode: "pw-mode", text: "pw-text", contrast: "pw-contrast" };
+  var KEYS = { mode: "pw-mode", text: "pw-text", textScale: "pw-text-v", contrast: "pw-contrast" };
   function get(k) { try { return localStorage.getItem(KEYS[k]); } catch (e) { return null; } }
   function put(k, v) { try { if (v === null) localStorage.removeItem(KEYS[k]); else localStorage.setItem(KEYS[k], v); } catch (e) { /* private mode */ } }
   var moreContrast = window.matchMedia ? window.matchMedia("(prefers-contrast: more)") : null;
@@ -19,7 +19,15 @@
     return m ? m[1] : null;
   }
   function mode() { var h = hashMode(); if (h) return h; var s = get("mode"); return s === "expert" ? "expert" : "simple"; }
-  function text() { var t = get("text"); return t === "2" || t === "3" ? t : "1"; }
+  // Text size, four steps: 0 small (the default), 1 medium (the size that
+  // used to be the default), 2 large, 3 largest. Saves from before the
+  // four-step scale (no pw-text-v) used 1 for the old default "A": that maps
+  // to the new default; 2 and 3 keep the same size.
+  if (get("textScale") !== "2") {
+    if (get("text") === "1") put("text", null);
+    put("textScale", "2");
+  }
+  function text() { var t = get("text"); return t === "1" || t === "2" || t === "3" ? t : "0"; }
   function contrast() {
     var c = get("contrast");
     if (c === "high" || c === "normal") return c;
@@ -32,7 +40,7 @@
     sync();
   }
 
-  var TEXT_LABELS = { "1": ["A", "Normal text size"], "2": ["A+", "Larger text"], "3": ["A++", "Largest text"] };
+  var TEXT_LABELS = { "0": ["S", "Small text (default)"], "1": ["M", "Medium text"], "2": ["L", "Large text"], "3": ["XL", "Largest text"] };
   function controlsHtml(withMode) {
     var h = "";
     if (withMode) {
@@ -43,7 +51,7 @@
     }
     h += '<div class="pref-row" role="group" aria-labelledby="pref-text-label"><span class="pref-label" id="pref-text-label">Text size</span>';
     for (var k in TEXT_LABELS) {
-      h += '<button type="button" class="pref-btn pref-text pref-text-' + k + '" data-set-text="' + k + '" aria-pressed="false" aria-label="' + TEXT_LABELS[k][0] + " " + TEXT_LABELS[k][1].toLowerCase() + '">' + TEXT_LABELS[k][0] + "</button>";
+      h += '<button type="button" class="pref-btn pref-text pref-text-' + k + '" data-set-text="' + k + '" aria-pressed="false" aria-label="' + TEXT_LABELS[k][1] + '" title="' + TEXT_LABELS[k][1] + '">' + TEXT_LABELS[k][0] + "</button>";
     }
     h += '<button type="button" class="pref-btn pref-contrast" data-toggle-contrast aria-pressed="false">High contrast</button></div>';
     return h;
@@ -79,7 +87,8 @@
       if (hashMode()) history.replaceState(null, "", location.hash.replace(/&?mode=(simple|expert)/, "") || location.pathname);
       apply(); emit("mode");
     } else if (b.hasAttribute("data-set-text")) {
-      put("text", b.getAttribute("data-set-text")); apply(); emit("text");
+      var t = b.getAttribute("data-set-text");
+      put("text", t === "0" ? null : t); put("textScale", "2"); apply(); emit("text");
     } else {
       put("contrast", contrast() === "high" ? "normal" : "high"); apply(); emit("contrast");
     }
@@ -89,5 +98,5 @@
   if (moreContrast && moreContrast.addEventListener) moreContrast.addEventListener("change", function () { apply(); emit("contrast"); });
   apply();
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mount); else mount();
-  window.pwPrefs = { mode: mode, text: text, contrast: contrast, mount: mount };
+  window.pwPrefs = { mode: mode, text: text, contrast: contrast, mount: mount, textLabels: TEXT_LABELS };
 })();
