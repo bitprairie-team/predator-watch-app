@@ -67,3 +67,14 @@ describe("brand type and copy", () => {
     }
   });
 });
+
+describe("project site link", () => {
+  it("links predatorwatch.org next to the BitPrairie links in the header and footer", () => {
+    for (const p of ["index.html", "about.html", "status.html", "privacy.html"]) {
+      const h = read(`public/${p}`);
+      expect(h, p).toMatch(/BitPrairie<\/a><span class="byline-site">[\s\S]*?<a href="https:\/\/predatorwatch\.org\/">predatorwatch\.org<\/a>/);
+      expect(h, p).toMatch(/bitprairie\.com\/predator-watch<\/a><\/li>\s*<li><a href="https:\/\/predatorwatch\.org\/">predatorwatch\.org<\/a><\/li>/);
+    }
+    expect(read("public/brand.css")).toMatch(/max-width: 480px\)[^{]*\{ \.byline-site \{ display: none; \} \}/);
+  });
+});
