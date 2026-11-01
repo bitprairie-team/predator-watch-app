@@ -2,6 +2,7 @@
 // assistant. Each request builds a stateless server bound to the caller's
 // AuthContext, so every MCP tool call goes through the same scope check,
 // entitlement gate, rate limit, location tiers, and audit log.
+import { assistantKilled } from "../agents/killswitch";
 import { createMcpHandler } from "agents/mcp/server";
 import { McpServer, fromJsonSchema } from "@modelcontextprotocol/server";
 import type { RancherService } from "../rancher/service";
@@ -52,6 +53,10 @@ export function buildMcpServer(svc: RancherService, ctx: AuthContext): McpServer
 
 /** Serve one MCP request for an already-authenticated caller. */
 export async function handleMcp(request: Request, svc: RancherService, ctx: AuthContext): Promise<Response> {
+  const killed = await assistantKilled(svc.store, svc.env, ctx.tenantId);
+  if (killed) {
+    return new Response(JSON.stringify({ error: "disabled", message: killed }), { status: 503, headers: { "content-type": "application/json" } });
+  }
   if (!(await svc.entitlements.has(ctx, "rancher_assistant"))) {
     return new Response(JSON.stringify({ error: "not_entitled", message: "MCP access needs the private rancher plan." }), {
       status: 402,

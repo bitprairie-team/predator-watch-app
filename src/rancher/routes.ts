@@ -6,14 +6,17 @@
 //   POST /api/assistant/voice/guard     policy check on a voice transcript (input or output)
 //   POST /api/assistant/tools/:name     run one tool (used by the voice client)
 //   GET  /api/assistant/audit           the caller's own audit log
+//   /api/assistant/agents*, /outbox*    background agents and approvals (see agents-service.ts)
 import { sourcesFooter, type Citation } from "../agents/citations";
 import { toolSpecs } from "../agents/runner";
 import { recordGuardEvent } from "../agents/audit";
+import { assistantKilled } from "../agents/killswitch";
 import { AgentError, type AuthContext } from "../agents/types";
 import { classifyConversation } from "../guardrails/classifier";
 import { checkOutput } from "../guardrails/output-check";
 import { DISCLAIMER, refusalText } from "../guardrails/policy";
 import { DATA_NOTICE } from "../guardrails/sanitize";
+import { handleAgentRoutes } from "./agents-service";
 import { ownNames, runRancherTurn } from "./assistant";
 
 /** Spoken turns older than this are not joined with a new question. */
@@ -92,6 +95,13 @@ export async function handleAssistant(request: Request, url: URL, svc: RancherSe
   try {
     const ctx = await svc.authenticate(request, path.includes("/voice") || path.startsWith("/api/assistant/tools/") ? "web-voice" : "web");
     if (!ctx) throw new AgentError("unauthenticated", "Sign in with your rancher access key.", 401);
+    const killed = await assistantKilled(svc.store, svc.env, ctx.tenantId);
+    if (killed) throw new AgentError("disabled", killed, 503);
+
+    if (path.startsWith("/api/assistant/agents") || path.startsWith("/api/assistant/outbox")) {
+      await requireEntitled(svc, ctx);
+      return (await handleAgentRoutes(request, path, svc, ctx, () => readJson(request), json))!;
+    }
 
     if (request.method === "GET" && path === "/api/assistant/me") {
       const entitled = await svc.entitlements.has(ctx, "rancher_assistant");

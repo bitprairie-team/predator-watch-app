@@ -8,13 +8,14 @@ import type { ModelProvider, VoiceProvider } from "../agents/providers/types";
 import { DEFAULT_RATE_LIMITS, StoreRateLimiter, type RateLimiter, type RateLimitPolicy } from "../agents/rate-limit";
 import type { ExecutorDeps, ToolRegistry } from "../agents/registry";
 import { DEFAULT_TURN_LIMITS, type TurnLimits } from "../agents/runner";
+import type { KillEnv } from "../agents/killswitch";
 import { KvStore, type PrivateStore } from "../agents/store";
 import type { AuthContext } from "../agents/types";
 import { Registry } from "../registry";
 import { KvPublicLayers, RancherData, type PublicLayers } from "./data";
 import { rancherRegistry, type RancherDeps } from "./tools";
 
-export interface PrivateEnv extends ProviderEnv {
+export interface PrivateEnv extends ProviderEnv, KillEnv {
   LAYER_CACHE: KVNamespace;
   /** Private tenant data, audit log, access keys, rate-limit counters. */
   PRIVATE_KV?: KVNamespace;
@@ -67,6 +68,8 @@ export interface RancherService {
   /** True when the provider is the offline xAI mock. */
   mock: boolean;
   now: () => Date;
+  /** Kill-switch variables (ASSISTANT_DISABLED, AGENTS_DISABLED). */
+  env: KillEnv;
   authenticate(request: Request, client: string): Promise<AuthContext | null>;
 }
 
@@ -112,6 +115,7 @@ export function rancherService(env: PrivateEnv, o: ServiceOverrides = {}): Ranch
     guard,
     mock: o.provider !== undefined ? o.provider?.id === "mock" : isMockProvider(env),
     now,
+    env: { ASSISTANT_DISABLED: env.ASSISTANT_DISABLED, AGENTS_DISABLED: env.AGENTS_DISABLED },
     async authenticate(request, client) {
       const key = bearer(request);
       return key ? contextFromAccessKey(store, key, client, now()) : null;

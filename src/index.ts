@@ -7,6 +7,7 @@ import { contextFromAccessKey, bearer } from "./agents/auth";
 import { isOAuthPath, oauthProvider } from "./mcp/oauth";
 import { handleMcp, MCP_ROUTE } from "./mcp/server";
 import { handleAssistant } from "./rancher/routes";
+import { runScheduledAgents } from "./rancher/agents-service";
 import { rancherService, type PrivateEnv, type ServiceOverrides } from "./rancher/service";
 import { demoOverrides, type DemoEnv } from "./rancher/demo";
 
@@ -126,5 +127,15 @@ export default {
         console.log(JSON.stringify({ msg: "refresh complete", results: r }));
       }),
     );
+    // Background agents for the private plan. Off unless PRIVATE_KV is bound.
+    const svc = rancherService(env);
+    if (svc) {
+      ctx.waitUntil(
+        runScheduledAgents(svc).then(
+          (runs) => console.log(JSON.stringify({ msg: "agents complete", runs: runs.map((r) => ({ agent: r.agent, tenant: r.tenant_id, status: r.status })) })),
+          (e) => console.error("agents failed", e),
+        ),
+      );
+    }
   },
 } satisfies ExportedHandler<WorkerEnv>;

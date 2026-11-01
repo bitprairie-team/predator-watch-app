@@ -17,6 +17,8 @@ export const KEYS = {
   pub: "pwk_publicPkey_pppppppppppppppp",
   lapsed: "pwk_lapsedLkey_llllllllllllllll",
   narrow: "pwk_narrowNkey_nnnnnnnnnnnnnnnn",
+  /** Tenant A web key that may run agents and approve the outbox. */
+  ops: "pwk_opsAgentKey_oooooooooooooooo",
 };
 
 const square = (lon: number, lat: number, d: number) => ({
@@ -159,7 +161,7 @@ export class FakePublicLayers implements PublicLayers {
   }
 }
 
-async function addKey(store: MemoryStore, key: string, tenant: string, user: string, scopes: Scope[]) {
+export async function addKey(store: MemoryStore, key: string, tenant: string, user: string, scopes: Scope[]) {
   await store.put(`accesskey:${await sha256Hex(key)}`, { tenant_id: tenant, user_id: user, scopes, created_at: daysAgo(30) });
 }
 
@@ -171,6 +173,7 @@ export async function seededStore(): Promise<MemoryStore> {
   await addKey(s, KEYS.pub, "tenant-p", "user-p", ["rancher:read"]);
   await addKey(s, KEYS.lapsed, "tenant-l", "user-l", ["rancher:read"]);
   await addKey(s, KEYS.narrow, "tenant-a", "user-a2", ["alerts:read"]);
+  await addKey(s, KEYS.ops, "tenant-a", "user-a", ["rancher:read", "agents:run", "outbox:approve"]);
   await s.put(`obs:tenant-a:${OBS_A.id}`, OBS_A);
   await s.put(`obs:tenant-b:${OBS_B.id}`, OBS_B);
   await s.put("group:grp1", await groupWithMembers());
