@@ -79,7 +79,7 @@ export class ToolRegistry<D> {
 
   /** Tools this caller may use (scope only; entitlement is checked per call). */
   listFor(ctx: AuthContext) {
-    return this.list().filter((t) => hasScope(ctx, t.scope));
+    return this.list().filter((t) => hasScope(ctx, t.scope) && (!ctx.tools || ctx.tools.includes(t.name)));
   }
 
   /** Full JSON Schema of a tool's result envelope. */
@@ -101,6 +101,7 @@ export class ToolRegistry<D> {
       tenant_id: ctx.tenantId,
       user_id: ctx.userId,
       client: ctx.client,
+      ...(ctx.keyId ? { key_id: ctx.keyId } : {}),
       tool: name,
       input: shortInput(rawInput ?? {}),
     };
@@ -115,10 +116,14 @@ export class ToolRegistry<D> {
 
     if (!tool) return fail("error", new AgentError("unknown_tool", `Unknown tool: ${name}`, 404));
     if (!hasScope(ctx, tool.scope)) return fail("denied", new AgentError("forbidden", `Missing scope ${tool.scope}`, 403));
+    if (ctx.tools && !ctx.tools.includes(name))
+      return fail("denied", new AgentError("forbidden", `This key or agent is not allowed to use ${name}.`, 403));
     if (!(await deps.entitlements.has(ctx, tool.entitlement)))
       return fail("not_entitled", new AgentError("not_entitled", "This needs the private rancher plan.", 402));
     if (!(await deps.rateLimiter.hit(`tool:${ctx.tenantId}`, deps.limits.toolCallsPerMinute, 60, now().getTime())))
       return fail("rate_limited", new AgentError("rate_limited", "Too many requests. Try again in a minute.", 429));
+    if (ctx.keyId && ctx.callsPerDay !== undefined && !(await deps.rateLimiter.hit(`keyday:${ctx.keyId}`, ctx.callsPerDay, 86_400, now().getTime())))
+      return fail("rate_limited", new AgentError("rate_limited", "This key has used its tool calls for today.", 429));
 
     const input = withDefaults(tool.inputSchema, rawInput);
     const inErrors = validate(tool.inputSchema, input);

@@ -114,7 +114,7 @@ export function rancherService(env: PrivateEnv, o: ServiceOverrides = {}): Ranch
     now,
     async authenticate(request, client) {
       const key = bearer(request);
-      return key ? contextFromAccessKey(store, key, client) : null;
+      return key ? contextFromAccessKey(store, key, client, now()) : null;
     },
   };
 }
