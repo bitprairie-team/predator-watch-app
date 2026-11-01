@@ -801,3 +801,9 @@ html, body { overscroll-behavior: none; }
 .panel-prefs > summary, :root[data-mode="simple"] .panel-prefs > summary { flex-wrap: nowrap; white-space: nowrap; max-width: 100%; }
 .prefs-now { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .panel-prefs + .jump-tabs { margin-top: 0; }
+
+/* Touch screens at the small default text size: short labels ("Go", a
+   short layer id in the list view) still get a 44 px wide target. */
+@media (pointer: coarse) {
+  .search button, .lv-item { min-width: 44px; }
+}
