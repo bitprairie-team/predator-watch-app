@@ -13,10 +13,11 @@
   <link rel="icon" href="/icons/icon-32.png" sizes="32x32" type="image/png">
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" sizes="180x180">
   <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="preload" href="/fonts/ibm-plex-sans.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/brand.css">
   <link rel="stylesheet" href="/page.css">
 </head>
-<body class="page">
+<body class="page page-prose">
   <a class="skip-link" href="#main">Skip to content</a>
   <header class="topbar">
     <div class="brand">
@@ -29,8 +30,9 @@
     </div>
     <nav class="topbar-actions" aria-label="Pages">
       <a class="btn btn-ghost" href="/">Map</a>
+      <a class="btn btn-ghost" href="/about" aria-current="page">About</a>
       <a class="btn btn-ghost" href="/status">Status</a>
-      <button type="button" class="btn btn-ghost btn-theme" data-theme-toggle aria-label="Switch light or dark theme"><svg class="btn-icon" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M15.6 12.4A6.5 6.5 0 0 1 7.6 4.4a6.5 6.5 0 1 0 8 8z" fill="currentColor"/></svg><span class="btn-label" aria-hidden="true">Theme</span></button>
+      <button type="button" class="btn btn-ghost btn-theme" data-theme-toggle aria-pressed="false" title="Switch to dark mode"><svg class="btn-icon" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M15.6 12.4A6.5 6.5 0 0 1 7.6 4.4a6.5 6.5 0 1 0 8 8z" fill="currentColor"/></svg><span class="btn-label">Dark mode</span></button>
     </nav>
   </header>
   <main id="main" tabindex="-1">
@@ -45,7 +47,7 @@
       <li><strong>No added precision.</strong> Geometry is shown as the agency publishes it. Some agencies generalize locations into cells, pack areas or management units; the map never makes them finer. A shaded area is where the agency reports activity, not where an animal is now.</li>
       <li><strong>One format.</strong> Each source is converted into the same GeoJSON shape, with the agency name, the agency's own observed or edited date, the date this map received it, the license and a link back to the original.</li>
       <li><strong>Change tracking.</strong> When a source changes, the map records how many items were added, changed or removed, so you can see what moved between updates.</li>
-      <li><strong>No private data.</strong> There is no rancher data, user location tracking or user-submitted sightings in the public map. A private collaboration space is <strong>Planned</strong> and would be separate from this map.</li>
+      <li><strong>No private data.</strong> There is no rancher data, user location tracking or user-submitted sightings in the public map. A private collaboration space is planned and would be separate from this map.</li>
     </ul>
 
     <h2 id="freshness">Data freshness</h2>

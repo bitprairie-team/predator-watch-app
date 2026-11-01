@@ -1,6 +1,16 @@
 // Renders /api/status as a table.
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
-const when = (iso) => (iso ? new Date(iso).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "never");
+// Short times ("Oct 31, 2:52 PM"; the year only when it is not this year),
+// with the full date and time in a tooltip and the machine-readable value.
+const when = (iso) => {
+  if (!iso) return "never";
+  const d = new Date(iso);
+  const opts = { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" };
+  if (d.getFullYear() !== new Date().getFullYear()) opts.year = "numeric";
+  return d.toLocaleString([], opts);
+};
+const full = (iso) => new Date(iso).toLocaleString([], { dateStyle: "full", timeStyle: "long" });
+const time = (iso) => (iso ? `<time datetime="${esc(iso)}" title="${esc(full(iso))}">${esc(when(iso))}</time>` : "never");
 
 const every = (m) => (m % 10080 === 0 ? (m === 10080 ? "weekly" : `every ${m / 10080} weeks`) : m % 1440 === 0 ? (m === 1440 ? "daily" : `every ${m / 1440} days`) : m % 60 === 0 && m > 60 ? `every ${m / 60} h` : `every ${m} min`);
 
@@ -29,12 +39,24 @@ function renderRuns(runs, names) {
       return `<li><span class="badge ${bad ? "err" : "ok"}">${esc(RUN_STATE[x.state] ?? x.state)}</span> ${esc(names.get(id) ?? id)}${x.feature_count != null ? ` <span class="muted">· ${esc(x.feature_count)} items</span>` : ""}${x.error ? `<br><span class="muted">${esc(x.error)}</span>` : ""}</li>`;
     }).join("");
     return `<tr>
-      <th scope="row">${esc(when(run.finished_at))}</th>
-      <td>${esc(secs(run.duration_ms ?? 0))}</td>
-      <td>${esc(run.requests ?? 0)}</td>
-      <td>${checked.length ? `<ul class="run-list">${list}</ul>` : `<span class="muted">none due</span>`}${deferred ? `<span class="muted">${deferred} deferred to the next run</span>` : ""}</td>
+      <th scope="row">${time(run.finished_at)}</th>
+      <td data-label="Took">${esc(secs(run.duration_ms ?? 0))}</td>
+      <td data-label="Requests">${esc(run.requests ?? 0)}</td>
+      <td data-label="Sources checked">${checked.length ? `<ul class="run-list">${list}</ul>` : `<span class="muted">none due</span>`}${deferred ? `<span class="muted">${deferred} deferred to the next run</span>` : ""}</td>
     </tr>`;
   }).join("");
+}
+
+// The tables stack into cards on narrow screens (CSS display changes), which
+// makes some browsers drop table semantics; explicit roles keep them.
+function keepTableRoles() {
+  for (const t of document.querySelectorAll(".stack-table")) {
+    for (const g of t.querySelectorAll("thead, tbody")) g.setAttribute("role", "rowgroup");
+    for (const tr of t.querySelectorAll("tr")) tr.setAttribute("role", "row");
+    for (const th of t.querySelectorAll("thead th")) th.setAttribute("role", "columnheader");
+    for (const th of t.querySelectorAll("tbody th")) th.setAttribute("role", "rowheader");
+    for (const td of t.querySelectorAll("td")) td.setAttribute("role", "cell");
+  }
 }
 
 async function load() {
@@ -43,22 +65,27 @@ async function load() {
     const res = await fetch("/api/status");
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const r = await res.json();
-    summary.textContent = `${r.healthy} of ${r.total} sources healthy. Last scheduled run: ${when(r.last_cron_run)}. Generated ${when(r.generated_at)}.`;
+    const allOk = r.healthy === r.total;
+    summary.innerHTML = `<span class="badge ${allOk ? "ok" : "warn"}">${esc(r.healthy)} of ${esc(r.total)} healthy</span> Last scheduled run ${time(r.last_cron_run)}. <span class="muted">Page updated ${time(r.generated_at)}.</span>`;
+    // data-label names each cell for the stacked layout on narrow screens.
     document.getElementById("rows").innerHTML = r.sources
       .map(
         (s) => `<tr>
-          <th scope="row">${esc(s.name)}<br><span class="muted">${esc(s.agency)} · checked ${esc(every(s.refresh_minutes))}</span></th>
-          <td>${stateBadge(s)}</td>
-          <td>${esc(when(s.last_success_at))}${s.last_change_at ? `<br><span class="muted">changed ${esc(when(s.last_change_at))}</span>` : ""}</td>
-          <td>${esc(when(s.last_attempt_at))}</td>
-          <td>${esc(s.feature_count ?? "–")}</td>
-          <td>${s.last_error ? `${esc(when(s.last_error_at))}<br><span class="muted">${esc(s.last_error)}</span>` : "none"}</td>
+          <th scope="row">${esc(s.name)}<span class="muted src-meta">${esc(s.agency)} · checked ${esc(every(s.refresh_minutes))}</span></th>
+          <td data-label="State">${stateBadge(s)}</td>
+          <td data-label="Last success">${time(s.last_success_at)}${s.last_change_at ? `<span class="muted cell-sub">changed ${time(s.last_change_at)}</span>` : ""}</td>
+          <td data-label="Last attempt">${time(s.last_attempt_at)}</td>
+          <td data-label="Items" class="num">${esc(s.feature_count ?? "–")}</td>
+          <td data-label="Last error">${s.last_error ? `${time(s.last_error_at)}<span class="muted cell-sub">${esc(s.last_error)}</span>` : `<span class="muted">None</span>`}</td>
         </tr>`,
       )
       .join("");
+    document.querySelector(".status-wrap")?.removeAttribute("aria-busy");
     renderRuns(r.runs ?? [], new Map(r.sources.map((s) => [s.id, s.name])));
+    keepTableRoles();
   } catch (e) {
-    summary.textContent = `Status could not load (${e.message}). Try again in a minute.`;
+    summary.innerHTML = `<span class="badge err">Could not load</span> Status could not load (${esc(e.message)}). This page tries again every minute.`;
+    document.querySelector(".status-wrap")?.removeAttribute("aria-busy");
   }
 }
 load();
