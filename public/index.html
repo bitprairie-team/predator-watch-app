@@ -63,7 +63,7 @@
         <button type="button" id="sheet-close" class="btn btn-ghost sheet-close" aria-controls="panel-body" hidden>Close<span class="sr-only"> layers</span></button>
       </div>
       <div id="panel-body" class="panel-body">
-      <details class="panel-prefs" id="panel-prefs" open>
+      <details class="panel-prefs" id="panel-prefs">
         <summary><span class="prefs-title">View and text size</span> <span class="prefs-now" id="prefs-now"></span></summary>
         <div class="prefs-body" data-display-controls data-with-mode></div>
       </details>
@@ -80,9 +80,9 @@
         <div class="search-row">
           <input id="search-q" name="q" type="search" placeholder="Town, county, ZIP or address" autocomplete="off" maxlength="120" enterkeyhint="search">
           <button class="btn btn-solid" type="submit">Go</button>
+          <button type="button" id="locate-me" class="btn icon-btn locate-btn" aria-label="Use my location" title="Use my location"><svg class="btn-icon" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><circle cx="10" cy="10" r="3.2" fill="currentColor"/><path d="M10 1v3M10 16v3M1 10h3M16 10h3" stroke="currentColor" stroke-width="2"/><circle cx="10" cy="10" r="6.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button>
         </div>
-        <button type="button" id="locate-me" class="btn locate-btn"><svg class="btn-icon" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><circle cx="10" cy="10" r="4" fill="currentColor"/><path d="M10 1v3M10 16v3M1 10h3M16 10h3" stroke="currentColor" stroke-width="2"/><circle cx="10" cy="10" r="6.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>Use my location</button>
-        <p id="locate-status" class="hint" role="status" aria-live="polite"></p>
+        <p id="locate-status" class="hint locate-status" role="status" aria-live="polite"></p>
       </form>
       <ul id="search-results" class="item-list search-results"></ul>
 
@@ -99,8 +99,7 @@
           </div>
           <div class="tools-row">
             <label class="tool-check expert-only" for="active-only"><span class="check"><input type="checkbox" id="active-only"><span class="check-box" aria-hidden="true"></span></span><span>Show active only</span></label>
-            <button type="button" id="reset-layers" class="btn btn-small">Reset to defaults</button>
-            <button type="button" id="all-off" class="btn btn-small">Turn all off</button>
+            <span class="tool-links"><button type="button" id="reset-layers" class="link-btn">Reset to defaults</button><span class="tool-sep" aria-hidden="true">·</span><button type="button" id="all-off" class="link-btn">Turn all off</button></span>
           </div>
           <p id="filter-status" class="hint filter-status" role="status" aria-live="polite"></p>
         </div>

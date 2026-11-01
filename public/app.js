@@ -510,7 +510,7 @@ function renderChips() {
   const ul = $("#active-chips");
   const vis = visibleLayers();
   const focusedId = ul.contains(document.activeElement) ? document.activeElement.dataset.id : null;
-  ul.innerHTML = vis.length ? vis.map((l) => `<li><button type="button" class="chip" data-id="${esc(l.id)}" aria-label="Turn off ${esc(displayName(l))}">
+  ul.innerHTML = vis.length ? vis.map((l) => `<li><button type="button" class="chip" data-id="${esc(l.id)}" aria-label="Turn off ${esc(displayName(l))}" title="${esc(displayName(l))}">
       ${swatchHtml(l)}<span class="chip-name">${esc(displayName(l))}</span><span class="chip-x" aria-hidden="true">×</span></button></li>`).join("")
     : `<li class="hint chips-empty">No layers are on.</li>`;
   if (focusedId) {
@@ -1405,6 +1405,9 @@ const locateBtn = $("#locate-me");
 const locateMsg = $("#locate-status");
 let locateMarker = null;
 if (!("geolocation" in navigator)) locateBtn.hidden = true;
+// The note shows only after a tap on the button, and clears once the
+// person starts typing a place instead.
+$("#search-q").addEventListener("input", () => { locateMsg.textContent = ""; });
 locateBtn.addEventListener("click", () => {
   locateMsg.textContent = "Finding your location…";
   navigator.geolocation.getCurrentPosition((pos) => {
@@ -1417,8 +1420,10 @@ locateBtn.addEventListener("click", () => {
     locateMsg.textContent = "Showing your location. It stays on this device.";
     announce("Showing your location on the map.");
   }, (err) => {
+    // Code 1 also comes back when location is off in the browser or the
+    // device settings, not only when this site was refused.
     locateMsg.textContent = err.code === 1
-      ? "Location is turned off for this site. Type a town or ZIP code instead."
+      ? "Location is blocked in this browser or device's settings. Type a town or ZIP code instead."
       : "Your location could not be found. Type a town or ZIP code instead.";
   }, { enableHighAccuracy: false, timeout: 15000, maximumAge: 300000 });
 });
@@ -1429,8 +1434,8 @@ function syncModeLabel() {
   const d = document.documentElement.dataset;
   $("#prefs-now").textContent = `${isSimple() ? "Simple" : "Expert"} view · text ${["A", "A+", "A++"][Number(d.text || 1) - 1] || "A"}${d.contrast === "high" ? " · high contrast" : ""}`;
 }
-// On phones the settings fold away so the layers come first in the sheet.
-if (isPhone()) $("#panel-prefs").open = false;
+// "View and text size" starts folded on every screen (closed in the HTML),
+// so the layers come first.
 document.addEventListener("pw:prefs", (e) => {
   const what = e.detail?.changed;
   if (what === "mode" || what === "storage") {
