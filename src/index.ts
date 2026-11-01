@@ -6,7 +6,7 @@ import { publicInfo, Registry } from "./registry";
 import { contextFromAccessKey, bearer } from "./agents/auth";
 import { isOAuthPath, oauthProvider } from "./mcp/oauth";
 import { handleMcp, MCP_ROUTE } from "./mcp/server";
-import { handleAssistant } from "./rancher/routes";
+import { handleAssistant, handleRanchRequest } from "./rancher/routes";
 import { runScheduledAgents } from "./rancher/agents-service";
 import { rancherService, type PrivateEnv, type ServiceOverrides } from "./rancher/service";
 import { demoOverrides, type DemoEnv } from "./rancher/demo";
@@ -64,7 +64,7 @@ export async function handleRequest(
   overrides: ServiceOverrides = {},
 ): Promise<Response> {
   const url = new URL(request.url);
-  if (url.pathname.startsWith("/api/assistant/") || url.pathname === MCP_ROUTE) {
+  if (url.pathname.startsWith("/api/assistant/") || url.pathname.startsWith("/api/ranch/") || url.pathname === MCP_ROUTE) {
     // Local demo account for `npm run dev:mock` (localhost only, mock model only, no PRIVATE_KV).
     const demo = Object.keys(overrides).length === 0 ? await demoOverrides(env, request) : null;
     if (demo) overrides = demo;
@@ -73,6 +73,10 @@ export async function handleRequest(
   // Private rancher plan. Off unless PRIVATE_KV is bound (or a test injects a store).
   if (url.pathname.startsWith("/api/assistant/")) {
     return handleAssistant(request, url, rancherService(env, overrides));
+  }
+  // Ranch tools: settings, activity log, and every agent job by hand. Not the assistant.
+  if (url.pathname.startsWith("/api/ranch/")) {
+    return handleRanchRequest(request, url, rancherService(env, overrides));
   }
   if (url.pathname === MCP_ROUTE) {
     // Reached directly only when OAuth is not configured: accept rancher access keys.

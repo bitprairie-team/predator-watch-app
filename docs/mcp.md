@@ -106,7 +106,13 @@ Keep the key private. Anyone with it can read your account's data.
 `tools/list` shows only the tools your credential's scopes allow. Write scopes
 are Planned.
 
-`agents:run` and `outbox:approve` are for the web app. They give nothing over
+MCP is separate from the in-app assistant's on/off switch. It answers only for
+a key the rancher asked for and connected to their own assistant, so issuing
+that key is the opt-in. The kill switches still apply. Turning the in-app
+assistant off does not revoke a key; revoke it by rewriting its key record
+with `"revoked": true` (see `scripts/rancher-access-key.mjs`).
+
+`agents:run`, `outbox:approve`, and `settings:write` are for the web app. They give nothing over
 MCP: background agents can't be run and outbox items can't be approved from an
 MCP client.
 
