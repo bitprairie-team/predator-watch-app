@@ -8,6 +8,7 @@ import { BadRequest, collectionInfo, CONFORMANCE, items, landing } from "./api/o
 import { json, problem, respond } from "./api/respond";
 import { collection, PUBLIC_KV_TTL, publicStatus, readRunLog, readStatus, refreshDue, type Env } from "./cache";
 import { cached } from "./lib/edge";
+import { assetLinks } from "./config/app";
 import { allow, clientKey, type LimitClass } from "./lib/ratelimit";
 import { BASEMAP_CREDITS, RASTER_LAYERS } from "./config/sources";
 import { PLANNED, PLANNED_SOURCES } from "./config/planned";
@@ -196,6 +197,19 @@ export async function handleRequest(request: Request, env: Env, ctx: ExecutionCo
   const url = new URL(request.url);
   const path = url.pathname.length > 1 ? url.pathname.replace(/\/+$/, "") : url.pathname;
   const isApi = path.startsWith("/api/") || path === "/ogc" || path.startsWith("/ogc/");
+
+  // Android app links for the Play Store app (Trusted Web Activity). Served
+  // from code so the package id and fingerprint live in src/config/app.ts.
+  if (path === "/.well-known/assetlinks.json" && (request.method === "GET" || request.method === "HEAD")) {
+    return new Response(request.method === "HEAD" ? null : JSON.stringify(assetLinks(), null, 2), {
+      headers: {
+        "content-type": "application/json; charset=utf-8",
+        "cache-control": "public, max-age=3600",
+        "access-control-allow-origin": "*",
+        "x-content-type-options": "nosniff",
+      },
+    });
+  }
 
   if (!isApi) {
     if (env.ASSETS) return env.ASSETS.fetch(request);

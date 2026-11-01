@@ -1,6 +1,7 @@
 // Predator Watch front end. Plain ES module, no build step.
 /* global maplibregl */
 import { creditGroups, swatchHtml, vectorPaint, vectorTilePaint } from "/layer-style.js";
+import { API_BASE, NATIVE, api, apiFetch } from "/net.js";
 
 const BASEMAPS = {
   light: "https://tiles.openfreemap.org/styles/positron",
@@ -135,9 +136,20 @@ const DEFAULT_DATA_BOUNDS = [[-124.8, 31.3], [-103.0, 49.1]];
 let autoView = !initial.view;
 let autoBounds = DEFAULT_DATA_BOUNDS;
 let lastPadKey = "";
+// Offline, or when the basemap server cannot be reached, the agency layers
+// still draw (from saved copies) over a plain background in the page color,
+// instead of the map waiting forever for basemap tiles.
+let plainBasemap = navigator.onLine === false;
+function plainStyle() {
+  const bg = getComputedStyle(document.documentElement).getPropertyValue("--paper").trim() || "#f3f4f6";
+  return { version: 8, sources: {}, layers: [{ id: "background", type: "background", paint: { "background-color": bg } }] };
+}
+function basemapStyle(theme) {
+  return plainBasemap ? plainStyle() : BASEMAPS[theme];
+}
 const map = new maplibregl.Map({
   container: "map",
-  style: BASEMAPS[currentTheme()],
+  style: basemapStyle(currentTheme()),
   ...(initial.view
     ? { center: initial.view.center, zoom: initial.view.zoom }
     : { bounds: DEFAULT_DATA_BOUNDS, fitBoundsOptions: { padding: 24 } }),
@@ -145,6 +157,12 @@ const map = new maplibregl.Map({
   maxZoom: 15,
   attributionControl: false,
   cooperativeGestures: false,
+});
+map.on("error", () => {
+  // Only a failure before the style is ready means the basemap itself is out.
+  if (plainBasemap || map.isStyleLoaded()) return;
+  plainBasemap = true;
+  map.setStyle(plainStyle(), { diff: false });
 });
 // Phones: no compass and no touch rotation, so the control stack stays short
 // and north stays up (there is no way to see or reset a rotation without it).
@@ -244,7 +262,7 @@ async function fetchWithTimeout(url, ms) {
   const ctl = new AbortController();
   const t = setTimeout(() => ctl.abort(), ms);
   try {
-    return await fetch(url, { signal: ctl.signal });
+    return await apiFetch(url, { signal: ctl.signal });
   } catch (e) {
     throw new Error(e.name === "AbortError" ? "timed out" : e.message || String(e));
   } finally {
@@ -273,6 +291,7 @@ async function loadVector(layer) {
   renderLayerRow(layer);
   updateItems();
   renderCredits();
+  renderOffline();
   scheduleListView();
   refineAutoView();
 }
@@ -327,10 +346,10 @@ function renderLayerRow(layer) {
         ${infoUrl ? `<dt>Agency page</dt><dd><a href="${esc(infoUrl)}" target="_blank" rel="noopener">Open<span class="sr-only"> (new tab)</span></a></dd>` : ""}
         ${endpoint ? `<dt>Endpoint</dt><dd><a href="${esc(endpoint)}" target="_blank" rel="noopener">Service</a></dd>` : ""}
         ${layer.type === "geojson" ? `<dt>Download</dt><dd class="exports">
-          <a href="${esc(layer.data_url)}.geojson" download>GeoJSON<span class="sr-only"> for ${nm}</span></a>
-          <a href="${esc(layer.data_url)}.kml" download>KML<span class="sr-only"> for ${nm}</span></a>
-          <a href="${esc(layer.data_url)}.csv" download>CSV<span class="sr-only"> for ${nm}</span></a>
-          <a href="/ogc/collections/${esc(layer.id)}/items" target="_blank" rel="noopener">OGC API<span class="sr-only"> for ${nm} (new tab)</span></a></dd>` : ""}
+          <a href="${esc(api(layer.data_url + ".geojson"))}" download>GeoJSON<span class="sr-only"> for ${nm}</span></a>
+          <a href="${esc(api(layer.data_url + ".kml"))}" download>KML<span class="sr-only"> for ${nm}</span></a>
+          <a href="${esc(api(layer.data_url + ".csv"))}" download>CSV<span class="sr-only"> for ${nm}</span></a>
+          <a href="${esc(api(`/ogc/collections/${layer.id}/items`))}" target="_blank" rel="noopener">OGC API<span class="sr-only"> for ${nm} (new tab)</span></a></dd>` : ""}
         ${layer.type === "geojson" ? `<dt>Recent changes</dt><dd>${changesHtml(changesBySource.get(layer.id), 3)}</dd>` : ""}
       </dl>
     </details>`;
@@ -1125,6 +1144,7 @@ async function boot() {
     const res = await fetchWithTimeout("/api/layers", 20000);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     savedAt = res.headers.get("x-pw-saved-at");
+    listSavedAt = savedAt;
     index = await res.json();
   } catch (e) {
     const text = "The layer list could not load. Check your connection, then try again.";
@@ -1163,7 +1183,10 @@ async function boot() {
     renderCredits();
     hideSplash();
   };
-  if (map.isStyleLoaded()) start(); else map.once("load", start);
+  let started = false;
+  const startOnce = () => { if (!started) { started = true; start(); } };
+  if (map.isStyleLoaded()) startOnce(); else { map.once("load", startOnce); map.once("style.load", startOnce); }
+  renderOffline();
 }
 
 // ------------------------------------------------------------ changes feed
@@ -1378,7 +1401,8 @@ function applyTheme(theme) {
   if (theme === mapTheme) return;
   mapTheme = theme;
   // Swap the basemap, then put the agency layers back in their places.
-  map.setStyle(BASEMAPS[theme], { diff: false });
+  if (plainBasemap && navigator.onLine !== false) plainBasemap = false;
+  map.setStyle(basemapStyle(theme), { diff: false });
   map.once("style.load", () => {
     for (const l of layers.values()) {
       if (l.type === "raster" && l.visible) addRaster(l);
@@ -1402,11 +1426,14 @@ $("#share-link").addEventListener("click", async () => {
   writeHash();
   await new Promise((r) => setTimeout(r, 300));
   const msg = $("#share-status");
+  // In the store apps the page address is local to the device; share the
+  // public site's address for the same view instead.
+  const link = NATIVE ? `${API_BASE}/${location.hash}` : location.href;
   try {
-    await navigator.clipboard.writeText(location.href);
+    await navigator.clipboard.writeText(link);
     msg.textContent = "Link copied. It opens this view with these layers.";
   } catch {
-    msg.textContent = `Copy this link: ${location.href}`;
+    msg.textContent = `Copy this link: ${link}`;
   }
 });
 window.addEventListener("hashchange", () => {
@@ -1415,10 +1442,37 @@ window.addEventListener("hashchange", () => {
   if (h.ids) for (const l of layers.values()) if (h.ids.has(l.id) !== l.visible) { setVisible(l, h.ids.has(l.id)); renderLayerRow(l); }
 });
 
+// ---------------------------------------------------------- offline state
+// Saved copies are never shown silently: while the device is offline, or
+// any layer on the map is a saved copy, one line at the top of the map says
+// so with the time of the oldest saved copy. Each layer also has its own
+// "Saved copy (offline)" badge. When the connection returns, saved layers
+// are fetched again and the line goes away.
+let listSavedAt = null;
+const offlineBar = $("#offline-bar");
+function renderOffline() {
+  if (!offlineBar) return;
+  const saved = [listSavedAt, ...[...layers.values()].filter((l) => l.visible && l.saved_at).map((l) => l.saved_at)]
+    .filter(Boolean).sort();
+  const offline = navigator.onLine === false;
+  if (!offline && !saved.length) { offlineBar.hidden = true; offlineBar.textContent = ""; return; }
+  offlineBar.textContent = saved.length
+    ? `${offline ? "You are offline. " : "No connection to the data server. "}Showing data saved on this device, last updated ${fmtTime(saved[0])}. It may be out of date.`
+    : "You are offline. Layers will load when the connection is back.";
+  offlineBar.hidden = false;
+}
+addEventListener("offline", renderOffline);
+addEventListener("online", () => {
+  if (listSavedAt || !layers.size) { location.reload(); return; }
+  for (const l of layers.values()) if (l.visible && l.saved_at && l.type === "geojson") loadVector(l);
+  renderOffline();
+});
+
 // ---------------------------------------------------------- offline cache
 // sw.js keeps the last good copy of the layer list and agency data on this
 // device, so the map still opens with a weak or missing connection.
-if ("serviceWorker" in navigator && window.isSecureContext) {
+// The store apps bundle their files and keep saved copies in net.js instead.
+if ("serviceWorker" in navigator && window.isSecureContext && !NATIVE) {
   navigator.serviceWorker.register("/sw.js").catch(() => {});
 }
 
@@ -1461,7 +1515,7 @@ geoControl?.on("error", locateFailed);
 function syncModeLabel() {
   $("#sheet-mode").textContent = isSimple() ? "Simple" : "Expert";
   const d = document.documentElement.dataset;
-  $("#prefs-now").textContent = `${isSimple() ? "Simple" : "Expert"} view · text ${["A", "A+", "A++"][Number(d.text || 1) - 1] || "A"}${d.contrast === "high" ? " · high contrast" : ""}`;
+  $("#prefs-now").textContent = `${isSimple() ? "Simple" : "Expert"} · ${({ 0: "small", 1: "medium", 2: "large", 3: "largest" })[d.text] || "small"} text${d.contrast === "high" ? " · high contrast" : ""}`;
 }
 // "View and text size" starts folded on every screen (closed in the HTML),
 // so the layers come first.

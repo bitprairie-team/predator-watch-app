@@ -17,17 +17,28 @@
     "refresh": "node scripts/refresh.mjs",
     "vendor": "node scripts/copy-vendor.mjs",
     "loadtest": "node scripts/loadtest.mjs",
-    "postinstall": "node scripts/copy-vendor.mjs"
+    "postinstall": "node scripts/copy-vendor.mjs",
+    "app:assets": "node scripts/app-assets.mjs",
+    "store:shots": "node scripts/store-screenshots.mjs",
+    "build:native": "node scripts/build-native.mjs",
+    "cap:sync": "npm run build:native && npx cap sync"
   },
   "dependencies": {
+    "@capacitor/core": "^8.6.0",
+    "@capacitor/splash-screen": "^8.0.2",
     "maplibre-gl": "^5.24.0"
   },
   "devDependencies": {
+    "@capacitor/android": "^8.6.0",
+    "@capacitor/assets": "^4.0.0",
+    "@capacitor/cli": "^8.6.0",
+    "@capacitor/ios": "^8.6.0",
     "@cloudflare/workers-types": "^5.20261031.1",
     "@types/node": "^26.6.6",
     "ajv": "^8.20.0",
     "ajv-formats": "^3.0.1",
     "autocannon": "^8.0.0",
+    "sharp": "^0.35.5",
     "typescript": "^5.9.3",
     "vitest": "^3.2.7",
     "wrangler": "^4.156.0"

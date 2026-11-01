@@ -87,7 +87,7 @@ dialog::backdrop { background: rgba(0,0,0,.4); }
   max-height: calc(100% - var(--sheet-h, 0px) - var(--credits-h, 0px) - 8rem); overflow-y: auto; background: var(--surface); color: var(--ink);
   border: 1px solid var(--line); border-radius: 0; box-shadow: 0 3px 12px var(--shadow); padding: .35rem .6rem; font-size: .8rem;
 }
-.legend summary { cursor: pointer; font-weight: 700; padding: .15rem 0; }
+.legend summary { cursor: pointer; font-weight: 600; padding: .15rem 0; }
 .legend ul { list-style: none; margin: .3rem 0 .1rem; padding: 0; }
 .legend li { display: flex; align-items: center; gap: .45rem; margin-bottom: .25rem; }
 .legend .swatch { width: 14px; height: 14px; margin: 0; }
@@ -678,3 +678,132 @@ dialog::backdrop { background: rgba(0,0,0,.4); }
    something to read while the map loads. */
 :root[data-first-visit] .first-hint[hidden] { display: block; }
 .map-wrap:has(.splash:not(.done)) .first-hint { z-index: 21; }
+
+/* ---- Mobile and app round (stage 7) -------------------------------------- */
+/* The map page never scrolls as a whole: no pull-to-refresh or rubber-band
+   bounce when a drag starts on the masthead, sheet or credits. Scrolling
+   inside the sheet, details and sources keeps working (overscroll contained). */
+html, body { overscroll-behavior: none; }
+.details, .sources-panel, .legend ul { overscroll-behavior: contain; }
+
+/* Header Status link sits with the other page links. */
+#status-link { text-decoration: none; }
+
+@media (max-width: 760px) {
+  /* Sheet title: "Layers" is never cut. At larger text sizes the words
+     "and data" drop and the Simple/Expert tag gives way first. */
+  .sheet-title, :root[data-text] .sheet-title { flex: none; overflow: visible; text-overflow: clip; }
+  :root[data-text="2"] .sheet-title-more, :root[data-text="3"] .sheet-title-more { display: none; }
+  .sheet-mode, :root[data-text] .sheet-mode { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  /* Masthead with four page links at larger text: the BitPrairie symbol
+     (also in the footer credits) gives way before the name or a button. */
+  :root[data-text="3"] .topbar .brand-home, :root[data-text="3"] .topbar .brand-sep { display: none; }
+}
+@media (max-width: 420px) {
+  .topbar .brand-sep { display: none; }
+  .topbar-actions { gap: 4px; }
+  .topbar .btn, :root[data-text] .topbar .btn { padding: 0 8px; }
+}
+@media (max-width: 360px) {
+  .topbar .brand-home { display: none; }
+}
+
+/* Short landscape phones (bottom-sheet layout): a one-line masthead and a
+   lower half sheet, so the map keeps most of the screen. The side notch is
+   cleared by the safe-area padding on the masthead, controls and sheet. */
+@media (max-width: 760px) and (max-height: 500px) {
+  .byline, .tagline { display: none; }
+  .topbar, :root[data-text] .topbar { padding-top: max(.2rem, env(safe-area-inset-top)); padding-bottom: .2rem; min-height: 0; }
+  .proj-name, :root[data-text] .proj-name { font-size: 15px; }
+  .panel[data-sheet="half"] { height: max(120px, 50%); }
+  .panel[data-sheet="full"] { height: calc(100% - var(--credits-h, 44px)); }
+  .first-hint { top: 8px; max-height: calc(100% - var(--sheet-h, 0px) - var(--credits-h, 0px) - 16px); overflow-y: auto; }
+}
+.maplibregl-ctrl-top-right { padding-right: env(safe-area-inset-right); }
+.legend { margin-right: env(safe-area-inset-right); }
+
+/* Touch: links in the Sources lists are full 44 px targets. */
+@media (pointer: coarse) {
+  .sources-list a, .sources-more a { display: inline-flex; align-items: center; min-height: 44px; }
+}
+
+/* Offline: one clear line at the top of the map while the device has no
+   connection, with the time of the saved copy being shown. */
+.offline-bar {
+  position: absolute; left: 50%; top: 8px; z-index: 8; transform: translateX(-50%);
+  max-width: min(32rem, calc(100% - 120px)); margin: 0; padding: .45rem .75rem;
+  background: var(--warn-bg); color: var(--warn-ink); border: 1px solid currentColor;
+  font-size: .875rem; line-height: 1.35; box-shadow: 0 2px 10px var(--shadow);
+}
+.offline-bar[hidden] { display: none; }
+@media (max-width: 760px) { .offline-bar { top: 60px; max-width: calc(100% - 16px - env(safe-area-inset-left) - env(safe-area-inset-right)); } }
+/* Installed app (standalone): no browser bar, so the masthead clears the
+   status bar itself; already handled by safe-area-inset-top in brand.css. */
+
+/* ---- Text size scale (stage 7): small is the default ---------------------
+   prefs.js sets data-text 0 (small, 87.5%) by default; 1 (medium, 100%) is
+   the old default. On mouse and trackpad screens the panel's fixed pixel
+   sizes become rem, so at medium they match the old size exactly and at
+   small everything (panel width, tabs, search row, chips, links, group
+   headers, layer cards) shrinks in proportion. Touch screens keep their
+   44 px targets (the pointer: coarse rules above are untouched). */
+@media (pointer: fine) {
+  .jump-tabs a, :root[data-mode="simple"] .jump-tabs a { min-height: 2rem; }
+  .search input, :root[data-mode="simple"] .search input,
+  .search button, :root[data-mode="simple"] .search button { min-height: 2.5rem; }
+  .icon-btn, :root[data-mode="simple"] .search .icon-btn { width: 2.5rem; min-width: 2.5rem; }
+  .icon-btn .btn-icon { width: 1.125rem; height: 1.125rem; }
+  .chip, :root[data-mode="simple"] .chip { min-height: 1.75rem; border-radius: .875rem; }
+  .chip .swatch, .chip .swatch[class*="mark-"] { width: .75rem; height: .75rem; }
+  .link-btn, :root[data-mode="simple"] #reset-layers, :root[data-mode="simple"] #all-off { min-height: 1.75rem; }
+  .group-toggle { min-height: 2.75rem; }
+  :root[data-mode="simple"] .group-toggle { min-height: 3.5rem; }
+  .group-arrow { border-left-width: .375rem; border-top-width: .3125rem; border-bottom-width: .3125rem; }
+  :root[data-mode="simple"] .layer-row { min-height: 3.25rem; }
+  .check { width: 2.75rem; height: 2.75rem; margin: -.625rem -.6875rem; }
+  .check-box { width: 1.375rem; height: 1.375rem; }
+  .layer-plain { margin-left: calc(2.5rem + 1.1rem); }
+  .layer .swatch { width: 1.125rem; height: 1.125rem; }
+  .legend .swatch { width: .875rem; height: .875rem; }
+  .layer-list:empty { min-height: calc(var(--rows, 3) * 7.375rem); }
+  .layer-groups:empty { min-height: 30rem; }
+}
+
+/* "View and text size": a small, quiet control instead of a full row. */
+.panel-prefs { margin: 0 0 var(--sp-1); padding: 0; border-bottom: 0; }
+.panel-prefs > summary, :root[data-mode="simple"] .panel-prefs > summary {
+  display: inline-flex; flex-wrap: wrap; align-items: center; gap: 0 .4rem; min-height: 1.5rem; padding: 0 .1rem;
+  font: 500 var(--fs-tag)/1.3 var(--mono); text-transform: uppercase; letter-spacing: .05em; color: var(--ink-2);
+}
+.panel-prefs > summary::before { font-size: .7em; }
+.panel-prefs > summary:hover { color: var(--ink); }
+.panel-prefs > summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.prefs-title, .prefs-now { font-size: inherit; font-weight: 500; }
+.prefs-now { text-transform: none; letter-spacing: 0; color: var(--ink-2); }
+.prefs-now::before { content: "· "; }
+.panel-prefs[open] { padding-bottom: var(--sp-2); border-bottom: 1px solid var(--rule); margin-bottom: var(--sp-2); }
+.panel-prefs .pref-row { gap: var(--sp-1); margin: var(--sp-1) 0; }
+.panel-prefs .pref-label { min-width: 3.6rem; font-size: var(--fs-tag); }
+.panel-prefs .pref-btn { min-height: 2rem; min-width: 2rem; padding: 0 var(--sp-2); font-size: .8125rem; }
+.panel-prefs .view-switch .pref-btn { flex: 0 1 auto; }
+.panel-prefs .pref-text-0 { font-size: .75rem; } .panel-prefs .pref-text-1 { font-size: .8125rem; }
+.panel-prefs .pref-text-2 { font-size: .9375rem; } .panel-prefs .pref-text-3 { font-size: 1.0625rem; }
+@media (pointer: coarse) {
+  .panel-prefs > summary, :root[data-mode="simple"] .panel-prefs > summary { min-height: 44px; }
+  .panel-prefs .pref-btn { min-height: 44px; min-width: 44px; }
+}
+/* iOS zooms into a text box under 16 px: keep inputs at 16 px or more on
+   touch screens at every text size. */
+@media (pointer: coarse) {
+  :root[data-text][data-mode] input[type="search"], :root[data-text][data-mode] input[type="text"],
+  :root[data-text][data-mode] select, :root[data-text][data-mode] textarea { font-size: max(1rem, 16px); }
+}
+.panel-prefs > summary, :root[data-mode="simple"] .panel-prefs > summary { flex-wrap: nowrap; white-space: nowrap; max-width: 100%; }
+.prefs-now { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.panel-prefs + .jump-tabs { margin-top: 0; }
+
+/* Touch screens at the small default text size: short labels ("Go", a
+   short layer id in the list view) still get a 44 px wide target. */
+@media (pointer: coarse) {
+  .search button, .lv-item { min-width: 44px; }
+}

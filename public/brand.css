@@ -48,6 +48,8 @@ a { color: var(--link); text-underline-offset: .15em; }
 a:hover { color: var(--accent-hover); }
 :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 :focus:not(:focus-visible) { outline: none; }
+/* Brand type: IBM Plex Sans 400 body, 500 UI, 600 headings; never 700. */
+h1, h2, h3, h4, h5, h6, b, strong, th, dt, legend { font-weight: 600; }
 
 
 /* Masthead, as on bitprairie.com: BitPrairie symbol, rule, project mark and name. */
@@ -64,7 +66,7 @@ a:hover { color: var(--accent-hover); }
 .brand-wordmark { height: 16px; width: auto; display: block; color: var(--ink); }
 .brand-sep { width: 1px; height: 24px; background: var(--rule-strong); flex: none; }
 .brand-proj { display: flex; align-items: center; gap: .45rem; min-width: 0; }
-.proj-mark { width: 22px; height: 22px; color: var(--accent); flex: none; }
+.proj-mark { width: 20px; height: 20px; color: var(--ink); flex: none; }
 .topbar h1 { font: 600 1rem/1.2 var(--sans); margin: 0; letter-spacing: 0; white-space: nowrap; }
 .byline { margin: 0; font: 500 .68rem/1.3 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--quiet); }
 .byline a { color: inherit; }
@@ -132,12 +134,15 @@ a.btn { display: inline-flex; align-items: center; text-decoration: none; color:
 @media (pointer: coarse) {
   .proj-link { min-height: 44px; }
   .brand-home { min-width: 44px; justify-content: center; }
-  .byline a { padding: 16px 6px; margin: -16px -6px; }
+  .byline a { padding: 17px 6px; margin: -17px -6px; }
+  .btn { min-width: 44px; justify-content: center; }
   .credits-links a { min-width: 44px; justify-content: center; }
 }
 
 /* ---- Display settings (set by /prefs.js on every page) ---- */
-/* Text size: A, A+, A++. Everything sized in rem grows with it. */
+/* Text size: small (default), medium, large, largest. Everything sized in
+   rem follows it. Medium (100%) is the size that was the default before. */
+:root[data-text="0"] { font-size: 87.5%; }
 :root[data-text="2"] { font-size: 112.5%; }
 :root[data-text="3"] { font-size: 131.25%; }
 .skip-link { position: absolute; left: -999px; top: 0; background: var(--card); color: var(--ink); padding: .6rem 1rem; z-index: 100; font-weight: 600; }
@@ -151,7 +156,7 @@ a.btn { display: inline-flex; align-items: center; text-decoration: none; color:
 .pref-btn:hover { border-color: var(--ink); }
 .pref-btn[aria-pressed="true"] { background: var(--ink); color: var(--card); border-color: var(--ink); font-weight: 600; }
 .pref-btn[aria-pressed="true"]::before { content: "✓ "; }
-.pref-text-1 { font-size: .95rem; } .pref-text-2 { font-size: 1.1rem; } .pref-text-3 { font-size: 1.28rem; }
+.pref-text-0 { font-size: .85rem; } .pref-text-1 { font-size: .95rem; } .pref-text-2 { font-size: 1.1rem; } .pref-text-3 { font-size: 1.28rem; }
 .pref-text[aria-pressed="true"]::before, .pref-contrast[aria-pressed="true"]::before { content: none; }
 .pref-contrast[aria-pressed="true"]::after { content: " on"; font-weight: 400; }
 .view-switch .pref-btn { flex: 1 1 6rem; font-weight: 600; }
@@ -180,3 +185,8 @@ a.btn { display: inline-flex; align-items: center; text-decoration: none; color:
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
+
+/* Project site link after "by BitPrairie": same quiet mono line, hidden on
+   phones and touch tablets to keep the masthead compact (the footer always has it). */
+.byline-sep { margin: 0 .4em; }
+@media (max-width: 480px), (pointer: coarse) and (max-width: 1100px) { .byline-site { display: none; } }
