@@ -4,6 +4,8 @@ import type { FetchContext, SourceAdapter } from "./adapters/types";
 import { publicInfo, type Registry } from "./registry";
 import type { NormalizedCollection, NormalizedFeature, SourceStatus } from "./schema";
 import cdfwSample from "./fixtures/cdfw-wolf-bins.sample.json";
+import { diffFeatures, pushChange, type ChangeEntry } from "./lib/changes";
+import { fnv1a } from "./lib/hash";
 
 export interface Env {
   LAYER_CACHE: KVNamespace;
@@ -12,22 +14,18 @@ export interface Env {
   USER_AGENT?: string;
 }
 
-interface StoredStatus extends SourceStatus {
+export interface StoredStatus extends SourceStatus {
   source_updated_ms: number | null;
   validator: string | null;
   /** Hash of the source config; a config change forces a full re-fetch. */
   config_hash?: string;
+  /** Most recent changes first; see src/lib/changes.ts. */
+  changes?: ChangeEntry[];
 }
 
-/** Small, stable string hash (FNV-1a) of a source config. */
+/** Hash of a source config; a change forces a full re-fetch. */
 export function configHash(config: unknown): string {
-  const str = JSON.stringify(config);
-  let h = 0x811c9dc5;
-  for (let i = 0; i < str.length; i++) {
-    h ^= str.charCodeAt(i);
-    h = Math.imul(h, 0x01000193);
-  }
-  return (h >>> 0).toString(16);
+  return fnv1a(JSON.stringify(config));
 }
 
 /** Bundled samples used only when a source has never loaded and the network fails. */
@@ -63,7 +61,7 @@ export async function readStatus(kv: KVNamespace, id: string): Promise<StoredSta
 }
 
 export function publicStatus(s: StoredStatus): SourceStatus {
-  const { source_updated_ms: _m, validator: _v, config_hash: _h, ...rest } = s;
+  const { source_updated_ms: _m, validator: _v, config_hash: _h, changes: _c, ...rest } = s;
   return rest;
 }
 
@@ -120,9 +118,12 @@ export async function refreshSource(
       if (body.length > MAX_STORED_BYTES) {
         throw new Error(`Source is too large to cache (${Math.round(body.length / 1048576)} MB); raise maxAllowableOffset or lower maxFeatures`);
       }
+      // Only diff real agency copies, not the bundled sample.
+      const prev = status.state === "fixture" || configChanged ? null : await readData(kv, id);
       await kv.put(dataKey(id), body);
       next = {
         ...status,
+        changes: pushChange(status.changes, diffFeatures(prev, result.features, checkedAt)),
         state: "ok",
         checked_at: checkedAt,
         received_at: checkedAt,
@@ -170,10 +171,41 @@ async function loadFixture(adapter: SourceAdapter, now: () => Date): Promise<Nor
   return r.changed ? r.features : null;
 }
 
-export async function refreshDue(registry: Registry, env: Env, opts: RefreshOptions = {}) {
-  const results: Record<string, SourceStatus["state"]> = {};
-  for (const a of registry.all()) {
-    results[a.config.id] = (await refreshSource(a, env, opts)).state;
+/**
+ * Refresh every source that is due, most overdue first. Workers cap the
+ * number of outbound requests per invocation (50 on the free plan), so stop
+ * starting new sources once the request budget is nearly used; the rest are
+ * picked up by the next run.
+ */
+export async function refreshDue(
+  registry: Registry,
+  env: Env,
+  opts: RefreshOptions & { requestBudget?: number } = {},
+) {
+  const budget = opts.requestBudget ?? 45;
+  const base = opts.fetchImpl ?? fetch;
+  let used = 0;
+  const counted = ((input: RequestInfo | URL, init?: RequestInit) => {
+    used++;
+    return base(input, init);
+  }) as typeof fetch;
+
+  const now = (opts.now ?? (() => new Date()))().getTime();
+  const statuses = await Promise.all(
+    registry.all().map(async (a) => ({ a, s: await readStatus(env.LAYER_CACHE, a.config.id) })),
+  );
+  const overdue = ({ a, s }: (typeof statuses)[number]) =>
+    s.checked_at ? (now - Date.parse(s.checked_at)) / (a.config.refreshMinutes * 60_000) : Infinity;
+  statuses.sort((x, y) => overdue(y) - overdue(x));
+
+  const results: Record<string, SourceStatus["state"] | "deferred"> = {};
+  for (const { a } of statuses) {
+    // Leave headroom: one source can take several requests (metadata + pages + retries).
+    if (used >= budget - 4) {
+      results[a.config.id] = "deferred";
+      continue;
+    }
+    results[a.config.id] = (await refreshSource(a, env, { ...opts, fetchImpl: counted })).state;
   }
   return results;
 }

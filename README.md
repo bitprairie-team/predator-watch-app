@@ -20,7 +20,17 @@ Part of BitPrairie Predator Watch. Licensed under Apache-2.0.
   data, or a failed check) and a details panel on every item with species,
   source, agency, observed time, received time, precision and terms.
 - Context layers: current wildfire perimeters, weather watches, warnings and
-  advisories, public land ownership, and federal grazing allotments.
+  advisories, public land ownership, federal grazing allotments, protected
+  areas (PAD-US), counties, tribal lands, shaded relief, streams and land cover.
+- Place search (town, county, or "lat, lon"), a legend, shareable links that
+  keep the view and the layers that are on, and a dark map.
+- A "Recent changes" feed and, under each layer's "About this source", its
+  cadence, terms, recent changes and GeoJSON, KML and CSV downloads.
+- A public API and an OGC API Features service for GIS tools; see
+  [docs/api.md](docs/api.md).
+- A last-good copy of the layer list and agency data saved in the browser, so
+  the map still opens on a weak or missing connection and says when it is
+  showing a saved copy.
 - A pluggable adapter framework. Adding a public ArcGIS REST layer is a config
   change only; see [docs/adding-an-arcgis-layer.md](docs/adding-an-arcgis-layer.md).
 
@@ -32,6 +42,9 @@ Part of BitPrairie Predator Watch. Licensed under Apache-2.0.
   audit log. Nothing in this repository collects private or rancher data.
 - **More agency sources (Planned):** candidates still being verified are listed
   in [docs/data-sources.md](docs/data-sources.md).
+- **PastureTrace integration (Planned):** design notes and draft JSON Schemas
+  are in [docs/private-version.md](docs/private-version.md) and
+  [schemas/integrations/pasturetrace/v1](schemas/integrations/pasturetrace/v1).
 
 ## How it works
 

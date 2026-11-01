@@ -1,7 +1,10 @@
 // Predator Watch front end. Plain ES module, no build step.
 /* global maplibregl */
 
-const BASEMAP = "https://tiles.openfreemap.org/styles/positron";
+const BASEMAPS = {
+  light: "https://tiles.openfreemap.org/styles/positron",
+  dark: "https://tiles.openfreemap.org/styles/dark",
+};
 const CATEGORY_ORDER = ["wolf-activity", "wolf-management", "context"];
 const PRECISION_TEXT = {
   "hex-cell": "Generalized hexagon cell chosen by the agency",
@@ -52,6 +55,7 @@ function badges(layer) {
     out.push({ cls: "ok", text: "Live agency service", title: "Rendered by the agency's map service on request." });
     return out;
   }
+  if (layer.saved_at) out.push({ cls: "warn", text: "Saved copy (offline)", title: `No connection. Showing the copy saved on this device ${fmtTime(layer.saved_at)}.` });
   if (st.state === "never") out.push({ cls: "warn", text: "Loading…", title: "Not fetched yet." });
   if (st.state === "fixture") out.push({ cls: "warn", text: "Sample data", title: "The agency could not be reached; showing a bundled sample." });
   if (st.state === "error") out.push({ cls: "err", text: "Last check failed", title: st.error || "" });
@@ -73,12 +77,51 @@ function badges(layer) {
   return out;
 }
 
+// ------------------------------------------------------------ URL state
+// The address bar holds the view and the visible layers, so a link opens
+// the same map: #map=zoom/lat/lon&layers=id1,id2
+function readHash() {
+  const h = new URLSearchParams(location.hash.slice(1));
+  const m = (h.get("map") || "").split("/").map(Number);
+  let view = null;
+  if (m.length === 3 && m.every(Number.isFinite) && Math.abs(m[1]) <= 85) {
+    const lon = ((((m[2] + 180) % 360) + 360) % 360) - 180;
+    view = { zoom: Math.min(15, Math.max(2, m[0])), center: [lon, m[1]] };
+  }
+  const ls = h.get("layers");
+  const ids = ls === null ? null : new Set(ls.split(",").filter((x) => /^[a-z0-9-]{3,64}$/.test(x)));
+  return { view, ids };
+}
+const initial = readHash();
+let hashTimer = 0;
+function writeHash() {
+  clearTimeout(hashTimer);
+  hashTimer = setTimeout(() => {
+    const c = map.getCenter().wrap();
+    const vis = [...layers.values()].filter((l) => l.visible).map((l) => l.id).join(",");
+    const h = `#map=${map.getZoom().toFixed(2)}/${c.lat.toFixed(4)}/${c.lng.toFixed(4)}&layers=${vis}`;
+    if (h !== location.hash) history.replaceState(null, "", h);
+  }, 250);
+}
+
+// ----------------------------------------------------------------- theme
+const THEME_KEY = "pw-theme";
+const prefersDark = matchMedia("(prefers-color-scheme: dark)");
+function storedTheme() {
+  try { return localStorage.getItem(THEME_KEY); } catch { return null; }
+}
+function currentTheme() {
+  const t = storedTheme();
+  return t === "dark" || t === "light" ? t : prefersDark.matches ? "dark" : "light";
+}
+document.documentElement.dataset.theme = currentTheme();
+
 // --------------------------------------------------------------- map setup
 const map = new maplibregl.Map({
   container: "map",
-  style: BASEMAP,
-  center: [-111, 42],
-  zoom: window.innerWidth < 760 ? 2.6 : 3.6,
+  style: BASEMAPS[currentTheme()],
+  center: initial.view?.center ?? [-111, 42],
+  zoom: initial.view?.zoom ?? (window.innerWidth < 760 ? 2.6 : 3.6),
   minZoom: 2,
   maxZoom: 15,
   attributionControl: false,
@@ -130,13 +173,30 @@ function addVector(layer) {
     layout: { visibility: vis },
     paint: { "circle-color": s.color, "circle-radius": 5, "circle-stroke-color": "#fff", "circle-stroke-width": 1.5 },
   }, before);
+  if (hoverBound.has(id)) return;
+  hoverBound.add(id);
   for (const suffix of ["fill", "circle"]) {
     map.on("mouseenter", `${id}-${suffix}`, () => (map.getCanvas().style.cursor = "pointer"));
     map.on("mouseleave", `${id}-${suffix}`, () => (map.getCanvas().style.cursor = ""));
   }
 }
+const hoverBound = new Set();
 
 function addRaster(layer) {
+  const before = map.getLayer(firstVectorLayerId()) ? firstVectorLayerId() : firstSymbolLayer();
+  if (layer.vector) {
+    // Agency vector tiles drawn as a light fill with an outline.
+    map.addSource(layer.id, {
+      type: "vector", tiles: layer.tiles, minzoom: 0, maxzoom: layer.maxzoom ?? 14, attribution: esc(layer.attribution),
+    });
+    map.addLayer({
+      id: `${layer.id}-raster`, type: "fill", source: layer.id, "source-layer": layer.vector.source_layer,
+      minzoom: layer.minzoom ?? 0,
+      layout: { visibility: layer.visible ? "visible" : "none" },
+      paint: { "fill-color": layer.color, "fill-opacity": layer.vector.fill_opacity, "fill-outline-color": layer.vector.outline },
+    }, before);
+    return;
+  }
   map.addSource(layer.id, {
     type: "raster", tiles: layer.tiles, tileSize: layer.tileSize,
     minzoom: layer.minzoom ?? 0, maxzoom: layer.maxzoom ?? 22, attribution: esc(layer.attribution),
@@ -159,16 +219,31 @@ function setVisible(layer, on) {
   if (on && layer.type === "geojson" && !layer.loaded) loadVector(layer);
   if (on && layer.type === "raster" && !map.getSource(layer.id)) addRaster(layer);
   updateItems();
+  renderLegend();
+  writeHash();
+}
+
+async function fetchWithTimeout(url, ms) {
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), ms);
+  try {
+    return await fetch(url, { signal: ctl.signal });
+  } catch (e) {
+    throw new Error(e.name === "AbortError" ? "timed out" : e.message || String(e));
+  } finally {
+    clearTimeout(t);
+  }
 }
 
 async function loadVector(layer) {
   layer.loaded = "loading";
   try {
-    const res = await fetch(layer.data_url);
+    const res = await fetchWithTimeout(layer.data_url, 25000);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const fc = await res.json();
     layer.data = fc;
     layer.status = fc.metadata;
+    layer.saved_at = res.headers.get("x-pw-saved-at");
     layer.loaded = true;
     if (map.getSource(layer.id)) map.getSource(layer.id).setData(fc);
     else addVector(layer);
@@ -212,6 +287,12 @@ function renderLayerRow(layer) {
         ${layer.notes ? `<dt>Notes</dt><dd>${esc(layer.notes)}</dd>` : ""}
         ${infoUrl ? `<dt>Agency page</dt><dd><a href="${esc(infoUrl)}" target="_blank" rel="noopener">Open<span class="sr-only"> (new tab)</span></a></dd>` : ""}
         ${endpoint ? `<dt>Endpoint</dt><dd><a href="${esc(endpoint)}" target="_blank" rel="noopener">Service</a></dd>` : ""}
+        ${layer.type === "geojson" ? `<dt>Download</dt><dd class="exports">
+          <a href="${esc(layer.data_url)}.geojson" download>GeoJSON</a>
+          <a href="${esc(layer.data_url)}.kml" download>KML</a>
+          <a href="${esc(layer.data_url)}.csv" download>CSV</a>
+          <a href="/ogc/collections/${esc(layer.id)}/items" target="_blank" rel="noopener">OGC API</a></dd>` : ""}
+        ${layer.type === "geojson" ? `<dt>Recent changes</dt><dd>${changesHtml(changesBySource.get(layer.id), 3)}</dd>` : ""}
       </dl>
     </details>`;
   li.querySelector("input").addEventListener("change", (e) => setVisible(layer, e.target.checked));
@@ -301,6 +382,15 @@ function bboxOf(geom) {
   if (geom) walk(geom.coordinates);
   return [minX, minY, maxX, maxY];
 }
+/** True when a feature bbox overlaps the view, including across the antimeridian. */
+function inView(bb, b) {
+  const [x0, y0, x1, y1] = bb;
+  if (y1 < b.getSouth() || y0 > b.getNorth()) return false;
+  const w = b.getWest(), e = b.getEast();
+  if (e - w >= 360) return true;
+  for (const shift of [-360, 0, 360]) if (!(x1 + shift < w || x0 + shift > e)) return true;
+  return false;
+}
 function updateItems() {
   const ul = $("#items");
   const b = map.getBounds();
@@ -310,8 +400,7 @@ function updateItems() {
     for (const f of l.data.features) {
       if (!f.geometry) continue;
       f._bbox ??= bboxOf(f.geometry);
-      const [x0, y0, x1, y1] = f._bbox;
-      if (x1 < b.getWest() || x0 > b.getEast() || y1 < b.getSouth() || y0 > b.getNorth()) continue;
+      if (!inView(f._bbox, b)) continue;
       items.push(f);
     }
   }
@@ -340,7 +429,7 @@ function updateItems() {
     ul.appendChild(li);
   }
 }
-map.on("moveend", updateItems);
+map.on("moveend", () => { updateItems(); writeHash(); });
 
 // ------------------------------------------------------------ panel toggle
 const panel = $("#panel");
@@ -357,22 +446,210 @@ $("#about-open").addEventListener("click", () => about.showModal());
 // ------------------------------------------------------------------ boot
 async function boot() {
   let index;
+  let savedAt = null;
   try {
-    const res = await fetch("/api/layers");
+    const res = await fetchWithTimeout("/api/layers", 20000);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    savedAt = res.headers.get("x-pw-saved-at");
     index = await res.json();
   } catch (e) {
-    statusEl.textContent = "Could not load the layer list. Please try again shortly.";
+    statusEl.textContent = "Could not load the layer list. Check your connection and reload.";
     return;
   }
   for (const l of index.layers) {
-    layers.set(l.id, { ...l, visible: Boolean(l.style?.defaultVisible), loaded: false });
+    const visible = initial.ids ? initial.ids.has(l.id) : Boolean(l.style?.defaultVisible);
+    layers.set(l.id, { ...l, visible, loaded: false });
   }
   renderPanel([...layers.values()]);
+  renderPlanned(index);
   const vectors = [...layers.values()].filter((l) => l.type === "geojson");
-  statusEl.textContent = `${vectors.length} agency data layers and ${layers.size - vectors.length} live agency map services. Times shown in ${tz}.`;
+  statusEl.textContent = savedAt
+    ? `Offline. Showing the layer list saved on this device ${fmtTime(savedAt)}.`
+    : `${vectors.length} agency data layers and ${layers.size - vectors.length} live agency map services. Times shown in ${tz}.`;
+  loadChanges();
   const start = () => {
     for (const l of layers.values()) if (l.visible) setVisible(l, true);
+    renderLegend();
   };
   if (map.isStyleLoaded()) start(); else map.once("load", start);
 }
+
+// ------------------------------------------------------------ changes feed
+const changesBySource = new Map();
+function changeSummary(c) {
+  const parts = [];
+  if (c.added) parts.push(`${c.added} added`);
+  if (c.removed) parts.push(`${c.removed} removed`);
+  if (c.modified) parts.push(`${c.modified} changed`);
+  return parts.join(", ") || "no item changes";
+}
+function changesHtml(list, n) {
+  if (!list || !list.length) return "None recorded yet.";
+  return `<ul class="changes">${list.slice(0, n).map((c) => {
+    const names = [...(c.added_items || []), ...(c.modified_items || [])].slice(0, 3).map((i) => esc(i.label)).join("; ");
+    return `<li><time datetime="${esc(c.at)}" title="${esc(fmtTime(c.at))}">${esc(ago(c.at) || fmtTime(c.at))}</time>: ${esc(changeSummary(c))}${names ? `<br><small>${names}</small>` : ""}</li>`;
+  }).join("")}</ul>`;
+}
+async function loadChanges() {
+  const ul = $("#changes-feed");
+  try {
+    const res = await fetchWithTimeout("/api/changes", 15000);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const body = await res.json();
+    const all = [];
+    for (const s of body.sources || []) {
+      changesBySource.set(s.source_id, s.changes || []);
+      for (const c of s.changes || []) all.push({ ...c, source_id: s.source_id });
+      const layer = layers.get(s.source_id);
+      if (layer) renderLayerRow(layer);
+    }
+    all.sort((a, b) => String(b.at).localeCompare(String(a.at)));
+    ul.innerHTML = all.length ? "" : `<li class="hint">No changes recorded since tracking began. Changes appear here after an agency updates a layer.</li>`;
+    for (const c of all.slice(0, 8)) {
+      const l = layers.get(c.source_id);
+      const li = document.createElement("li");
+      li.innerHTML = `<strong>${esc(l?.name || c.source_id)}</strong> <span class="layer-agency">${esc(l?.agency || "")}</span>
+        <span>${esc(changeSummary(c))} · <time datetime="${esc(c.at)}" title="${esc(fmtTime(c.at))}">${esc(ago(c.at) || "")}</time></span>`;
+      ul.appendChild(li);
+    }
+  } catch {
+    ul.innerHTML = `<li class="hint">Change history is not available right now.</li>`;
+  }
+}
+
+// ----------------------------------------------------------------- planned
+function renderPlanned(index) {
+  const ul = $("#planned-list");
+  const items = [
+    ...(index.planned || []).map((p) => ({ name: p.name, text: p.description, url: p.doc_url })),
+    ...(index.planned_sources || []).map((p) => ({ name: `${p.name} (${p.agency})`, text: p.reason, url: p.url })),
+  ];
+  ul.innerHTML = items.map((p) => {
+    const u = safeUrl(p.url);
+    return `<li><strong>${esc(p.name)}</strong> <span class="tag">Planned</span><br>${esc(p.text)}${u ? ` <a href="${esc(u)}" target="_blank" rel="noopener">Link<span class="sr-only"> (new tab)</span></a>` : ""}</li>`;
+  }).join("");
+}
+
+// ------------------------------------------------------------------ legend
+function renderLegend() {
+  const ul = $("#legend-list");
+  const vis = [...layers.values()].filter((l) => l.visible)
+    .sort((a, b) => CATEGORY_ORDER.indexOf(a.category) - CATEGORY_ORDER.indexOf(b.category));
+  ul.innerHTML = vis.length ? vis.map((l) => {
+    const s = l.style || { color: l.color, fillOpacity: 0.4 };
+    const bg = s.dashed || !s.fillOpacity ? "transparent" : `${esc(s.color)}55`;
+    const zoomNote = l.minzoom && map.getZoom() < l.minzoom ? ` <small>(zoom in to see)</small>` : "";
+    return `<li><span class="swatch ${s.dashed ? "dashed" : ""}" style="border-color:${esc(s.color)};background:${bg}" aria-hidden="true"></span>${esc(l.name)}${zoomNote}</li>`;
+  }).join("") : `<li class="hint">No layers turned on.</li>`;
+}
+map.on("zoomend", renderLegend);
+if (window.innerWidth < 760) $("#legend").removeAttribute("open");
+
+// ------------------------------------------------------------------ search
+const searchForm = $("#search");
+const searchOut = $("#search-results");
+let searchMarker = null;
+function parseLatLon(q) {
+  const m = q.match(/^\s*(-?\d{1,3}(?:\.\d+)?)\s*[,\s]\s*(-?\d{1,3}(?:\.\d+)?)\s*$/);
+  if (!m) return null;
+  let a = Number(m[1]), b = Number(m[2]);
+  if (Math.abs(a) > 90 && Math.abs(b) <= 90) [a, b] = [b, a];
+  if (Math.abs(a) > 90 || Math.abs(b) > 180) return null;
+  return { lat: a, lon: b };
+}
+function goTo(r) {
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (r.bbox) map.fitBounds([[r.bbox[0], r.bbox[1]], [r.bbox[2], r.bbox[3]]], { padding: 40, maxZoom: 11, duration: reduce ? 0 : 800 });
+  else map.flyTo({ center: [r.lon, r.lat], zoom: 10, duration: reduce ? 0 : 800 });
+  searchMarker?.remove();
+  searchMarker = new maplibregl.Marker({ color: "#0050b3" }).setLngLat([r.lon, r.lat]).addTo(map);
+}
+searchForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const q = $("#search-q").value.trim();
+  searchOut.innerHTML = "";
+  if (q.length < 2) return;
+  const ll = parseLatLon(q);
+  if (ll) { goTo(ll); searchOut.innerHTML = `<li class="hint">Moved to ${ll.lat.toFixed(4)}, ${ll.lon.toFixed(4)}.</li>`; return; }
+  searchOut.innerHTML = `<li class="hint">Searching…</li>`;
+  try {
+    const res = await fetchWithTimeout(`/api/geocode?q=${encodeURIComponent(q)}`, 12000);
+    if (res.status === 429) { searchOut.innerHTML = `<li class="hint">Search is busy. Try again in a moment.</li>`; return; }
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const body = await res.json();
+    if (!body.results.length) { searchOut.innerHTML = `<li class="hint">No places found in the United States for “${esc(q)}”.</li>`; return; }
+    searchOut.innerHTML = "";
+    for (const r of body.results) {
+      const li = document.createElement("li");
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "item-btn";
+      btn.textContent = r.name;
+      btn.addEventListener("click", () => { goTo(r); searchOut.innerHTML = ""; });
+      li.appendChild(btn);
+      searchOut.appendChild(li);
+    }
+    const note = document.createElement("li");
+    note.className = "hint";
+    note.textContent = body.attribution;
+    searchOut.appendChild(note);
+    if (body.results.length === 1) goTo(body.results[0]);
+  } catch {
+    searchOut.innerHTML = `<li class="hint">Search is not available right now. You can type a latitude and longitude, for example 44.5, -110.5.</li>`;
+  }
+});
+
+// ------------------------------------------------------------- dark mode
+const themeBtn = $("#theme-toggle");
+function syncThemeButton() {
+  const dark = currentTheme() === "dark";
+  themeBtn.setAttribute("aria-pressed", String(dark));
+  themeBtn.textContent = dark ? "Light map" : "Dark map";
+  document.querySelector('meta[name="theme-color"]').setAttribute("content", dark ? "#0f1a14" : "#1d3b2a");
+}
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+  syncThemeButton();
+  // Swap the basemap, then put the agency layers back in their places.
+  map.setStyle(BASEMAPS[theme], { diff: false });
+  map.once("style.load", () => {
+    for (const l of layers.values()) {
+      if (l.type === "raster" && l.visible) addRaster(l);
+      if (l.type === "geojson" && l.loaded === true) addVector(l);
+    }
+  });
+}
+themeBtn.addEventListener("click", () => {
+  const next = currentTheme() === "dark" ? "light" : "dark";
+  try { localStorage.setItem(THEME_KEY, next); } catch { /* private mode */ }
+  applyTheme(next);
+});
+prefersDark.addEventListener("change", () => { if (!storedTheme()) applyTheme(currentTheme()); });
+syncThemeButton();
+
+// ------------------------------------------------------------- share link
+$("#share-link").addEventListener("click", async () => {
+  writeHash();
+  await new Promise((r) => setTimeout(r, 300));
+  const msg = $("#share-status");
+  try {
+    await navigator.clipboard.writeText(location.href);
+    msg.textContent = "Link copied. It opens this view with these layers.";
+  } catch {
+    msg.textContent = `Copy this link: ${location.href}`;
+  }
+});
+window.addEventListener("hashchange", () => {
+  const h = readHash();
+  if (h.view) map.jumpTo(h.view);
+  if (h.ids) for (const l of layers.values()) if (h.ids.has(l.id) !== l.visible) { setVisible(l, h.ids.has(l.id)); renderLayerRow(l); }
+});
+
+// ---------------------------------------------------------- offline cache
+// sw.js keeps the last good copy of the layer list and agency data on this
+// device, so the map still opens with a weak or missing connection.
+if ("serviceWorker" in navigator && window.isSecureContext) {
+  navigator.serviceWorker.register("/sw.js").catch(() => {});
+}
+
 boot();
