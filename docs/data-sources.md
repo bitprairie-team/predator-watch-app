@@ -33,13 +33,25 @@ checks the source; the agency's own cadence is listed separately.
 | Wolf hunt areas (`wgfd-wolf-hunt-areas`) | Wyoming Game and Fish Department | https://services6.arcgis.com/cWzdqIyxbijuhPLw/arcgis/rest/services/Wolf_Hunt_Areas/FeatureServer/0 (item https://www.arcgis.com/home/item.html?id=ec5bbacd1a244ce6aa182a63963c80b8) | Changes with regulations | Weekly | Provided "as is" (item terms) | Live |
 | Wolf management zones (`widnr-wolf-management-zones`) | Wisconsin Department of Natural Resources | https://dnrmaps.wi.gov/arcgis2/rest/services/WM_SPECIES_MGMT_ZONES/WM_WOLF_MGMT_ZONES_WTM_Ext/MapServer/0 | Changes with management plan updates | Weekly | Public map service; credit Wisconsin DNR | Live |
 
+## Bears (off by default)
+
+| Source (id) | Owner | Endpoint | Agency cadence | Refresh | Terms | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| Grizzly bear occupied range, 2024 (`mtfwp-grizzly-occupied-range-2024`) | Montana Fish, Wildlife & Parks | https://services3.arcgis.com/Cdxz8r11hT0MGzg1/arcgis/rest/services/WILD_DISTRIB_GRIZZLYBEAR_EOR_MT_24/FeatureServer/0 (item https://www.arcgis.com/home/item.html?id=0297ed0bc53a4a8592c77e80af991d1b) | Updated with new survey years | Weekly | Public FWP data provided "as is" (item terms) | Live |
+| Bear distribution (`mtfwp-bear-distribution`) | Montana Fish, Wildlife & Parks | https://services3.arcgis.com/Cdxz8r11hT0MGzg1/arcgis/rest/services/WILD_DISTRIB_BEARS_REGS/FeatureServer/0 (item https://www.arcgis.com/home/item.html?id=b59040cc67f742f1a0f1e72c05b2892b) | Changes with regulations | Weekly | Public FWP data provided "as is" (item terms) | Live |
+| Black bear range, CWHR (`cdfw-black-bear-range`) | California Department of Fish and Wildlife | https://services2.arcgis.com/Uq9r85Potqm3MfRV/arcgis/rest/services/biosds792_fpu/FeatureServer/0 (item https://www.arcgis.com/home/item.html?id=5304ab369678420085b2e2d4f7d2d039) | Rarely | Weekly | Public CDFW data (item terms) | Live |
+| Black bear habitat (`udwr-black-bear-habitat`) | Utah Division of Wildlife Resources | https://services.arcgis.com/ZzrwjTRez6FJiOq4/arcgis/rest/services/Utah_Black_Bear_Habitat/FeatureServer/0 (item https://www.arcgis.com/home/item.html?id=6440f19a05c149b783baf1705e5f2a51) | Rarely | Weekly | Public DWR data (item terms) | Live |
+
+No public, agency-owned service for federal grizzly bear recovery zones was
+found; they will be added when one is published.
+
 ## Context
 
 | Source (id) | Owner | Endpoint | Agency cadence | Refresh | Terms | Status |
 | --- | --- | --- | --- | --- | --- | --- |
 | Wildfire perimeters, current (`nifc-wildfire-perimeters`) | National Interagency Fire Center (WFIGS) | https://services3.arcgis.com/T4QMspbfLg3qTGWY/arcgis/rest/services/WFIGS_Interagency_Perimeters_Current/FeatureServer/0 | Near real time | 15 min, skipped when `editingInfo.lastEditDate` is unchanged | U.S. federal data, public domain in the U.S.; NIFC disclaimer | Live |
 | Weather watches, warnings and advisories (`nws-watches-warnings`) | National Weather Service | https://mapservices.weather.noaa.gov/eventdriven/rest/services/WWA/watch_warn_adv/MapServer/1 | Near real time | 15 min | U.S. federal data, public domain in the U.S.; https://www.weather.gov/disclaimer | Live (off by default) |
-| Public land ownership, surface management agency (`blm-surface-management-agency`) | Bureau of Land Management | Cached tiles: https://gis.blm.gov/arcgis/rest/services/lands/BLM_Natl_SMA_Cached_without_PriUnk/MapServer | Periodic | Drawn live | U.S. federal data | Live service |
+| Who manages the land, from the Surface Management Agency data (`blm-surface-management-agency`) | Bureau of Land Management | Export of layer 1 with a fixed per-agency color renderer (`ADMIN_AGENCY_CODE`), and `identify` for the click popup: https://gis.blm.gov/arcgis/rest/services/lands/BLM_Natl_SMA_Cached_without_PriUnk/MapServer | Periodic | Drawn live, from zoom 6 | U.S. federal data | Live service |
 | Grazing allotments, BLM (`blm-grazing-allotments`) | Bureau of Land Management | Export, layer 12: https://gis.blm.gov/arcgis/rest/services/range/BLM_Natl_Grazing_Allotment/MapServer | Periodic | Drawn live | U.S. federal data | Live service |
 | Grazing allotments, Forest Service (`usfs-range-allotments`) | USDA Forest Service | Export, layer 0: https://apps.fs.usda.gov/arcx/rest/services/EDW/EDW_RangeManagement_01/MapServer (visible from zoom 8 because of the service's scale limit) | Periodic | Drawn live | U.S. federal data | Live service |
 | Protected and managed areas, PAD-US 4 by manager type (`usgs-padus-manager-type`) | U.S. Geological Survey, Gap Analysis Project | Vector tiles: https://tiles.arcgis.com/tiles/v01gqwM5QqNysAAi/arcgis/rest/services/PADUS_Management_Areas_Manager_Type/VectorTileServer (USGS-owned item https://www.arcgis.com/home/item.html?id=f71b5910fbcf4349b384b298f1247eb7) | Major release about every two years | Drawn live, from zoom 5 | U.S. federal data, public domain in the U.S.; USGS no-warranty statement | Live service |

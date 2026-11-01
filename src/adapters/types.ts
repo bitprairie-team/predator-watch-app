@@ -11,6 +11,8 @@ export interface BaseSourceConfig {
   infoUrl: string;
   license: string;
   attribution: string;
+  /** Short credit shown on the map while the layer is on, e.g. "WDFW". Defaults to `agency`. */
+  creditShort?: string;
   /** Plain-language update cadence, from the agency. */
   cadence: string;
   /** Minimum minutes between checks of this source. */
