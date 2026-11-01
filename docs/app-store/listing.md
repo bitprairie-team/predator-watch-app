@@ -44,7 +44,7 @@ can see it in one place.
 Every item shows where it came from and when the agency last updated it. The
 map adds nothing of its own: no guesses, no blended estimates, no ratings.
 
-WHAT IS ON THE MAP
+What is on the map
 - Wolf activity layers are on when you open the app: areas where collared
   wolves were located recently, areas used by known packs, the general areas
   where wolves live, and recovery program ranges, each as the agency drew it.
@@ -54,31 +54,31 @@ WHAT IS ON THE MAP
   boundaries).
 - A legend that lists only the layers that are on.
 
-KNOW HOW FRESH IT IS
+Know how fresh it is
 - The source agency and the update time are on every layer and every item.
 - A status page shows when each source was last checked and whether it is
   working.
 - With no connection, the app shows the data saved on your device, clearly
   marked as a saved copy with the time it was saved.
 
-EASY TO READ
+Easy to read
 - Simple view with plain sentences, or Expert view with full agency fields.
 - A list view that reads the map out as text, nearest first.
 - Text size from small to extra large, high contrast, and light or dark mode.
 - Find a town, county, ZIP code or street address, or use your location.
 
-OPEN DATA
+Open data
 - Download any layer as GeoJSON, KML or CSV.
 - GIS tools can connect to the OGC API Features service.
 - Full credits and licenses for every source.
 
-PRIVATE BY DESIGN
+Private by design
 - No account and no sign-in.
 - No rancher data. Only agency-published data is shown.
 - Your location stays on your device; it is only used to move the map.
 - No ads, no tracking, no analytics.
 
-PLANNED
+Planned
 - A private collaboration space for ranchers, community members and
   agencies, with data-sharing agreements and an audit log. Planned; not part
   of this app today.
