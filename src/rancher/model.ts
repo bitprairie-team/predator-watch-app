@@ -1,5 +1,6 @@
 // Tenant data model for the private rancher plan. Stored in the private KV
 // namespace under keys owned by the data access layer (see data.ts).
+import type { AgentSettings } from "./background-agents";
 import type { Geometry } from "../schema";
 import type { Plan } from "../agents/types";
 
@@ -13,6 +14,8 @@ export interface TenantRecord {
   ranches: Ranch[];
   contacts: Contact[];
   reporting: ReportingProcess[];
+  /** Background agent settings, by agent id. Off unless set. */
+  agents?: Record<string, AgentSettings>;
   updated_at: string;
 }
 

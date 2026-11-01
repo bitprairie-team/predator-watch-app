@@ -31,7 +31,11 @@ export type Scope =
   | "directory:read"
   | "docs:read"
   | "summary:read"
-  | "audit:read";
+  | "audit:read"
+  /** Run or pause background agents. Not part of rancher:read, never granted to MCP. */
+  | "agents:run"
+  /** Approve or reject outbox items (anything meant to leave the system). Not part of rancher:read, never granted to MCP. */
+  | "outbox:approve";
 
 export const READ_SCOPES: Scope[] = [
   "activity:read",
@@ -111,7 +115,8 @@ export class AgentError extends Error {
       | "unknown_tool"
       | "provider_error"
       | "policy_declined"
-      | "timeout",
+      | "timeout"
+      | "disabled",
     message: string,
     public readonly status: number,
   ) {
