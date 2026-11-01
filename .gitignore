@@ -12,3 +12,18 @@ coverage/
 .DS_Store
 # vendored at install time from node_modules
 public/vendor/
+
+# App signing: never commit keys or store credentials.
+*.jks
+*.keystore
+*.p12
+*.p8
+*.mobileprovision
+key.properties
+keystore.properties
+android/app/release/
+# Bubblewrap build output (docs/app-store/twa/ keeps only the config).
+docs/app-store/twa/*.apk
+docs/app-store/twa/*.aab
+docs/app-store/twa/app/
+docs/app-store/twa/build/
