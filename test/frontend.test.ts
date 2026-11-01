@@ -44,7 +44,7 @@ describe("front end", () => {
     for (const page of ["public/about.html", "public/status.html"]) {
       const p = readFileSync(page, "utf8");
       expect(p).not.toMatch(/<script(?![^>]*\bsrc=)[^>]*>/);
-      expect(p).toMatch(/<main>/);
+      expect(p).toMatch(/<main[ >]/);
     }
   });
 

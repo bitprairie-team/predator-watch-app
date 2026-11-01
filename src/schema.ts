@@ -1,7 +1,7 @@
 // Common schema every adapter normalizes to. Each item on the map is a GeoJSON
 // Feature whose properties follow NormalizedProperties.
 
-export type Category = "wolf-activity" | "wolf-management" | "context";
+export type Category = "wolf-activity" | "wolf-management" | "bear" | "context";
 
 /**
  * How precisely the agency publishes the location. We never display data more
@@ -94,6 +94,8 @@ export interface PublicSourceInfo {
   category: Category;
   species: string | null;
   agency: string;
+  /** Short credit for the map's credits line, e.g. "WDFW". */
+  credit_short: string;
   url: string;
   info_url: string;
   license: string;
@@ -105,10 +107,11 @@ export interface PublicSourceInfo {
 }
 
 export interface LayerStyle {
-  /** Fill / line / circle colour on the light basemap, hex (BitPrairie palette, at least 3:1 against the basemap). */
+  /**
+   * The layer's one fixed color, hex, from src/config/palette.ts. Used for
+   * the selector swatch, the legend and the map paint in every theme.
+   */
   color: string;
-  /** Colour on the dark basemap, hex. Falls back to `color`. */
-  colorDark?: string;
   /** Polygon fill opacity, 0..1 */
   fillOpacity?: number;
   /** Optional dashed outline for management boundaries. */

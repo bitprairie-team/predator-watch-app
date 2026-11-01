@@ -20,6 +20,10 @@
   --old-bg: var(--paper-2); --old-ink: var(--ink-2);
   --shadow: rgba(17,20,24,.14);
   --panel-w: 360px;
+  /* Layer selector: one checked color and check mark in every theme. */
+  --check-on: #926137; --check-mark: #ffffff; --check-border: #545c66;
+  --swatch-ring: rgba(17,20,24,.28);
+  --credits-bg: rgba(255,255,255,.92);
   --sans: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
   color-scheme: light;
@@ -36,11 +40,14 @@
   --warn-bg: #2e2412; --warn-ink: #e6c48c;
   --err-bg: #331815; --err-ink: #f4b0a7;
   --shadow: rgba(0,0,0,.5);
+  --check-border: #949ca5; --swatch-ring: rgba(255,255,255,.4);
+  --credits-bg: rgba(14,16,18,.9);
   color-scheme: dark;
 }
 a { color: var(--link); text-underline-offset: .15em; }
 a:hover { color: var(--accent-hover); }
 :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+:focus:not(:focus-visible) { outline: none; }
 
 
 /* Masthead, as on bitprairie.com: BitPrairie symbol, rule, project mark and name. */
@@ -49,6 +56,7 @@ a:hover { color: var(--accent-hover); }
   padding: .45rem 1rem; background: var(--paper); color: var(--ink);
   border-bottom: 1px solid var(--rule-strong);
   padding-top: max(.45rem, env(safe-area-inset-top));
+  padding-left: max(1rem, env(safe-area-inset-left)); padding-right: max(1rem, env(safe-area-inset-right));
 }
 .brand { display: flex; align-items: center; gap: .7rem; min-width: 0; }
 .brand-home { display: inline-flex; align-items: center; gap: .55rem; color: var(--ink); text-decoration: none; min-height: 44px; flex: none; }
@@ -68,8 +76,17 @@ a:hover { color: var(--accent-hover); }
   font: inherit; font-size: .88rem; font-weight: 500; border-radius: 0; padding: .4rem .8rem; cursor: pointer;
   border: 1px solid var(--rule-strong); background: var(--card); color: var(--ink); min-height: 36px;
 }
-.btn:hover { border-color: var(--ink); }
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn:active { transform: translateY(1px); }
+.btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .btn-ghost { background: transparent; color: inherit; border-color: var(--rule-strong); }
+.btn-ghost:hover { color: var(--accent); }
+.btn-solid, dialog .btn { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn-solid:hover, dialog .btn:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: var(--accent-ink); }
+.btn-theme { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; }
+.btn-icon { width: 16px; height: 16px; flex: none; }
+.btn-theme[aria-pressed="true"] { border-color: var(--accent); }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 
 /* Credits, the same block on the map panel, /about and /status. */
 .credits { margin-top: 1.4rem; padding-top: .8rem; border-top: 2px solid var(--ink); font-size: .8rem; color: var(--ink-2); }
@@ -89,11 +106,77 @@ a:hover { color: var(--accent-hover); }
   .brand { gap: .5rem; }
   .byline { font-size: .62rem; }
 }
+@media (max-width: 560px) {
+  .btn-theme { min-width: 44px; padding-left: .5rem; padding-right: .5rem; }
+  .btn-theme .btn-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
+}
 @media (max-width: 420px) {
-  .brand-home, .brand-sep { display: none; }
+  .brand-home { min-width: 32px; }
+  .brand { gap: .45rem; }
+  .topbar { gap: .4rem; }
+  .proj-name { font-size: .95rem; }
+}
+@media (pointer: coarse) {
+  .btn { min-height: 44px; }
+  .proj-link { min-height: 44px; }
+  .byline a { display: inline-block; padding: 14px 4px; margin: -14px -4px; }
 }
 .brand-wordmark { display: block; height: 16px; aspect-ratio: 8355.7 / 1462; background: currentColor;
   -webkit-mask: url("/brand/bitprairie-wordmark.svg") no-repeat center / contain; mask: url("/brand/bitprairie-wordmark.svg") no-repeat center / contain; }
-.proj-link { display: flex; align-items: center; gap: .45rem; color: inherit; text-decoration: none; min-width: 0; }
+.proj-link { display: flex; align-items: center; gap: .45rem; color: inherit; text-decoration: none; min-width: 0; min-height: 32px; }
+.proj-link:hover .proj-name { color: var(--accent); }
 .proj-name { font: 600 1rem/1.2 var(--sans); margin: 0; white-space: nowrap; }
+@media (max-width: 760px) { .brand-wordmark { display: none; } }
 a.btn { display: inline-flex; align-items: center; text-decoration: none; color: var(--ink); }
+/* Touch screens: 44 px targets (after the base rules so these win). */
+@media (pointer: coarse) {
+  .proj-link { min-height: 44px; }
+  .brand-home { min-width: 44px; justify-content: center; }
+  .byline a { padding: 16px 6px; margin: -16px -6px; }
+  .credits-links a { min-width: 44px; justify-content: center; }
+}
+
+/* ---- Display settings (set by /prefs.js on every page) ---- */
+/* Text size: A, A+, A++. Everything sized in rem grows with it. */
+:root[data-text="2"] { font-size: 112.5%; }
+:root[data-text="3"] { font-size: 131.25%; }
+.skip-link { position: absolute; left: -999px; top: 0; background: var(--card); color: var(--ink); padding: .6rem 1rem; z-index: 100; font-weight: 600; }
+.skip-link:focus { left: .5rem; top: .5rem; }
+.pref-row { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; margin: 0 0 .45rem; }
+.pref-label { font: 500 .8rem/1.2 var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--ink-2); min-width: 5.2rem; }
+.pref-btn {
+  font: inherit; font-size: 1rem; line-height: 1.2; min-height: 44px; min-width: 44px; padding: .3rem .75rem;
+  color: var(--ink); background: var(--card); border: 1px solid var(--rule-strong); border-radius: 0; cursor: pointer;
+}
+.pref-btn:hover { border-color: var(--ink); }
+.pref-btn[aria-pressed="true"] { background: var(--ink); color: var(--card); border-color: var(--ink); font-weight: 600; }
+.pref-btn[aria-pressed="true"]::before { content: "✓ "; }
+.pref-text-1 { font-size: .95rem; } .pref-text-2 { font-size: 1.1rem; } .pref-text-3 { font-size: 1.28rem; }
+.pref-text[aria-pressed="true"]::before, .pref-contrast[aria-pressed="true"]::before { content: none; }
+.pref-contrast[aria-pressed="true"]::after { content: " on"; font-weight: 400; }
+.view-switch .pref-btn { flex: 1 1 6rem; font-weight: 600; }
+
+/* High contrast: black and white text, solid rules, underlined links,
+   thick focus rings. Layer colors stay the same so the map key still matches. */
+:root[data-contrast="high"] {
+  --paper: #ffffff; --paper-2: #f0f0f0; --card: #ffffff;
+  --rule: #000000; --rule-strong: #000000;
+  --ink: #000000; --ink-2: #000000; --quiet: #1a1a1a;
+  --accent: #5a3a1a; --accent-hover: #000000; --link: #00306e;
+  --check-border: #000000; --swatch-ring: #000000;
+  --credits-bg: #ffffff; --shadow: rgba(0,0,0,.4);
+}
+:root[data-contrast="high"][data-theme="dark"] {
+  --paper: #000000; --paper-2: #111111; --card: #000000;
+  --rule: #ffffff; --rule-strong: #ffffff;
+  --ink: #ffffff; --ink-2: #ffffff; --quiet: #f0f0f0;
+  --accent: #ffd38a; --accent-hover: #ffffff; --link: #9fd0ff; --accent-ink: #000000;
+  --check-border: #ffffff; --swatch-ring: #ffffff; --credits-bg: #000000;
+}
+:root[data-contrast="high"] a:not(.btn):not(.brand-home):not(.proj-link):not(.skip-link) { text-decoration: underline; text-decoration-thickness: .1em; }
+.byline { white-space: nowrap; }
+:root[data-text="3"] .tagline, :root[data-text="2"] .tagline { display: none; }
+:root[data-contrast="high"] :focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; box-shadow: 0 0 0 6px var(--card); }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
