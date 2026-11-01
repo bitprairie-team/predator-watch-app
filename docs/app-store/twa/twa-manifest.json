@@ -1,0 +1,43 @@
+{
+  "packageId": "org.predatorwatch.app",
+  "host": "app.predatorwatch.org",
+  "name": "Predator Watch by BitPrairie",
+  "launcherName": "Predator Watch",
+  "display": "standalone",
+  "orientation": "default",
+  "themeColor": "#f3f4f6",
+  "themeColorDark": "#0e1012",
+  "navigationColor": "#f3f4f6",
+  "navigationColorDark": "#0e1012",
+  "navigationDividerColor": "#f3f4f6",
+  "navigationDividerColorDark": "#0e1012",
+  "backgroundColor": "#f3f4f6",
+  "enableNotifications": false,
+  "startUrl": "/",
+  "iconUrl": "https://app.predatorwatch.org/icons/icon-512.png",
+  "maskableIconUrl": "https://app.predatorwatch.org/icons/icon-maskable-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "./predator-watch-upload.keystore",
+    "alias": "upload"
+  },
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [
+    { "name": "Status", "shortName": "Status", "url": "https://app.predatorwatch.org/status", "chosenIconUrl": "https://app.predatorwatch.org/icons/icon-192.png" },
+    { "name": "About", "shortName": "About", "url": "https://app.predatorwatch.org/about", "chosenIconUrl": "https://app.predatorwatch.org/icons/icon-192.png" }
+  ],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://app.predatorwatch.org/manifest.webmanifest",
+  "fallbackType": "customtabs",
+  "features": {
+    "locationDelegation": { "enabled": true }
+  },
+  "alphaDependencies": { "enabled": false },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://app.predatorwatch.org/",
+  "minSdkVersion": 21,
+  "fingerprints": []
+}

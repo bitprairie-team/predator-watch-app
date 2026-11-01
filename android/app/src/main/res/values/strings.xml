@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Predator Watch by BitPrairie</string>
+    <string name="title_activity_main">Predator Watch by BitPrairie</string>
+    <string name="package_name">org.predatorwatch.app</string>
+    <string name="custom_url_scheme">org.predatorwatch.app</string>
+</resources>

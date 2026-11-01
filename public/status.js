@@ -1,4 +1,5 @@
 // Renders /api/status as a table.
+import { apiFetch } from "/net.js";
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 // Short times ("Oct 31, 2:52 PM"; the year only when it is not this year),
 // with the full date and time in a tooltip and the machine-readable value.
@@ -62,11 +63,14 @@ function keepTableRoles() {
 async function load() {
   const summary = document.getElementById("summary");
   try {
-    const res = await fetch("/api/status");
+    const res = await apiFetch("/api/status");
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const r = await res.json();
     const allOk = r.healthy === r.total;
-    summary.innerHTML = `<span class="badge ${allOk ? "ok" : "warn"}">${esc(r.healthy)} of ${esc(r.total)} healthy</span> Last scheduled run ${time(r.last_cron_run)}. <span class="muted">Page updated ${time(r.generated_at)}.</span>`;
+    // A saved copy (offline) is never shown silently: say so, with its time.
+    const saved = res.headers.get("x-pw-saved-at");
+    const savedNote = saved ? `<span class="badge warn">Saved copy</span> Offline. Showing the status saved on this device ${time(saved)}. ` : "";
+    summary.innerHTML = savedNote + `<span class="badge ${allOk ? "ok" : "warn"}">${esc(r.healthy)} of ${esc(r.total)} healthy</span> Last scheduled run ${time(r.last_cron_run)}. <span class="muted">Page updated ${time(r.generated_at)}.</span>`;
     // data-label names each cell for the stacked layout on narrow screens.
     document.getElementById("rows").innerHTML = r.sources
       .map(
