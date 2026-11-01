@@ -35,6 +35,17 @@ function sourcesHtml(citations) {
     .join("")}</ol>`;
 }
 
+// "What I did" under each answer: data read, sources and times, rules, and what was left out.
+function whatIDidHtml(w) {
+  const li = (arr, f) => (arr?.length ? `<ul>${arr.map((x) => `<li>${f(x)}</li>`).join("")}</ul>` : "<p>None.</p>");
+  return `<details class="whatidid"><summary>What I did</summary>
+    <p><strong>Data read</strong></p>${li(w.read, (x) => `${esc(x.title)}${x.detail ? `: ${esc(x.detail)}` : ""}`)}
+    <p><strong>Rules applied</strong></p>${li(w.rules, esc)}
+    <p><strong>Skipped or declined, and why</strong></p>${li(w.skipped, (x) => `${esc(x.what)}. ${esc(x.why)}`)}
+    ${w.id ? `<p><a href="/ranch.html#activity/${esc(w.id)}">Open in the activity log</a></p>` : ""}
+  </details>`;
+}
+
 function addMsg(cls, html) {
   const li = document.createElement("li");
   li.className = cls;
@@ -70,6 +81,13 @@ async function refresh() {
   help.replaceChildren(...(me.can_help_with || []).map((t) => Object.assign(document.createElement("li"), { textContent: t })));
   $("#rancher-help").hidden = !help.children.length;
   if (me.mock) $("#rancher-who").textContent += " Offline demo mode: answers come from a local test model.";
+  // Off by default: until the rancher turns it on in Ranch tools, there is no chat or voice.
+  const off = me.assistant_on === false;
+  const offMsg = $("#rancher-off");
+  offMsg.hidden = !off;
+  if (off) offMsg.innerHTML = `${esc(me.turned_off_message ?? "The assistant is off for your account.")} <a href="/ranch.html#settings">Open settings</a>`;
+  for (const el of ["#rancher-chat", "#rancher-log", "#rancher-help", "#rancher-notice"]) $(el).hidden = off || (el === "#rancher-help" && !help.children.length);
+  $("#rancher-mic").hidden = off;
 }
 
 $("#rancher-key-form").addEventListener("submit", (e) => {
@@ -118,6 +136,7 @@ $("#rancher-chat").addEventListener("submit", async (e) => {
         else if (ev === "citations") bot.insertAdjacentHTML("beforeend", sourcesHtml(data.citations));
         else if (ev === "guard") bot.classList.add("declined");
         else if (ev === "done") {
+          if (data.what_i_did) bot.insertAdjacentHTML("beforeend", whatIDidHtml(data.what_i_did));
           if (data.refused) {
             // Keep declined topics out of the running conversation.
             bot.classList.add("declined");
