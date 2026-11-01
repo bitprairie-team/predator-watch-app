@@ -131,7 +131,8 @@ export const GENERAL_LABEL = "General information, not from your Predator Watch 
 
 export function refusalText(category: GuardCategory, opts: { emergency?: boolean } = {}): string {
   const p = POLICY[category];
-  return [p.decline, p.authority, p.offer, opts.emergency ? EMERGENCY_NOTICE : ""].filter(Boolean).join(" ");
+  // Safety first: in an emergency the 911 line leads.
+  return [opts.emergency ? EMERGENCY_NOTICE : "", p.decline, p.authority, p.offer].filter(Boolean).join(" ");
 }
 
 /**
