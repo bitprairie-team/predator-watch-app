@@ -10,10 +10,14 @@ import { sourcesFooter, type Citation } from "../agents/citations";
 import { toolSpecs } from "../agents/runner";
 import { recordGuardEvent } from "../agents/audit";
 import { AgentError, type AuthContext } from "../agents/types";
-import { classifyInput } from "../guardrails/classifier";
+import { classifyConversation } from "../guardrails/classifier";
 import { checkOutput } from "../guardrails/output-check";
 import { DISCLAIMER, refusalText } from "../guardrails/policy";
-import { runRancherTurn } from "./assistant";
+import { DATA_NOTICE } from "../guardrails/sanitize";
+import { ownNames, runRancherTurn } from "./assistant";
+
+/** Spoken turns older than this are not joined with a new question. */
+const VOICE_TURN_WINDOW_MS = 10 * 60 * 1000;
 import { RANCHER_INSTRUCTIONS, RANCHER_VOICE_INSTRUCTIONS } from "./prompt";
 import type { RancherService } from "./service";
 
@@ -131,7 +135,8 @@ export async function handleAssistant(request: Request, url: URL, svc: RancherSe
       const body = await readJson(request);
       const result = await svc.registry.execute(toolMatch[1]!, body.arguments ?? {}, ctx, svc.deps);
       const citations: Citation[] = result.sources.map((s, i) => ({ ...s, cite: `S${i + 1}` }));
-      return json({ ...result, citations });
+      // The voice client wraps the result in the same <untrusted_data> fence the server uses.
+      return json({ ...result, citations, notice: DATA_NOTICE });
     }
 
     if (request.method === "POST" && path === "/api/assistant/voice/session") {
@@ -154,7 +159,13 @@ export async function handleAssistant(request: Request, url: URL, svc: RancherSe
       if (!(await svc.rateLimiter.hit(`voiceguard:${ctx.tenantId}`, svc.guard.voiceGuardPerMinute, 60, svc.now().getTime())))
         throw new AgentError("rate_limited", "Too many voice requests. Try again in a minute.", 429);
       if (stage === "input") {
-        const d = classifyInput(text);
+        // Voice questions are checked with the last few spoken turns, held on
+        // the server (not sent by the client), so a split ask is caught.
+        const turnsKey = `voice_turns:${ctx.tenantId}:${ctx.userId}`;
+        const nowMs = svc.now().getTime();
+        const held = ((await svc.store.get<{ at: number; text: string }[]>(turnsKey)) ?? []).filter((t) => nowMs - t.at < VOICE_TURN_WINDOW_MS);
+        await svc.store.put(turnsKey, [...held, { at: nowMs, text: text.slice(0, 2000) }].slice(-4), { expirationTtl: 1800 });
+        const d = classifyConversation([...held.map((t) => t.text), text], { ownNames: await ownNames(svc, ctx) });
         if (d.action === "decline" && d.category) {
           await recordGuardEvent(svc.audit, ctx, { tool: "assistant.voice", outcome: "refused", category: d.category, rule: d.rule, text, at: svc.now() });
           return json({ action: "decline", category: d.category, say: refusalText(d.category, { emergency: d.emergency }) });
