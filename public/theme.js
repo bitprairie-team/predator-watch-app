@@ -12,7 +12,12 @@
     if (!m.hasAttribute("data-light")) m.setAttribute("data-light", m.getAttribute("content") || "");
     m.setAttribute("content", theme === "dark" ? (m.getAttribute("data-dark") || "#0e1012") : m.getAttribute("data-light"));
   }
-  function paint(theme){ root.setAttribute("data-theme", theme); meta(theme); }
+  // Toggle buttons are named "Dark mode"; aria-pressed and the tooltip say whether it is on.
+  function sync(theme){
+    var btns = document.querySelectorAll("[data-theme-toggle]");
+    for (var i = 0; i < btns.length; i++) { btns[i].setAttribute("aria-pressed", String(theme === "dark")); btns[i].title = theme === "dark" ? "Switch to light mode" : "Switch to dark mode"; }
+  }
+  function paint(theme){ root.setAttribute("data-theme", theme); meta(theme); sync(theme); }
   paint(read());
   document.addEventListener("DOMContentLoaded", function(){ paint(read()); });
   window.addEventListener("pageshow", function(e){ if (e.persisted) paint(read()); });
