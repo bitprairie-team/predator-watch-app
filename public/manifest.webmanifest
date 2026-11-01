@@ -1,15 +1,31 @@
 {
+  "id": "/",
   "name": "Predator Watch by BitPrairie",
   "short_name": "Predator Watch",
   "description": "Public agency predator data on one map, with the source and time on every item.",
+  "lang": "en-US",
+  "dir": "ltr",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "any",
   "background_color": "#f3f4f6",
   "theme_color": "#f3f4f6",
+  "categories": ["navigation", "utilities", "education"],
   "icons": [
-    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
     { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
     { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ],
+  "shortcuts": [
+    { "name": "Source status", "short_name": "Status", "url": "/status", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "About and methodology", "short_name": "About", "url": "/about", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] }
+  ],
+  "screenshots": [
+    { "src": "/icons/screenshot-narrow.png", "sizes": "1080x1920", "type": "image/png", "form_factor": "narrow", "label": "Wolf activity layers from public agency data on a phone" },
+    { "src": "/icons/screenshot-wide.png", "sizes": "1920x1080", "type": "image/png", "form_factor": "wide", "label": "The map with the layers panel, credits and freshness badges" }
   ]
 }

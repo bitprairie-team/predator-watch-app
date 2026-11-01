@@ -81,6 +81,28 @@ export const THEME_BACKGROUNDS = {
   dark: ["#0e1012", "#15181b", "#1b1d20"],
 } as const;
 
+/**
+ * Installed-app colors (web app manifest, iOS meta tags, store app splash
+ * screens and icons). The theme and background are the light paper color;
+ * the icon tile is the BitPrairie accent. test/stage7-app.test.ts checks
+ * that public/manifest.webmanifest and capacitor.config.ts use these.
+ */
+export const APP_COLORS = {
+  /** Browser and status bar color; also the manifest theme_color. */
+  theme: THEME_BACKGROUNDS.light[1],
+  /** Splash and window background before the page paints. */
+  background: THEME_BACKGROUNDS.light[1],
+  /** Dark theme bar color (meta theme-color data-dark). */
+  themeDark: THEME_BACKGROUNDS.dark[0],
+  /** Icon tile behind the white paw mark. */
+  icon: "#7a5530",
+  /** Paw mark on the icon tile. */
+  iconMark: "#ffffff",
+  /** Paw mark on the light and dark launch screens (brand accents). */
+  splashMark: "#7a5530",
+  splashMarkDark: "#c9a679",
+} as const;
+
 /** "#rrggbb" to [r, g, b, a] for ArcGIS symbol JSON. */
 export function esriRgba(hex: string, alpha = 255): [number, number, number, number] {
   return [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)).concat(alpha) as [number, number, number, number];
