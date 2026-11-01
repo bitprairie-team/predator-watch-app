@@ -10,6 +10,9 @@
   function get(k) { try { return localStorage.getItem(KEYS[k]); } catch (e) { return null; } }
   function put(k, v) { try { if (v === null) localStorage.removeItem(KEYS[k]); else localStorage.setItem(KEYS[k], v); } catch (e) { /* private mode */ } }
   var moreContrast = window.matchMedia ? window.matchMedia("(prefers-contrast: more)") : null;
+  // Map page, first visit: show the welcome hint with the first paint rather
+  // than after the map library loads (app.js wires its "Got it" button).
+  try { if (localStorage.getItem("pw-hint-dismissed") !== "1" && !/(?:^#|&)map=/.test(location.hash || "")) root.setAttribute("data-first-visit", ""); } catch (e) { /* private mode */ }
 
   function hashMode() {
     var m = /(?:^#|&)mode=(simple|expert)(?:&|$)/.exec(location.hash || "");
