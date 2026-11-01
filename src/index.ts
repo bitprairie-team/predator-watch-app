@@ -7,6 +7,7 @@ import { contextFromAccessKey, bearer } from "./agents/auth";
 import { isOAuthPath, oauthProvider } from "./mcp/oauth";
 import { handleMcp, MCP_ROUTE } from "./mcp/server";
 import { handleAssistant } from "./rancher/routes";
+import { runScheduledAgents } from "./rancher/agents-service";
 import { rancherService, type PrivateEnv, type ServiceOverrides } from "./rancher/service";
 import { demoOverrides, type DemoEnv } from "./rancher/demo";
 
@@ -78,7 +79,7 @@ export async function handleRequest(
     const svc = rancherService(env, overrides);
     if (!svc) return json({ error: "not configured", message: "The private rancher plan is not set up on this server." }, 503, 0);
     const key = bearer(request);
-    const auth = key ? await contextFromAccessKey(svc.store, key, "mcp:access-key") : null;
+    const auth = key ? await contextFromAccessKey(svc.store, key, "mcp:access-key", svc.now()) : null;
     if (!auth) return json({ error: "unauthenticated", message: "Send a rancher access key as a Bearer token." }, 401, 0);
     return handleMcp(request, svc, auth);
   }
@@ -126,5 +127,15 @@ export default {
         console.log(JSON.stringify({ msg: "refresh complete", results: r }));
       }),
     );
+    // Background agents for the private plan. Off unless PRIVATE_KV is bound.
+    const svc = rancherService(env);
+    if (svc) {
+      ctx.waitUntil(
+        runScheduledAgents(svc).then(
+          (runs) => console.log(JSON.stringify({ msg: "agents complete", runs: runs.map((r) => ({ agent: r.agent, tenant: r.tenant_id, status: r.status })) })),
+          (e) => console.error("agents failed", e),
+        ),
+      );
+    }
   },
 } satisfies ExportedHandler<WorkerEnv>;

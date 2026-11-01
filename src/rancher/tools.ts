@@ -221,6 +221,7 @@ async function activityNear(deps: RancherDeps, a: ActivityArgs): Promise<ToolRes
   const shared: (SharedCell & { distance_miles: number })[] = [];
   if (a.include_shared) {
     for (const g of await d.sharedCells()) {
+      if (g.gap) gaps.push(g.gap);
       const cells = g.cells
         .filter((c) => c.latest_observed_on >= iso(since).slice(0, 10))
         .map((c) => ({ ...c, distance_miles: round1(distanceMiles(here, c.geometry)) }))
@@ -335,6 +336,7 @@ const allotmentActivity: Tool = {
     if (own.length) sources.push(ownSource(own, t?.name ?? "Your account"));
     const shared: SharedCell[] = [];
     for (const g of await d.sharedCells()) {
+      if (g.gap) gaps.push(g.gap);
       const cells = g.cells.filter((c) => c.latest_observed_on >= iso(since).slice(0, 10) && intersects(c.geometry, al.geometry));
       if (cells.length) {
         shared.push(...cells);
@@ -555,6 +557,7 @@ const weekly: Tool = {
       alerts: { type: "array", items: featureSchema },
       your_records_by_kind: { type: "object" },
       gaps: { type: "array", items: { type: "string" } },
+      window: { type: "object" },
     },
   },
   async handler(i: { ranch_id?: string }, deps, ctx) {
@@ -573,6 +576,8 @@ const weekly: Tool = {
         alerts: f.alerts.slice(0, 20),
         your_records_by_kind: byKind,
         gaps: [...new Set([...a.gaps, ...f.gaps])],
+        // The window this summary covers, so an answer can state it from data.
+        window: { days: 7, activity_radius_miles: 25, alerts_radius_miles: 50 },
       },
       sources,
     };

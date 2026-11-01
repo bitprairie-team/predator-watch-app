@@ -154,9 +154,14 @@ All routes need `Authorization: Bearer <access key>`.
 | `POST /api/assistant/voice/guard` | Policy check on a voice transcript. Body `{ "stage": "input" \| "output", "text": "…" }`. Returns `allow`, `decline` (with `say`), `block`, or `redact`. |
 | `POST /api/assistant/voice/session` | Mints a short-lived voice secret and returns the WebSocket URL, subprotocols, and the `session.update` payload (instructions, voice, tools). |
 | `GET /api/assistant/audit` | Recent audit entries for this account. |
+| `GET /api/assistant/agents`, `…/agents/runs`, `POST …/agents/:id/run\|pause\|resume` | Background agents. See [background-agents.md](background-agents.md). |
+| `GET /api/assistant/outbox`, `POST …/outbox/:id/approve\|reject` | Results waiting for the rancher's approval before anything is sent. |
 
 Errors: `401` no or bad credential, `402` not on the rancher plan, `403`
-missing scope, `429` rate limited, `503` not configured.
+missing scope, `429` rate limited, `503` not configured or switched off.
+
+`/me` also returns `notice` (always shown above the chat) and `can_help_with`
+(the short list shown in the app and after each decline).
 
 ## Data the assistant reads
 
@@ -169,7 +174,11 @@ Stored in `PRIVATE_KV` (`src/rancher/data.ts`, `src/rancher/model.ts`):
 - `shared:<group>:<id>` and `group:<id>`: shared records and the group's
   policy (cell size, delay, den season, held-back cells).
 - `doc:<id>` and `tdoc:<tenant>:<id>`: reference documents.
-- `accesskey:<sha256>`: access-key records.
+- `accesskey:<sha256>`: access-key records (scopes, optional `tools`,
+  `expires_at`, `calls_per_day`, `label`).
+- `agentrun:<tenant>:…`, `agentstate:<tenant>:<agent>`, `outbox:<tenant>:<id>`:
+  background agent runs, state, and items waiting for approval.
+- `killswitch:…` and `agentpause:<tenant>:<agent>`: kill switches.
 
 Public agency layers come from the existing `LAYER_CACHE`.
 
@@ -187,6 +196,8 @@ Public agency layers come from the existing `LAYER_CACHE`.
 | `XAI_MODEL` | var | `grok-4.7` | Text model. |
 | `XAI_VOICE_MODEL` | var | `grok-voice-latest` | Realtime voice model. |
 | `XAI_VOICE` | var | `eve` | Voice. |
+| `ASSISTANT_DISABLED` | var | unset | `1` turns off chat, voice, tools, MCP, and agents. |
+| `AGENTS_DISABLED` | var | unset | `1` turns off background agents only. |
 
 Locally, put `XAI_API_KEY` in `.dev.vars` (gitignored); see `.dev.vars.example`.
 In production use `npx wrangler secret put XAI_API_KEY`. The bindings are
@@ -207,6 +218,9 @@ Swapping providers: implement `ModelProvider` in `src/agents/providers/types.ts`
 - `public/rancher.js`: the web panel (text and voice).
 - `src/guardrails/`: scope policy, input classifier, output check, and
   tool-data sanitizer.
+- `src/agents/background.ts`, `src/agents/killswitch.ts`,
+  `src/rancher/background-agents.ts`, `src/rancher/agents-service.ts`:
+  background agents, the outbox, and kill switches.
 - Tests: `test/agents.test.ts`, `test/assistant-http.test.ts`,
   `test/mcp-oauth.test.ts`, and the red-team eval `test/redteam.test.ts`. No
   test calls xAI; the real provider class talks to the offline mock in
@@ -227,6 +241,8 @@ Swapping providers: implement `ModelProvider` in `src/agents/providers/types.ts`
 - Allotment lookup from federal grazing data, and a screen for ranchers to
   upload their own records.
 - Write tools and write scopes (for example, logging a sighting).
+- Sending approved outbox items by email or text, and an outbox screen in the
+  app.
 - Letting the voice model reach `/mcp` directly with xAI's remote MCP tool.
 
 ## xAI references

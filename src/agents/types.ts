@@ -31,7 +31,11 @@ export type Scope =
   | "directory:read"
   | "docs:read"
   | "summary:read"
-  | "audit:read";
+  | "audit:read"
+  /** Run or pause background agents. Not part of rancher:read, never granted to MCP. */
+  | "agents:run"
+  /** Approve or reject outbox items (anything meant to leave the system). Not part of rancher:read, never granted to MCP. */
+  | "outbox:approve";
 
 export const READ_SCOPES: Scope[] = [
   "activity:read",
@@ -52,6 +56,12 @@ export interface AuthContext {
   scopes: Scope[];
   /** Channel the call came from, for the audit log. */
   client: string;
+  /** Short id of the access key used (hash prefix), for the audit log. */
+  keyId?: string;
+  /** If set, only these tools may be called (per access key, or per background agent). */
+  tools?: string[];
+  /** If set, tool calls per day allowed for this key. */
+  callsPerDay?: number;
 }
 
 /** Where a fact came from. Every tool result carries these. */
@@ -105,7 +115,8 @@ export class AgentError extends Error {
       | "unknown_tool"
       | "provider_error"
       | "policy_declined"
-      | "timeout",
+      | "timeout"
+      | "disabled",
     message: string,
     public readonly status: number,
   ) {

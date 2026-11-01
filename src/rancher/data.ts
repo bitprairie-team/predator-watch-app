@@ -7,7 +7,7 @@ import type { Category, NormalizedFeature, PublicSourceInfo, SourceStatus } from
 import { sha256Hex } from "../agents/auth";
 import type { PrivateStore } from "../agents/store";
 import { AgentError, type AuthContext } from "../agents/types";
-import type { Observation, ReferenceDocument, SharedObservation, SharingGroupPolicy, TenantRecord } from "./model";
+import type { GroupMember, Observation, ReferenceDocument, SharedObservation, SharingGroupPolicy, TenantRecord } from "./model";
 import { sharedCells, type SharedCell } from "./tiers";
 
 export interface PublicLayer {
@@ -37,6 +37,10 @@ export class KvPublicLayers implements PublicLayers {
   }
 }
 
+/** Ids that become part of a storage key: no ":" or other separators. */
+export const SAFE_ID = /^[a-z0-9][a-z0-9_-]{0,63}$/;
+export const isSafeId = (id: unknown): id is string => typeof id === "string" && SAFE_ID.test(id);
+
 export const tenantKey = (id: string) => `tenant:${id}`;
 export const obsPrefix = (tenantId: string) => `obs:${tenantId}:`;
 export const sharedPrefix = (group: string) => `shared:${group}:`;
@@ -45,6 +49,19 @@ export const DOC_PREFIX = "doc:";
 
 export async function originHash(tenantId: string): Promise<string> {
   return (await sha256Hex(`origin:${tenantId}`)).slice(0, 16);
+}
+
+export interface SharedGroupView {
+  policy: SharingGroupPolicy;
+  cells: SharedCell[];
+  /** Set when the agreement keeps this group's reports from being shown. */
+  gap?: string;
+}
+
+function memberActive(m: GroupMember, now: Date): boolean {
+  if (m.status !== "active") return false;
+  if (Date.parse(m.joined_at) > now.getTime()) return false;
+  return !m.ends_at || Date.parse(m.ends_at) > now.getTime();
 }
 
 export class RancherData {
@@ -85,20 +102,45 @@ export class RancherData {
     return rows.filter((r): r is Observation => r !== null);
   }
 
-  /** Other ranchers' shared records, generalized to cells per group policy. */
-  async sharedCells(): Promise<{ policy: SharingGroupPolicy; cells: SharedCell[] }[]> {
+  /**
+   * Other ranchers' shared records, generalized to cells per group policy.
+   * Enforces the data-sharing agreement: the reader must be an active,
+   * unexpired member with read rights, and only reports from active members
+   * with contribute rights, made after they joined, are included. A group
+   * with no agreement or no member list shares nothing.
+   */
+  async sharedCells(): Promise<SharedGroupView[]> {
     const t = await this.tenant();
     if (!t) return [];
     const mine = await originHash(this.ctx.tenantId);
-    const out: { policy: SharingGroupPolicy; cells: SharedCell[] }[] = [];
+    const now = this.now();
+    const out: SharedGroupView[] = [];
     for (const group of t.sharing_groups ?? []) {
+      if (!isSafeId(group)) continue;
       const policy = await this.store.get<SharingGroupPolicy>(groupKey(group));
-      if (!policy) continue;
+      if (!policy || policy.id !== group) continue;
+      const blocked = (gap: string) => out.push({ policy, cells: [], gap });
+      if (!policy.agreement || !policy.members) {
+        blocked(`${policy.name}: no data-sharing agreement or member list is on file, so no shared reports are shown.`);
+        continue;
+      }
+      if (policy.agreement.expires_at && Date.parse(policy.agreement.expires_at) <= now.getTime()) {
+        blocked(`${policy.name}: the data-sharing agreement expired on ${policy.agreement.expires_at.slice(0, 10)}, so no shared reports are shown.`);
+        continue;
+      }
+      const me = policy.members.find((m) => m.origin === mine);
+      if (!me || !memberActive(me, now) || me.can_read === false) {
+        blocked(`${policy.name}: your membership is not active, so no shared reports are shown.`);
+        continue;
+      }
+      const contributors = new Map(policy.members.filter((m) => memberActive(m, now) && m.can_contribute !== false).map((m) => [m.origin, m]));
       const keys = await this.store.list(sharedPrefix(group), 5000);
-      const rows = (await Promise.all(keys.map((k) => this.store.get<SharedObservation>(k)))).filter(
-        (r): r is SharedObservation => r !== null,
-      );
-      out.push({ policy, cells: sharedCells(rows, policy, this.now(), mine) });
+      const rows = (await Promise.all(keys.map((k) => this.store.get<SharedObservation>(k)))).filter((r): r is SharedObservation => {
+        if (!r || r.group !== group) return false;
+        const m = contributors.get(r.origin);
+        return !!m && Date.parse(r.observed_at) >= Date.parse(m.joined_at);
+      });
+      out.push({ policy, cells: sharedCells(rows, policy, now, mine) });
     }
     return out;
   }
