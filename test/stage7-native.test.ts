@@ -101,3 +101,29 @@ describe("Trusted Web Activity option (Google Play)", () => {
     expect(twa.signingKey.path).toMatch(/\.keystore$/);
   });
 });
+
+describe("store listing copy", () => {
+  const docs = ["listing.md", "README.md", "privacy-answers.md", "content-rating.md", "owner-only.md"].map((f) =>
+    readFileSync(join(process.cwd(), "docs/app-store", f), "utf8"),
+  );
+  const listing = docs[0]!;
+  const STATES = /\b(Alabama|Alaska|Arizona|Arkansas|California|Colorado|Connecticut|Delaware|Florida|Georgia|Hawaii|Idaho|Illinois|Indiana|Iowa|Kansas|Kentucky|Louisiana|Maine|Maryland|Massachusetts|Michigan|Minnesota|Mississippi|Missouri|Montana|Nebraska|Nevada|New Hampshire|New Jersey|New Mexico|New York|North Carolina|North Dakota|Ohio|Oklahoma|Oregon|Pennsylvania|Rhode Island|South Carolina|South Dakota|Tennessee|Texas|Utah|Vermont|Virginia|Washington|West Virginia|Wisconsin|Wyoming|Yellowstone)\b/;
+  it("follows the copy rules in every store doc", () => {
+    for (const d of docs) {
+      expect(d).not.toMatch(/\bproducers?\b/i);
+      expect(d).not.toMatch(/\bAI\b/);
+      expect(d).not.toMatch(STATES);
+    }
+  });
+  it("uses the owner's store name and fits store limits", () => {
+    expect(listing).toContain(`| Name | 30 | ${APP_NAME} |`);
+    expect(APP_NAME.length).toBeLessThanOrEqual(30);
+    const kw = /\| Keywords \| 100 \| ([^|]+) \|/.exec(listing)![1]!.trim();
+    expect(kw.length).toBeLessThanOrEqual(100);
+    const short = /\| Short description \| 80 \| ([^|]+) \|/.exec(listing)![1]!.trim();
+    expect(short.length).toBeLessThanOrEqual(80);
+    const sub = /\| Subtitle \| 30 \| ([^|]+) \|/.exec(listing)![1]!.trim();
+    expect(sub.length).toBeLessThanOrEqual(30);
+    expect(listing).toMatch(/Planned/);
+  });
+});
