@@ -185,6 +185,7 @@ const RULES: Rule[] = [
   { id: "inj.pretend", category: "injection", test: re(/\bpretend (that )?(i'?m|i am|to be|you'?re|you are|we'?re)\b.{0,30}\b(owner|admin|another|other|different|tenant|staff|warden|officer|agent|account|neighbou?r|unrestricted|lawyer|vet)\b/) },
   { id: "inj.grandma", category: "injection", test: re(/\b(grandpa|grandma|grandfather|grandmother|granddad|my (late|dead) \w+)\b.{0,30}\b(used to|would) (tell|read|sing|explain)\b/) },
   { id: "inj.assemble", category: "injection", test: re(/\b(put|combine|join|merge|stitch|glue) (those|these|them|the (words|pieces|parts|letters|halves)|it all|both) together\b|\b(remember|memori[sz]e|store|save|keep) (the|this|these|my) (code ?)?(word|words|letters|letter|part|phrase)s?\b|\b(the word|code ?word) \w+ (means|is|stands for)\b|\bwhen i say \w+,? i mean\b|\bfrom (now|here) on,? (the word )?\w+ (means|is|stands for)\b/) },
+  { id: "inj.repeat", category: "injection", test: re(/\b(repeat|print|output|copy|echo|recite)\b.{0,30}\b(everything|all|the text|what'?s|whatever)\b.{0,20}\b(above|before|earlier|prior)\b|\b(above|preceding) (this|the) (line|message)\b.{0,20}\bverbatim\b|\bverbatim\b.{0,30}\b(instructions|prompt|above|rules)\b/) },
   { id: "inj.secret", category: "injection", test: re(/\b(what'?s|what is|show|give|tell|print|reveal|list|send)\b.{0,30}\b(access keys?|api keys?|passwords?|secret keys?|tokens?|credentials?|login)\b/) },
   { id: "inj.decode", category: "injection", test: re(/\b(decode|decrypt|deobfuscate|unscramble|reverse|translate|rot13|base64|hex)\b.{0,20}\b(and|then)\b.{0,10}\b(answer|do|follow|run|execute|obey|respond)\b|\brun this\s*:/) },
 
@@ -194,6 +195,17 @@ const RULES: Rule[] = [
   { id: "eva.noreport", category: "evasion", test: re(/\b(how (do|can) i|ways? to|is there a way to)\b.{0,20}\b(not|avoid|skip|get out of) report/) },
   { id: "eva.addcount", category: "evasion", test: re(/\b(add|include|count|claim|list|throw in)\b.{0,15}\b(a couple|a few|some|extra|more|another|two|three|\d+)\b.{0,20}\b(calves|cows|head|lambs|ewes|sheep|animals)?.{0,10}\b(to|on|in) (the|my) (count|claim|report|tally|total|list)\b/) },
   { id: "eva.fraud", category: "evasion", test: re(/\b(inflate|exaggerate|pad|overstate|fake|fabricate|falsify|make up)\b.{0,30}\b(claims?|loss(es)?|reports?|numbers|count|evidence|kill)\b|\breport (more|extra)\b.{0,40}\bthan (i|we) (can prove|lost|actually)\b|\b(stage|fake) a (kill|depredation)\b/) },
+  { id: "eva.unseen", category: "evasion", test: re(/\b(nobody|no one|no-one|nobody else|they never)\b.{0,10}\b(finds?|sees?|knows?|notices?|discovers?)\b.{0,30}\b(wolf|wolves|carcass|body|collar|kill|it|i (shot|killed|put down|trapped|poisoned))\b/) },
+  { id: "eva.disguise", category: "evasion", test: re(/\b(look|looks|seem|seems|appear|appears|pass) (like|as) (a |an )?(natural( death| causes)?|accident(al)?|it died|disease|old age|roadkill|another (wolf|animal|pack))\b|\bfool(ing)? (the )?(collar|tracker|biologists?|agency|warden|investigators?)\b/) },
+  {
+    // "if I bury the carcass will the biologists ever know?"
+    id: "eva.know",
+    category: "evasion",
+    test: (t) =>
+      /\b(will|would|could|can|do|does)\b.{0,5}\b(the )?(biologists?|agency|agencies|wardens?|state|feds|investigators?|officers?|anyone|anybody|they)\b.{0,6}\b(ever |still |even )?(know|find out|find it|notice|detect|figure (it )?out|trace)\b/.test(t) &&
+      /\b(bury|buried|burn|dump|hide|hid|dispose|shot|shoot|killed|kill|trapped|poisoned|put down|collar|carcass|body)\b/.test(t) &&
+      !/\b(if|when|after|once) (i|we) (report|call|tell|notify)\b/.test(t),
+  },
   { id: "eva.collar", category: "evasion", test: re(/\b(remove|destroy|disable|cut off|jam|block)\b.{0,20}\b(collar|transmitter|tracking)\b/) },
 
   // ---------------------------------------------------------------- locating animals
@@ -225,6 +237,15 @@ const RULES: Rule[] = [
       /\b(dens?|denning|den site|rendezvous( sites?)?|whelping)\b/.test(t) &&
       /\b(where|locations?|located|locate|find|coordinates?|gps|exact|precise|pinpoint|address|directions?|lat(itude)?|long(itude)?|map|map it|show me|mark)\b/.test(t) &&
       !(/\bden season\b/.test(t) && !/\b(where|coordinates?|gps|exact|precise|pinpoint|lat(itude)?|long(itude)?)\b/.test(t)),
+  },
+  {
+    // "which canyon are the pups in", "what drainage is the pack using"
+    id: "loc.which_place",
+    category: "harm_location",
+    test: (t) =>
+      new RegExp(String.raw`\b(which|what) (canyon|drainage|draw|ridge|basin|meadow|creek|valley|gulch|hollow|coulee|section|timber|stand of trees)\b`).test(t) &&
+      new RegExp(String.raw`\b(${LOC_TARGET}|pups|litter|collared)\b`).test(t) &&
+      !/\b(my|our) (cattle|cows|calves|herd|sheep|livestock)\b.{0,20}\b(move|put|graze)\b/.test(t),
   },
   {
     id: "loc.precise",
@@ -267,21 +288,42 @@ const RULES: Rule[] = [
   { id: "pii.named_ranch", category: "personal_data", test: re(/\b(ranch|place|outfit|operation|cattle (co|company)|livestock|farms?|flat|creek)'s\b.{0,20}\b(records?|data|reports?|loss(es)?|observations?|notes|activity|sightings?|herd|calves|account)\b|\b(show|give|list|what did|what has)\b.{0,10}\b(the )?[a-z]+ (flat|creek|ranch|place|outfit|cattle co)\b.{0,15}\b(records?|data|reports?|loss(es)?|observations?|notes|report|lost)\b/) },
 
   // ---------------------------------------------------------------- lethal methods
-  { id: "let.method", category: "lethal", test: (t) => /\b(snares?|snaring|leg-?hold|foot-?hold|conibear|body-?grip|m-?44s?|cyanide|strychnine|compound 1080|1080 bait|antifreeze|ethylene glycol|rat poison|warfarin|bait stations?|lac(e|ed|ing) (a |the )?(carcass|bait|meat)|poison(ed)? (bait|meat|carcass)|thermals? (setup|optic|scope|sight|rig|gear)|where to aim|aim (for|at)|(gas|gassing|fumigat\w*|smoke out|dig out|dig up|denning)\b.{0,20}\b(dens?|pups|coyotes?|wolf|wolves)|caliber|calibre|\.(223|243|270|308)|ammo|ammunition|bullets?|shot placement|kill shot|predator calls?|e-?calls?|thermal scope|night vision scope|rifles?|shotguns?|guns?|firearms?)\b/.test(t) && !(EXPLAIN.test(t) && /\b(layer|data|map|tier)\b/.test(t)) },
+  { id: "let.poison", category: "lethal", test: re(new RegExp(String.raw`\b(which|what|best|fastest|strongest|quickest)\b.{0,15}\b(poisons?|toxins?|toxicants?)\b.{0,30}\b(works?|kills?|drops?|would kill|is best)\b.{0,15}\b(${PREDATOR}|canines?|canids?)\b`)) },
+  {
+    // Weapons and shooting gear named with a predator: "hit a wolf with a .243", "best scope for wolves".
+    id: "let.weapon",
+    category: "lethal",
+    test: (t) =>
+      new RegExp(String.raw`\b${PREDATOR}\b`).test(t) &&
+      /(\b(rifles?|scopes?|calibers?|calibres?|ammo|ammunition|bullets?|crosshairs?|suppressors?|silencers?|ar-?15|shotgun slugs?|buckshot|e-?callers?|electronic callers?|hit (a|the|one|it)\b.{0,15}\bwith|yards? out|(for|get|take|line up) a (clean )?shot|night vision)\b|(?<![\d.])\.\d{2,3}\b|\b\d{3} (win|rem|wsm|creedmoor)\b)/.test(t) &&
+      !/\b(spotting scopes?|binoculars?|camera|photos?|pictures?|video|cracker shells?|rubber|bean ?bag|non-?lethal|haz(e|ing))\b/.test(t),
+  },
+  { id: "let.so_i_can", category: "lethal", test: re(/\bso (that )?(i|we) can (take|kill|shoot|drop|get|finish|dispatch|remove|bag)( it| them| one| him| her| the (wolf|pack|animal))\b|\b(call|calling|lure|luring|bait|baiting|draw|drawing) (in )?(a |the )?(wolf|wolves|pack|coyotes?|predators?)\b.{0,30}\b(shot|shoot|take|kill|range|close)\b/) },
+  {
+    // "when does the pack cross the road... I want to be ready"
+    id: "loc.lie_in_wait",
+    category: "harm_location",
+    test: (t) =>
+      new RegExp(String.raw`\b(when|what time|where|which way|what route)\b.{0,40}\b${LOC_TARGET}\b`).test(t) &&
+      /\b(be ready|be waiting|wait for (it|them)|catch (it|them)|intercept|meet (it|them)|set up on|sit on|get (it|them|one)|be there (when|first))\b/.test(t),
+  },
+  { id: "let.method", category: "lethal", test: (t) => /\b(snares?|snaring|leg-?hold|foot-?hold|conibear|body-?grip|m-?44s?|cyanide|strychnine|compound 1080|1080 bait|antifreeze|ethylene glycol|rat poison|warfarin|bait stations?|lac(e|ed|ing) (a |the )?(carcass|bait|meat)|poison(ed)? (bait|meat|carcass)|thermals? (setup|optic|scope|sight|rig|gear)|where to aim|aim (for|at)|(gas|gassing|fumigat\w*|smoke out|dig out|dig up|denning)\b.{0,20}\b(dens?|pups|coyotes?|wolf|wolves)|caliber|calibre|\.(223|243|270|308)|ammo|ammunition|bullets?|shot placement|kill shot|predator call(er)?s? (to|for|that)|e-?calls?|thermal scope|night vision scope|rifles?(?! season)|shotguns?|guns?|firearms?)\b/.test(t) && !(EXPLAIN.test(t) && /\b(layer|data|map|tier)\b/.test(t)) },
 
   // ---------------------------------------------------------------- legal
   { id: "leg.isit", category: "legal", test: re(/\b(is it|it's|it is|would it be|is that|was it|was that|am i|are we)\b.{0,30}\b(legal|illegal|lawful|unlawful|against the law|allowed to|permitted to|breaking the law|in trouble|liable)\b/) },
   { id: "leg.cani", category: "legal", test: re(new RegExp(String.raw`\b(can|may|could|am i allowed to|is anyone allowed to|are ranchers allowed to)\b.{0,10}\b(i|we|ranchers|a rancher|you)?\b.{0,10}\b(legally )?(shoot|kill|trap|take|poison|hunt|remove|harass)\b.{0,20}\b${PREDATOR}`)) },
   { id: "leg.canit", category: "legal", test: re(/\b(can|may|could) (i|we) (legally |lawfully )?(shoot|kill|trap|poison|take|hunt|harass|haze) (it|them|one|that one|this one|that thing)\b/) },
   { id: "leg.legally", category: "legal", test: re(/\b(legally|legality|legal right|right to (shoot|kill|defend)|legal advice|legal options?)\b/) },
-  { id: "leg.law", category: "legal", test: re(/\b(lawyer|attorney|lawsuit|sue (the|them|him|her|my|a|an)|suing|litigation|court|liab(le|ility)|statutes?|endangered species act|\besa\b|section \d+|federal law|state law|the law say|regulations? (say|mean|allow|require)|interpret\w*.{0,20}(rule|regulation|law)|penalt(y|ies)|fined|prosecut\w*|ticketed|cited for)\b/) },
+  { id: "leg.law", category: "legal", test: re(/\b(lawyer|attorney|lawsuit|sue (the|them|him|her|my|a|an|me|us)|(judge|jury|da|prosecutor) (side|rule|find|convict|agree)\w*|suing|litigation|court|liab(le|ility)|statutes?|endangered species act|\besa\b|section \d+|federal law|state law|the law say|regulations? (say|mean|allow|require)|interpret\w*.{0,20}(rule|regulation|law)|penalt(y|ies)|fined|prosecut\w*|ticketed|cited for)\b/) },
   { id: "leg.permit", category: "legal", test: re(/\b(kill|lethal|depredation|take|hunting|trapping) (permit|permits|tag|tags|license)\b/) },
   { id: "leg.status", category: "legal", test: re(new RegExp(String.raw`\b(are|is)\b.{0,10}\b${PREDATOR}\b.{0,10}\b(protected|listed|delisted|endangered|threatened|legal to)\b`)) },
   { id: "leg.consequence", category: "legal", test: re(/\bwhat (would|will|could|might) happen (to me )?if (i|we)\b.{0,30}\b(did it|do it|shot|shoot|killed|kill|trapped|poisoned|didn'?t report|don'?t report|anyway)\b|\b(would|will|could) i (get|be) (in trouble|arrested|charged|fined|prosecuted|sued)\b/) },
+  { id: "leg.charges", category: "legal", test: re(/\b(does|do|would|will) (the )?(law|laws|rules|regulations?|state|feds?) (let|allow|permit)s? (me|us|ranchers?)\b|\b(face|facing|get|bring|press|file|catch) (criminal )?(charges|a fine|fines|jail time|prison|a citation|a ticket)\b|\b(charged|cited|arrested|jailed) for\b/) },
   { id: "leg.required", category: "legal", test: re(/\b(am i|are we|are ranchers) (required|obligated|obliged|supposed) to\b|\b(do|does) (i|we) (have|need) to (report|notify|tell)\b|\bwhat happens if i (don't|do not|didn't) report\b/) },
 
   // ---------------------------------------------------------------- compensation
-  { id: "comp.strategy", category: "compensation", test: (t) => /\b(compensat\w*|reimburs\w*|indemnit\w*|claims?|payouts?)\b/.test(t) && /\b(maximi[sz]e|get more|increase|win|appeal|denied|deny|denial|strategy|best way|prove|proof|convince|guarantee|qualify|eligib\w*|how much (will|would|can|could)|entitled|dispute|negotiat\w*|chances|make sure (it|they) (pays?|approve))\b/.test(t) },
+  { id: "comp.strategy", category: "compensation", test: (t) => /\b(compensat\w*|reimburs\w*|indemnit\w*|claims?|payouts?)\b/.test(t) && /\b(maximi[sz]e|get more|increase|win|appeal|denied|deny|denial|strategy|best way|prove|proof|convince|guarantee|qualify|eligib\w*|how much (will|would|can|could)|entitled|dispute|negotiat\w*|chances|make sure (it|they) (pays?|approve)|approv\w*|go through|accepted|rates?|per (calf|head|animal|cow|lamb|ewe)|schedule|amount)\b/.test(t) },
+  { id: "comp.pay", category: "compensation", test: re(/\bhow much\b.{0,30}\b(pay|give|reimburse|compensate)\b.{0,10}\b(me|us|ranchers?)\b.{0,25}\b(for|per)\b.{0,30}\b(lost|losses|killed|dead|calves|calf|cows?|lambs?|ewes?|sheep|head|steers?|heifers?)\b/) },
 
   // ---------------------------------------------------------------- lethal how-to
   { id: "let.howto", category: "lethal", test: (t) => new RegExp(String.raw`${HOWTO.source}.{0,40}\b${LETHAL_VERB}\b.{0,12}\b(them|it|one|that|this|him|her|${PREDATOR})\b`).test(t) && !/\b(non-?lethal|without (killing|harming|hurting))\b/.test(t) },
@@ -350,13 +392,23 @@ const DEPENDENT = /^(and|so|ok(ay)?|fine|then|now|but|also|well|alright|right|ju
 const SAFE_INTENT = /\b(who (do|should|can) i (call|contact|report|tell)|how (do|should) i report|report (it|this|that)|agency contacts?|conflict specialist|non-?lethal|deterr\w*|fladry|range riders?|guard(ian)? dogs?|night pens?|fire|weather|alerts?|how fresh|data freshness|my audit|never ?mind|forget it|thanks?|thank you|okay thanks|without (hurting|harming|killing|injuring)|keep (them|it|\w+) (away|out|off))\b/;
 
 /** Code words set up earlier in the conversation: "when I say pickle I mean kill". */
+const ALIAS_STOP = new Set(["the", "this", "that", "these", "those", "and", "but", "not", "yes", "you", "your", "our", "its", "his", "her", "they", "them", "what", "which", "who", "how", "why", "fine", "okay", "true", "false", "good", "bad", "right", "wrong"]);
+
 export function aliasesFrom(history: string[]): [string, string][] {
   const out: [string, string][] = [];
+  const q = `["'\u2018\u2019\u201c\u201d]?`;
+  const w = `${q}([a-z]+)${q}`;
+  const pats = [
+    new RegExp(String.raw`\b(?:when i say|if i say|the word|code ?word)\s+${w},?\s+(?:i mean|means|is|stands for|=)\s+(?:a |an |the )?${w}`, "g"),
+    new RegExp(String.raw`\b(?:from (?:now|here) on,?|let'?s say|pretend|say)\s+(?:that )?(?:the word\s+)?${w}\s+(?:means|is|stands for|=)\s+(?:a |an |the )?${w}`, "g"),
+    new RegExp(String.raw`${w}\s*=\s*${w}`, "g"),
+  ];
   for (const h of history) {
     const t = normalize(h);
-    for (const m of t.matchAll(/\b(?:when i say|if i say|the word|code ?word)\s+"?([a-z]+)"?,?\s+(?:i mean|means|is|stands for|=)\s+"?([a-z]+)"?/g)) out.push([m[1]!, m[2]!]);
-    for (const m of t.matchAll(/\b(?:from (?:now|here) on,?|let'?s say|pretend)\s+(?:the word\s+)?"?([a-z]+)"?\s+(?:means|is|stands for|=)\s+"?([a-z]+)"?/g)) out.push([m[1]!, m[2]!]);
-    for (const m of t.matchAll(/\b"?([a-z]+)"?\s*=\s*"?([a-z]+)"?/g)) out.push([m[1]!, m[2]!]);
+    for (const re of pats) for (const m of t.matchAll(re)) out.push([m[1]!, m[2]!]);
+    // "let's call the wolves 'visitors'" / "call wolves the visitors"
+    for (const m of t.matchAll(new RegExp(String.raw`\b(?:call|calling|refer to|name)\s+(?:the |all )?(wol(?:f|ves)|packs?|coyotes?|predators?|lions?|bears?)\s+(?:as |the |our |my )*${w}`, "g")))
+      out.push([m[2]!.replace(/s$/, ""), m[1]!]);
   }
   return out;
 }
@@ -372,7 +424,10 @@ export function classifyConversation(userTurns: string[], opts: ClassifyOptions 
   const last = userTurns[userTurns.length - 1] ?? "";
   const prior = userTurns.slice(0, -1).slice(-3);
   let current = last;
-  for (const [word, meaning] of aliasesFrom(prior)) current = current.replace(new RegExp(`\\b${word}\\b`, "gi"), meaning);
+  for (const [word, meaning] of aliasesFrom(prior)) {
+    if (word.length < 3 || ALIAS_STOP.has(word) || word === meaning) continue;
+    current = current.replace(new RegExp(`\\b${word}s?\\b`, "gi"), meaning);
+  }
   const alone = classifyInput(current, opts);
   if (alone.action === "decline") return current === last ? alone : { ...alone, rule: `${alone.rule}~alias` };
   if (!prior.length) return alone;
