@@ -19,17 +19,14 @@
   "reporting": [],
   "agents": {
     "morning_digest": {
-      "enabled": true,
       "hour_utc": 14,
       "days": 1
     },
     "new_report_alert": {
-      "enabled": true,
       "interval_minutes": 60,
       "radius_miles": 10
     },
     "meeting_prep": {
-      "enabled": false,
       "contact_index": 0,
       "days": 30,
       "topics": []

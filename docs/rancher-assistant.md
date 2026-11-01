@@ -9,6 +9,16 @@ know" instead of guessing.
 The same tools are exposed to outside assistants over MCP, so a rancher can
 connect their own assistant. See [mcp.md](mcp.md).
 
+**Off by default, for every account.** Chat and voice answer nothing until the
+rancher turns the assistant on in Ranch tools (`/ranch.html`, Settings). Until
+then `/api/assistant/chat`, `/voice/*`, and `/tools/*` return `403
+turned_off` with a message that points to Ranch tools, where every lookup the
+assistant can make also works by hand. Each answer and each decline gets a
+"what I did" record (data read, sources and times, rules applied, what was left
+out and why), shown under the answer and kept in the activity log. See
+[background-agents.md](background-agents.md) for the agents, overrides, and
+the by-hand paths.
+
 Everything here is off unless the private storage binding (`PRIVATE_KV`) is set.
 Without it, `/api/assistant/*` and `/mcp` return `503 not_configured`, and the
 public map works as before.
@@ -156,9 +166,11 @@ All routes need `Authorization: Bearer <access key>`.
 | `GET /api/assistant/audit` | Recent audit entries for this account. |
 | `GET /api/assistant/agents`, `…/agents/runs`, `POST …/agents/:id/run\|pause\|resume` | Background agents. See [background-agents.md](background-agents.md). |
 | `GET /api/assistant/outbox`, `POST …/outbox/:id/approve\|reject` | Results waiting for the rancher's approval before anything is sent. |
+| `/api/ranch/*` | Ranch tools: settings (on/off, thresholds, areas, snooze), the activity log, item overrides, outbox edits, every lookup and agent job by hand, and exports. Works with the assistant off. Listed in `src/rancher/ranch-routes.ts`. |
 
 Errors: `401` no or bad credential, `402` not on the rancher plan, `403`
-missing scope, `429` rate limited, `503` not configured or switched off.
+missing scope or the assistant is turned off for the account (`turned_off`),
+`429` rate limited, `503` not configured or switched off.
 
 `/me` also returns `notice` (always shown above the chat) and `can_help_with`
 (the short list shown in the app and after each decline).
@@ -241,8 +253,8 @@ Swapping providers: implement `ModelProvider` in `src/agents/providers/types.ts`
 - Allotment lookup from federal grazing data, and a screen for ranchers to
   upload their own records.
 - Write tools and write scopes (for example, logging a sighting).
-- Sending approved outbox items by email or text, and an outbox screen in the
-  app.
+- Sending approved outbox items by email or text. The outbox screen in Ranch
+  tools records approval; nothing is sent yet.
 - Letting the voice model reach `/mcp` directly with xAI's remote MCP tool.
 
 ## xAI references
