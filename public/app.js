@@ -273,6 +273,7 @@ async function loadVector(layer) {
   renderLayerRow(layer);
   updateItems();
   renderCredits();
+  renderOffline();
   scheduleListView();
   refineAutoView();
 }
@@ -1125,6 +1126,7 @@ async function boot() {
     const res = await fetchWithTimeout("/api/layers", 20000);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     savedAt = res.headers.get("x-pw-saved-at");
+    listSavedAt = savedAt;
     index = await res.json();
   } catch (e) {
     const text = "The layer list could not load. Check your connection, then try again.";
@@ -1164,6 +1166,7 @@ async function boot() {
     hideSplash();
   };
   if (map.isStyleLoaded()) start(); else map.once("load", start);
+  renderOffline();
 }
 
 // ------------------------------------------------------------ changes feed
@@ -1413,6 +1416,32 @@ window.addEventListener("hashchange", () => {
   const h = readHash();
   if (h.view) map.jumpTo(h.view);
   if (h.ids) for (const l of layers.values()) if (h.ids.has(l.id) !== l.visible) { setVisible(l, h.ids.has(l.id)); renderLayerRow(l); }
+});
+
+// ---------------------------------------------------------- offline state
+// Saved copies are never shown silently: while the device is offline, or
+// any layer on the map is a saved copy, one line at the top of the map says
+// so with the time of the oldest saved copy. Each layer also has its own
+// "Saved copy (offline)" badge. When the connection returns, saved layers
+// are fetched again and the line goes away.
+let listSavedAt = null;
+const offlineBar = $("#offline-bar");
+function renderOffline() {
+  if (!offlineBar) return;
+  const saved = [listSavedAt, ...[...layers.values()].filter((l) => l.visible && l.saved_at).map((l) => l.saved_at)]
+    .filter(Boolean).sort();
+  const offline = navigator.onLine === false;
+  if (!offline && !saved.length) { offlineBar.hidden = true; offlineBar.textContent = ""; return; }
+  offlineBar.textContent = saved.length
+    ? `${offline ? "You are offline. " : "No connection to the data server. "}Showing data saved on this device, last updated ${fmtTime(saved[0])}. It may be out of date.`
+    : "You are offline. Layers will load when the connection is back.";
+  offlineBar.hidden = false;
+}
+addEventListener("offline", renderOffline);
+addEventListener("online", () => {
+  if (listSavedAt || !layers.size) { location.reload(); return; }
+  for (const l of layers.values()) if (l.visible && l.saved_at && l.type === "geojson") loadVector(l);
+  renderOffline();
 });
 
 // ---------------------------------------------------------- offline cache
