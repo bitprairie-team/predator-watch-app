@@ -141,8 +141,18 @@ let lastPadKey = "";
 // instead of the map waiting forever for basemap tiles.
 let plainBasemap = navigator.onLine === false;
 function plainStyle() {
-  const bg = getComputedStyle(document.documentElement).getPropertyValue("--paper").trim() || "#f3f4f6";
+  const bg = mapBg();
   return { version: 8, sources: {}, layers: [{ id: "background", type: "background", paint: { "background-color": bg } }] };
+}
+// The map land color follows the brand paper (--map-bg in brand.css,
+// THEME_BACKGROUNDS in src/config/palette.ts), so the basemap, the page and
+// the launch screen read as one surface. Only the background layer changes.
+function mapBg() {
+  return getComputedStyle(document.documentElement).getPropertyValue("--map-bg").trim() || "#f4efe7";
+}
+function tintBasemap() {
+  const bg = mapBg();
+  for (const l of map.getStyle()?.layers || []) if (l.type === "background") map.setPaintProperty(l.id, "background-color", bg);
 }
 function basemapStyle(theme) {
   return plainBasemap ? plainStyle() : BASEMAPS[theme];
@@ -158,6 +168,7 @@ const map = new maplibregl.Map({
   attributionControl: false,
   cooperativeGestures: false,
 });
+map.on("style.load", tintBasemap);
 map.on("error", () => {
   // Only a failure before the style is ready means the basemap itself is out.
   if (plainBasemap || map.isStyleLoaded()) return;
@@ -297,41 +308,84 @@ async function loadVector(layer) {
 }
 
 // ---------------------------------------------------------------- panel UI
+// One line-icon set (20px grid, 1.5 stroke, round caps), the same style as the paw.
+const ICONS = {
+  info: '<circle cx="10" cy="10" r="7.25"/><path d="M10 9v4.75"/><path d="M10 6.25v.01"/>',
+  chevron: '<path d="m7.5 4.5 5.5 5.5-5.5 5.5"/>',
+};
+const icon = (name, cls = "") =>
+  `<svg class="ico${cls ? ` ${cls}` : ""}" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${ICONS[name]}</svg>`;
+// Rows whose info disclosure is open, kept across re-renders.
+const openInfo = new Set();
+
+/** The one quiet line under a layer name: source, then how fresh it is. */
+function metaText(layer) {
+  const credit = layer.credit_short || layer.agency;
+  if (isSimple()) {
+    const upd = updatedText(layer);
+    return [credit, upd].filter(Boolean).join(" · ");
+  }
+  const bs = badges(layer);
+  const lead = bs.find((x) => x.cls === "err" || x.cls === "warn") || bs.find((x) => /^Agency updated|^Live/.test(x.text)) || bs[0];
+  return [credit, lead?.text].filter(Boolean).join(" · ");
+}
+function metaState(layer) {
+  if (isSimple()) return "";
+  const bs = badges(layer);
+  return bs.some((x) => x.cls === "err") ? "err" : bs.some((x) => x.cls === "warn") ? "warn" : "";
+}
+
 function renderLayerRow(layer) {
   const li = document.getElementById(`row-${layer.id}`);
   if (!li) return;
   const inputId = `toggle-${layer.id}`;
+  // Re-rendering replaces the row; keep focus on the same control.
+  const focusSel = li.contains(document.activeElement)
+    ? (document.activeElement.matches("input") ? "input" : document.activeElement.matches(".row-info") ? ".row-info" : document.activeElement.matches(".retry") ? ".retry, input" : document.activeElement.matches("summary") ? "summary" : null)
+    : null;
+  const wasOpen = li.querySelector(".layer-more details")?.open;
+  const nm = esc(displayName(layer));
+  const open = openInfo.has(layer.id);
+  const problem = layer.loaded === false && layer.loadError;
+  const state = metaState(layer);
+  li.classList.toggle("is-on", Boolean(layer.visible));
+  li.innerHTML = `
+    <div class="layer-row">
+      <span class="check"><input type="checkbox" id="${inputId}" ${layer.visible ? "checked" : ""} aria-describedby="meta-${layer.id}"><span class="check-box" aria-hidden="true"></span></span>
+      ${swatchHtml(layer)}
+      <label for="${inputId}">
+        <span class="layer-name">${nm}</span>
+        <span class="layer-meta${state ? ` is-${state}` : ""}" id="meta-${layer.id}">${esc(metaText(layer))}</span>
+      </label>
+      <button type="button" class="row-info" aria-expanded="${open}" aria-controls="more-${layer.id}" title="About this layer">${icon("info")}<span class="sr-only">About this layer: ${nm}</span></button>
+    </div>
+    ${zoomedOut(layer) ? `<p class="row-note">${esc(layer.zoom_hint || "Zoom in to see this layer")}.</p>` : ""}
+    ${problem ? `<p class="row-note load-note">This layer could not load. <button type="button" class="link-btn retry">Try again<span class="sr-only">: ${nm}</span></button></p>` : ""}
+    <div class="layer-more" id="more-${layer.id}"${open ? "" : " hidden"}>
+      ${isSimple() ? simpleMoreHtml(layer) : expertMoreHtml(layer, wasOpen)}
+    </div>`;
+  li.querySelector("input").addEventListener("change", (e) => setVisible(layer, e.target.checked, { announce: true }));
+  li.querySelector(".retry")?.addEventListener("click", () => loadVector(layer));
+  li.querySelector(".row-info").addEventListener("click", (e) => {
+    const next = e.currentTarget.getAttribute("aria-expanded") !== "true";
+    e.currentTarget.setAttribute("aria-expanded", String(next));
+    li.querySelector(".layer-more").hidden = !next;
+    if (next) openInfo.add(layer.id); else openInfo.delete(layer.id);
+  });
+  if (focusSel) li.querySelector(focusSel)?.focus();
+}
+
+/** Expert view: the description, every freshness badge and the full source record. */
+function expertMoreHtml(layer, wasOpen) {
   const infoUrl = safeUrl(layer.info_url);
   const endpoint = safeUrl(layer.url || layer.legend_url);
   const count = layer.status?.feature_count;
-  // Re-rendering replaces the row; keep focus and the open "About" panel.
-  const focusSel = li.contains(document.activeElement)
-    ? (document.activeElement.matches("input") ? "input" : document.activeElement.matches("summary") ? "summary" : document.activeElement.matches(".retry") ? ".retry, input" : null)
-    : null;
-  const wasOpen = li.querySelector("details")?.open;
   const nm = esc(layer.name);
-  if (isSimple()) {
-    li.innerHTML = simpleRowHtml(layer, inputId);
-    li.querySelector("input").addEventListener("change", (e) => setVisible(layer, e.target.checked, { announce: true }));
-    li.querySelector(".retry")?.addEventListener("click", () => loadVector(layer));
-    if (focusSel) li.querySelector("input")?.focus();
-    return;
-  }
-  li.innerHTML = `
-    <div class="layer-row">
-      <span class="check"><input type="checkbox" id="${inputId}" ${layer.visible ? "checked" : ""} aria-describedby="badges-${layer.id}"><span class="check-box" aria-hidden="true"></span></span>
-      ${swatchHtml(layer)}
-      <label for="${inputId}">
-        <span class="layer-name">${esc(layer.name)}</span>
-        <span class="layer-agency">${esc(layer.agency)}${layer.species ? ` · ${esc(layer.species)}` : ""}</span>
-      </label>
-    </div>
+  return `
     ${layer.summary ? `<p class="layer-summary">${esc(layer.summary)}</p>` : ""}
     ${layer.classes ? classLegendHtml(layer) : ""}
     <div class="badges" id="badges-${layer.id}">
-      ${zoomedOut(layer) ? `<span class="badge warn">${esc(layer.zoom_hint || "Zoom in to see this layer")}</span>` : ""}
       ${badges(layer).map((b) => `<span class="badge ${b.cls}" title="${esc(b.title)}">${esc(b.text)}</span>`).join("")}
-      ${layer.loaded === false && layer.loadError ? `<button type="button" class="btn btn-small retry">Try again<span class="sr-only">: ${nm}</span></button>` : ""}
     </div>
     <details${wasOpen ? " open" : ""}>
       <summary>About this source<span class="sr-only">: ${nm}</span></summary>
@@ -353,9 +407,6 @@ function renderLayerRow(layer) {
         ${layer.type === "geojson" ? `<dt>Recent changes</dt><dd>${changesHtml(changesBySource.get(layer.id), 3)}</dd>` : ""}
       </dl>
     </details>`;
-  li.querySelector("input").addEventListener("change", (e) => setVisible(layer, e.target.checked, { announce: true }));
-  li.querySelector(".retry")?.addEventListener("click", () => loadVector(layer));
-  if (focusSel) li.querySelector(focusSel)?.focus();
 }
 
 /** "Updated 3 days ago" in plain words, or null. */
@@ -365,25 +416,15 @@ function updatedText(layer) {
   const a = ago(at);
   return a ? `updated ${a}` : null;
 }
-/** Simple view row: plain name, one line, the source and how fresh it is. */
-function simpleRowHtml(layer, inputId) {
+/** Simple view: the plain description and a link to the agency's page. */
+function simpleMoreHtml(layer) {
   const sv = layer.simple || {};
   const info = safeUrl(layer.info_url);
-  const upd = updatedText(layer);
-  const problem = layer.loaded === false && layer.loadError;
+  const credit = esc(layer.credit_short || layer.agency);
   return `
-    <div class="layer-row">
-      <span class="check"><input type="checkbox" id="${inputId}" ${layer.visible ? "checked" : ""} aria-describedby="plain-${layer.id}"><span class="check-box" aria-hidden="true"></span></span>
-      ${swatchHtml(layer)}
-      <label for="${inputId}"><span class="layer-name">${esc(displayName(layer))}</span></label>
-    </div>
-    <div class="layer-plain" id="plain-${layer.id}">
       ${sv.summary ? `<p class="layer-summary">${esc(sv.summary)}</p>` : ""}
       ${layer.classes ? classLegendHtml(layer) : ""}
-      ${zoomedOut(layer) ? `<p class="plain-note">${esc(layer.zoom_hint || "Zoom in to see this layer")}.</p>` : ""}
-      ${problem ? `<p class="plain-note load-note">This layer could not load. <button type="button" class="btn btn-small retry">Try again<span class="sr-only">: ${esc(displayName(layer))}</span></button></p>` : ""}
-      <p class="layer-source">Source: ${info ? `<a href="${esc(info)}" target="_blank" rel="noopener">${esc(layer.credit_short || layer.agency)}<span class="sr-only"> (new tab)</span></a>` : esc(layer.credit_short || layer.agency)}${upd ? `, ${esc(upd)}` : ""}.</p>
-    </div>`;
+      <p class="layer-source">Source: ${info ? `<a href="${esc(info)}" target="_blank" rel="noopener">${credit}<span class="sr-only"> (new tab)</span></a>` : credit}</p>`;
 }
 
 /** True when a layer only draws closer in than the current zoom. */
@@ -401,7 +442,7 @@ function classLegendHtml(layer) {
 const GROUPS = [
   { id: "wolf-activity", name: "Wolf activity", open: true },
   { id: "wolf-management", name: "Wolf management areas" },
-  { id: "bear", name: "Bears", hint: "Off by default. Generalized agency ranges, not bear locations." },
+  { id: "bear", name: "Bears", hint: "Generalized agency ranges, not bear locations." },
   { id: "context", name: "Context" },
 ];
 const GROUP_KEY = "pw-groups";
@@ -440,7 +481,7 @@ function renderPanel() {
     sec.className = "layer-group";
     sec.dataset.group = g.id;
     sec.innerHTML = `<h3 class="group-head"><button type="button" class="group-toggle" id="grp-${g.id}-btn" aria-expanded="${open}" aria-controls="grp-${g.id}-body">
-        <span class="group-arrow" aria-hidden="true"></span><span class="group-name">${esc(g.name)}</span>
+        ${icon("chevron", "group-arrow")}<span class="group-name">${esc(g.name)}</span>
         <span class="group-count" id="grp-${g.id}-count"></span></button></h3>
       <div class="group-body" id="grp-${g.id}-body"${open ? "" : " hidden"}>
         ${g.hint ? `<p class="hint">${esc(g.hint)}</p>` : ""}
@@ -507,7 +548,7 @@ let filterTimer = 0;
 filterInput.addEventListener("input", () => { clearTimeout(filterTimer); filterTimer = setTimeout(applyFilter, 120); });
 activeOnly.addEventListener("change", applyFilter);
 
-/** Group counts, active chips, the panel legend and sources: run after any toggle. */
+/** Group counts, the on-now summary, sources and the list view: run after any toggle. */
 function updatePanelState() {
   for (const g of currentGroups()) {
     const el = document.getElementById(`grp-${g.id}-count`);
@@ -517,37 +558,18 @@ function updatePanelState() {
     el.textContent = `${on} of ${list.length} on`;
     el.classList.toggle("has-on", on > 0);
   }
-  renderChips();
+  renderActiveSummary();
   renderPanelSources();
   scheduleListView();
   if (activeOnly.checked) applyFilter();
 }
 
-// Active-layer chips: every layer that is on, tap to turn it off.
-function renderChips() {
-  const ul = $("#active-chips");
-  const vis = visibleLayers();
-  const focusedId = ul.contains(document.activeElement) ? document.activeElement.dataset.id : null;
-  ul.innerHTML = vis.length ? vis.map((l) => `<li><button type="button" class="chip" data-id="${esc(l.id)}" aria-label="Turn off ${esc(displayName(l))}" title="${esc(displayName(l))}">
-      ${swatchHtml(l)}<span class="chip-name">${esc(displayName(l))}</span><span class="chip-x" aria-hidden="true">×</span></button></li>`).join("")
-    : `<li class="hint chips-empty">No layers are on.</li>`;
-  if (focusedId) {
-    const next = ul.querySelector(`[data-id="${CSS.escape(focusedId)}"]`) || ul.querySelector(".chip");
-    (next || $("#active-label")).focus?.();
-  }
+// One quiet line next to the Layers heading: how many layers are on.
+// The checkboxes are the only on and off control; there is no second copy.
+function renderActiveSummary() {
+  const n = visibleLayers().length;
+  $("#active-summary").textContent = n ? `${n} on` : "None on";
 }
-$("#active-chips").addEventListener("click", (e) => {
-  const btn = e.target.closest(".chip");
-  if (!btn) return;
-  const l = layers.get(btn.dataset.id);
-  if (!l) return;
-  const chips = [...$("#active-chips").querySelectorAll(".chip")];
-  const i = chips.indexOf(btn);
-  setVisible(l, false, { announce: true });
-  renderLayerRow(l);
-  const after = [...$("#active-chips").querySelectorAll(".chip")];
-  (after[Math.min(i, after.length - 1)] || $("#layer-filter")).focus();
-});
 
 function setMany(pick, message) {
   for (const l of layers.values()) {
@@ -581,12 +603,22 @@ function plainFeatureHtml(p, layer) {
   const info = safeUrl(p.url) || safeUrl(layer?.info_url);
   const credit = layer?.credit_short || p.agency;
   return `<article class="feature plain">
-    <h3>${layer ? swatchHtml(layer) : ""} ${esc(displayName(layer) || p.source_name)}</h3>
+    <h3>${layer ? swatchHtml(layer) : ""}<span>${esc(displayName(layer) || p.source_name)}</span></h3>
     <p class="plain-sentence">${esc(sentence)}</p>
-    <p>Source: ${esc(credit)}${when ? `, updated ${esc(when)}` : ""}.${info ? ` <a href="${esc(info)}" target="_blank" rel="noopener">Source page<span class="sr-only"> (new tab)</span></a>` : ""}</p>
+    <dl class="kv">
+      <dt>Source</dt><dd>${esc(credit)}${info ? ` <a href="${esc(info)}" target="_blank" rel="noopener">Source page<span class="sr-only"> (new tab)</span></a>` : ""}</dd>
+      ${when ? `<dt>Updated</dt><dd>${esc(when)}</dd>` : ""}
+    </dl>
     ${layer?.status?.state === "fixture" ? `<p class="note">This is sample data. The agency could not be reached.</p>` : ""}
-    <p class="note">Areas are shown as the agency drew them. They are not exact animal locations.</p>
   </article>`;
+}
+// Agency codes (such as a collar or cell ID) are not names: show a plain name
+// and keep the code as a quiet "Agency ID" line and tooltip.
+const CODE_RE = /^[A-Z]{1,5}[-_ ]?\d{1,7}\b/;
+function itemName(label, fallback) {
+  const s = String(label ?? "").trim();
+  if (!s) return { text: fallback, code: "" };
+  return CODE_RE.test(s) ? { text: fallback, code: s } : { text: s, code: "" };
 }
 function featureHtml(p, layer) {
   if (isSimple()) return plainFeatureHtml(p, layer);
@@ -597,9 +629,11 @@ function featureHtml(p, layer) {
       return `<dt>${esc(k)}</dt><dd>${u ? `<a href="${esc(u)}" target="_blank" rel="noopener">Open</a>` : esc(v)}</dd>`;
     }).join("");
   const url = safeUrl(p.url);
+  const nm = itemName(p.label, layer ? displayName(layer) : "Area");
   return `<article class="feature">
-    <h3>${esc(p.label)}</h3>
-    <dl>
+    <h3>${layer ? swatchHtml(layer) : ""}<span>${esc(nm.text)}</span></h3>
+    <dl class="kv">
+      ${nm.code ? `<dt>Agency ID</dt><dd>${esc(nm.code)}</dd>` : ""}
       ${p.species ? `<dt>Species</dt><dd>${esc(p.species)}</dd>` : ""}
       <dt>Source</dt><dd>${esc(p.source_name)}</dd>
       <dt>Agency</dt><dd>${esc(p.agency)}</dd>
@@ -611,7 +645,7 @@ function featureHtml(p, layer) {
       ${url ? `<dt>More</dt><dd><a href="${esc(url)}" target="_blank" rel="noopener">Agency page</a></dd>` : ""}
     </dl>
     ${layer?.status?.state === "fixture" ? `<p class="note">Sample data: the agency could not be reached when this was loaded.</p>` : ""}
-    <p class="note">Attribution: ${esc(p.attribution)}</p>
+    <p class="note">${esc(p.attribution)}</p>
   </article>`;
 }
 
@@ -757,7 +791,9 @@ function updateItems() {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "item-btn";
-    btn.innerHTML = `${esc(p.label)}<small>${esc(p.agency)} · observed ${esc(fmtTime(p.observed_at, p.observed_at_precision))}</small>`;
+    const nm = itemName(p.label, "Area");
+    if (nm.code) btn.title = `Agency ID ${nm.code}`;
+    btn.innerHTML = `${esc(nm.text)}${nm.code ? ` <span class="item-code">${esc(nm.code)}</span>` : ""}<small>${esc(p.agency)} · observed ${esc(fmtTime(p.observed_at, p.observed_at_precision))}</small>`;
     btn.addEventListener("click", () => {
       const [x0, y0, x1, y1] = f._bbox;
       autoView = false;
@@ -780,6 +816,7 @@ map.on("moveend", () => { updateItems(); writeHash(); scheduleListView(); });
 // A text alternative to the map: for each layer that is on, how many areas
 // are in view, the nearest ones to the map center, and when it was updated.
 let listTimer = 0;
+$("#sec-list")?.addEventListener("toggle", (e) => { if (e.target.open) renderListView(); });
 function scheduleListView() {
   clearTimeout(listTimer);
   listTimer = setTimeout(renderListView, 200);
@@ -796,7 +833,8 @@ function compass([lon1, lat1], [lon2, lat2]) {
 }
 function renderListView() {
   const out = $("#list-view");
-  if (!out || !layers.size) return;
+  // The list lives in a closed fold: only do the work while it is open.
+  if (!out || !layers.size || $("#sec-list")?.open === false) return;
   const vis = visibleLayers();
   if (!vis.length) { out.innerHTML = `<p class="hint">No layers are on. Turn one on under Layers.</p>`; return; }
   const b = map.getBounds();
@@ -822,10 +860,11 @@ function renderListView() {
     hits.sort((x, y) => x.d - y.d);
     const n = hits.length;
     const noun = simple ? (n === 1 ? "area" : "areas") : (n === 1 ? "item" : "items");
-    const nearest = hits.slice(0, 3).map((h) => {
-      const label = h.f.properties?.label || "Unnamed area";
+    const nearest = hits.slice(0, 3).map((h, i) => {
+      const nm = itemName(h.f.properties?.label, `Area ${i + 1}`);
       const dist = h.d < 1 ? "at the map center" : `about ${Math.round(h.d)} miles ${compass(center, h.mid)} of the map center`;
-      return `<li><button type="button" class="lv-item" data-layer="${esc(l.id)}" data-fid="${esc(String(h.f.properties?.id ?? ""))}">${esc(label)}</button>, ${esc(dist)}</li>`;
+      const code = nm.code ? (simple ? "" : ` <span class="lv-code">(agency ID ${esc(nm.code)})</span>`) : "";
+      return `<li><button type="button" class="lv-item" data-layer="${esc(l.id)}" data-fid="${esc(String(h.f.properties?.id ?? ""))}"${nm.code ? ` title="Agency ID ${esc(nm.code)}"` : ""}>${esc(nm.text)}</button>${code}, ${esc(dist)}</li>`;
     }).join("");
     return `<li>${head}<p>${n ? `${n} ${noun} in view.` : `None in this view.`}${n > 3 ? " Nearest three:" : n ? " Nearest:" : ""}</p>
       ${nearest ? `<ul class="lv-nearest">${nearest}</ul>` : ""}
@@ -885,26 +924,6 @@ document.addEventListener("keydown", (e) => {
   if (open) panel.focus();
 });
 try { if (localStorage.getItem(PANEL_KEY) === "closed" && !phoneQuery.matches) setPanelOpen(false, { save: false }); } catch { /* private mode */ }
-
-// Jump links at the top of the panel: Layers, Legend, Sources.
-for (const a of document.querySelectorAll(".jump-tabs a")) {
-  a.addEventListener("click", (e) => {
-    e.preventDefault();
-    const target = document.getElementById(a.dataset.jump);
-    if (!target) return;
-    if (isPhone() && panel.dataset.sheet !== "full") setSheet("full");
-    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-    requestAnimationFrame(() => {
-      // Scroll only the panel (the sheet body on phones), never the page,
-      // and leave room for the sticky jump tabs.
-      const scroller = isPhone() ? $("#panel-body") : panel;
-      const tabs = $(".jump-tabs").getBoundingClientRect().height;
-      const top = target.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop - tabs - 8;
-      scroller.scrollTo({ top: Math.max(0, top), behavior: reduce ? "auto" : "smooth" });
-      target.focus({ preventScroll: true });
-    });
-  });
-}
 
 function setSheet(state, { focus = false } = {}) {
   if (!SHEET_STATES.includes(state)) state = "peek";
@@ -1153,7 +1172,7 @@ async function boot() {
     if (msg) msg.textContent = text;
     setTimeout(hideSplash, 2500);
     // Say so where the layers would be (Simple view hides the status line),
-    // and hide the chips and Reset links, which have nothing to act on yet.
+    // and hide the on-now summary and Reset links, which have nothing to act on yet.
     panel.dataset.boot = "error";
     $("#layer-groups").innerHTML = `<div class="load-error" role="alert"><p>${text}</p><button type="button" class="btn btn-solid" id="boot-retry">Try again</button></div>`;
     $("#list-view").innerHTML = `<p class="hint">No layers yet. ${text}</p>`;
@@ -1257,9 +1276,7 @@ function legendHtml() {
   }).join("") : `<li class="hint">No layers turned on.</li>`;
 }
 function renderLegend() {
-  const html = legendHtml();
-  $("#legend-list").innerHTML = html;
-  $("#panel-legend").innerHTML = html;
+  $("#legend-list").innerHTML = legendHtml();
 }
 let lastZoomBand = null;
 map.on("zoomend", () => {
@@ -1285,7 +1302,7 @@ function goTo(r) {
   autoView = false;
   map.flyTo({ center: [r.lon, r.lat], zoom: r.zoom ?? 10, duration: reduce ? 0 : 800 });
   searchMarker?.remove();
-  searchMarker = new maplibregl.Marker({ color: "#111418" }).setLngLat([r.lon, r.lat]).addTo(map);
+  searchMarker = new maplibregl.Marker({ color: "#141416" }).setLngLat([r.lon, r.lat]).addTo(map);
   searchOut.innerHTML = `<li class="hint">Showing ${esc(r.name)}.</li>`;
   announce(`Showing ${r.name} on the map.`);
 }
@@ -1492,7 +1509,7 @@ locateBtn.addEventListener("click", () => {
     autoView = false;
     map.flyTo({ center: [lon, lat], zoom: Math.max(map.getZoom(), 8), duration: reduce ? 0 : 800 });
     locateMarker?.remove();
-    locateMarker = new maplibregl.Marker({ color: "#111418" }).setLngLat([lon, lat]).addTo(map);
+    locateMarker = new maplibregl.Marker({ color: "#141416" }).setLngLat([lon, lat]).addTo(map);
     locateMsg.textContent = "Showing your location. It stays on this device.";
     announce("Showing your location on the map.");
   }, locateFailed, { enableHighAccuracy: false, timeout: 15000, maximumAge: 300000 });
@@ -1513,7 +1530,7 @@ geoControl?.on("error", locateFailed);
 
 // ------------------------------------------------ view and display settings
 function syncModeLabel() {
-  $("#sheet-mode").textContent = isSimple() ? "Simple" : "Expert";
+  $("#sheet-mode").textContent = isSimple() ? "Simple view" : "Expert view";
   const d = document.documentElement.dataset;
   $("#prefs-now").textContent = `${isSimple() ? "Simple" : "Expert"} · ${({ 0: "small", 1: "medium", 2: "large", 3: "largest" })[d.text] || "small"} text${d.contrast === "high" ? " · high contrast" : ""}`;
 }
