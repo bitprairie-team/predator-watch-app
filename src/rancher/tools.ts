@@ -555,6 +555,7 @@ const weekly: Tool = {
       alerts: { type: "array", items: featureSchema },
       your_records_by_kind: { type: "object" },
       gaps: { type: "array", items: { type: "string" } },
+      window: { type: "object" },
     },
   },
   async handler(i: { ranch_id?: string }, deps, ctx) {
@@ -573,6 +574,8 @@ const weekly: Tool = {
         alerts: f.alerts.slice(0, 20),
         your_records_by_kind: byKind,
         gaps: [...new Set([...a.gaps, ...f.gaps])],
+        // The window this summary covers, so an answer can state it from data.
+        window: { days: 7, activity_radius_miles: 25, alerts_radius_miles: 50 },
       },
       sources,
     };

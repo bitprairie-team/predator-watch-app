@@ -15,7 +15,9 @@ import { hasScope } from "../agents/auth";
 import type { ModelProvider } from "../agents/providers/types";
 import { runAgent, type RunEvent } from "../agents/runner";
 import { AgentError, type AuthContext } from "../agents/types";
-import { classifyInput, type GuardDecision } from "../guardrails/classifier";
+import { classifyConversation, classifyInput, type ClassifyOptions, type GuardDecision } from "../guardrails/classifier";
+import { blockedCategory } from "../guardrails/output-check";
+import { sanitizeText } from "../guardrails/sanitize";
 import { EMERGENCY_NOTICE, GUARD_CATEGORIES, POLICY, refusalText, type GuardCategory } from "../guardrails/policy";
 import type { Contact, ReportingProcess } from "./model";
 import { RANCHER_INSTRUCTIONS } from "./prompt";
@@ -51,13 +53,28 @@ export async function modelClassify(provider: ModelProvider, text: string): Prom
   }
 }
 
-/** Remove earlier declined questions and the replies to them, so a refused topic can't be carried forward. */
-export function cleanHistory(messages: Message[]): Message[] {
+/**
+ * Prepare the conversation for the model:
+ *   - Earlier declined questions and the replies to them are removed, so a
+ *     refused topic can't be carried forward.
+ *   - Earlier assistant turns come from the client and could be forged. They
+ *     are sanitized like tool data, and dropped if they hold anything the
+ *     output check would block (lethal steps, doses, legal calls, exact
+ *     coordinates), so a fake "Sure, here's how..." can't prime the model.
+ */
+export function cleanHistory(messages: Message[], opts: ClassifyOptions = {}): Message[] {
   const out: Message[] = [];
   for (let i = 0; i < messages.length; i++) {
     const m = messages[i]!;
-    if (m.role === "user" && i < messages.length - 1 && classifyInput(m.content).action === "decline") {
+    if (m.role === "user" && i < messages.length - 1 && classifyInput(m.content, opts).action === "decline") {
       if (messages[i + 1]?.role === "assistant") i++;
+      continue;
+    }
+    if (m.role === "assistant") {
+      if (blockedCategory(m.content) || /-?\d{1,3}\.\d{3,}/.test(m.content)) continue;
+      const s = sanitizeText(m.content);
+      if (s.flagged) continue;
+      out.push({ role: "assistant", content: s.text.slice(0, 4000) });
       continue;
     }
     out.push(m);
@@ -107,6 +124,18 @@ export async function buildRefusal(
   return { text, citations, events };
 }
 
+/** The caller's own ranch, allotment, and account names, so they read as "my ranch". */
+export async function ownNames(svc: RancherService, ctx: AuthContext): Promise<string[]> {
+  if (ctx.plan === "public") return [];
+  try {
+    const t = await svc.deps.data(ctx).data.tenant();
+    if (!t) return [];
+    return [t.name, ...t.ranches.flatMap((r) => [r.name, ...r.allotments.map((a) => a.name)])].filter((n) => n && n.length >= 3);
+  } catch {
+    return [];
+  }
+}
+
 export async function* runRancherTurn(
   svc: RancherService,
   ctx: AuthContext,
@@ -117,7 +146,9 @@ export async function* runRancherTurn(
   const last = messages[messages.length - 1];
   if (!last || last.role !== "user") throw new AgentError("invalid_input", "The last message must be from the user.", 400);
 
-  let decision = classifyInput(last.content);
+  const classifyOpts: ClassifyOptions = { ownNames: await ownNames(svc, ctx) };
+  const userTurns = messages.filter((m) => m.role === "user").map((m) => m.content);
+  let decision = classifyConversation(userTurns, classifyOpts);
   if (decision.action === "allow" && svc.guard.modelClassifier) {
     const m = await modelClassify(opts.provider, last.content);
     if (m) decision = { ...m, emergency: decision.emergency };
@@ -139,7 +170,7 @@ export async function* runRancherTurn(
     deps: svc.deps,
     ctx,
     instructions: opts.instructions ?? RANCHER_INSTRUCTIONS,
-    messages: cleanHistory(messages),
+    messages: cleanHistory(messages, classifyOpts),
     limits: svc.guard.turnLimits,
   })) {
     if (ev.type !== "answer") {

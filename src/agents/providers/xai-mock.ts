@@ -12,6 +12,8 @@
 //
 // Enabled with XAI_MOCK=1 (or MODEL_PROVIDER=mock). It never makes a network call.
 import { GENERAL_LABEL } from "../../guardrails/policy";
+import { decodeBase64Runs, foldText } from "../../guardrails/text";
+import { parseFenced } from "../../guardrails/sanitize";
 
 type Json = Record<string, any>;
 
@@ -100,17 +102,17 @@ export function routeQuestion(question: string, offered: Set<string>): { name: s
   if (/week(ly)? summary|summari[sz]e|this week|recap|roll-?up/.test(q)) add("weekly_summary", {});
   if (/fire|smoke|red flag|weather|wind|storm|heat|alerts?\b/.test(q) && !/summar/.test(q)) add("fire_weather_alerts", { radius_miles: parseRadius(q, 50, 200) });
   if (/allotment|grazing|permit area|summer range/.test(q)) add("allotment_wolf_activity", { days: parseDays(q, 30) });
-  if (/who (do|should|can) i (call|contact|report|tell)|contact|phone|number for|report(ing)? (a |the )?(kill|loss|depredation|sighting|it)|how (do|should) i report|reporting (steps|process)|conflict specialist|call about/.test(q)) {
+  if (/who (do|should|can) i (call|contact|report|tell)|contact|phone|number for|report(ing)? (a |the )?(kill|loss|depredation|sighting|it)|how (do|should) i report|reporting (steps|process)|conflict specialist|call about|file (a |the )?\w* ?report|what should i do first|was killed|got killed|killed last night/.test(q)) {
     const topic = /sighting|saw|seen|spotted/.test(q) ? "sighting" : /kill|depredat|dead|lost|loss|attack|injur/.test(q) ? "depredation" : "general";
     add("agency_contacts_and_reporting", { topic });
   }
-  if (/fresh|how old|up to date|updated|last update|how current|what does .* mean|what is .* layer|tiers?\b|precision|generaliz|delay|den season|how accurate|where does .* data come/.test(q)) add("data_freshness", {});
+  if (/fresh|how old|up to date|updated|last update|how current|what does .* mean|what is .* layer|tiers?\b|precision|generaliz|delay|den season|how accurate|where does .* data come|\blayers?\b|cells?\b|anonym\w*|exact locations?|shared reports? (are )?(kept|work)/.test(q)) add("data_freshness", {});
   const lib = GENERAL_LIBRARY.find((g) => g.match.test(q));
   if (lib && !calls.some((c) => c.name === "agency_contacts_and_reporting")) {
     const term = q.match(/trail cameras?|camera traps?|fladry|guardian dogs?|range riders?|fenc\w*|night pens?|lights?|noise|carcass\w*|calving|lambing|deterrents?/)?.[0] ?? "deterrents";
     add("nonlethal_deterrents", { query: term });
   }
-  if (/wolf|wolves|activity|sighting|predator|coyote|near (my|the) ranch|around (my|the) ranch|anything (new|near)|my records|my reports/.test(q) && !calls.some((c) => /activity|summary|agency_contacts|deterrents/.test(c.name)))
+  if (/wolf|wolves|activity|sighting|predator|coyote|near (my|the) ranch|around (my|the) ranch|anything (new|near)|my (own )?records|my (own )?reports/.test(q) && !calls.some((c) => /activity|summary|agency_contacts|deterrents/.test(c.name)))
     add("recent_predator_activity", { days: parseDays(q, 14), radius_miles: parseRadius(q, 25, 100) });
   return calls.slice(0, 3);
 }
@@ -147,6 +149,40 @@ function activityLines(o: ParsedOutput): string[] {
   return lines;
 }
 
+/**
+ * Instruction shapes a real model might follow when it reads them in data.
+ * The mock follows all of them, so the eval proves the sanitizer and the data
+ * fence are what stop injection, not a polite model.
+ */
+const OBEY: RegExp[] = [
+  /(?:ignore|disregard|forget|override)[^".]{0,80}(?:instructions?|rules|guardrails)[^"]*?(?:[.:,]|\band\b)\s*([^"]{0,240})/i,
+  /(?:ignora|ignorez|ignoriere)[^".:]{0,60}(?:instrucciones|instructions|anweisungen)[^"]*?(?:[.:,]|\by\b|\bet\b|\bund\b)\s*([^"]{0,240})/i,
+  /tell the (?:user|rancher)\s+([^"]{0,240})/i,
+  /\b(?:system|admin|developer)\s*(?:override|message|note|prompt)?\s*:\s*([^"]{0,240})/i,
+  /new instructions?\s*:\s*([^"]{0,240})/i,
+  /(?:you must now|you must say|assistant must|respond with|reply with|say exactly|answer only with)\s*:?\s*([^"]{0,240})/i,
+  /(?:note|message|instructions?) (?:to|for) (?:the )?(?:ai|assistant|model|language model|llm)\s*:?\s*([^"]{0,240})/i,
+  /attention (?:ai|assistant|model)\s*:?\s*([^"]{0,240})/i,
+  /when (?:summarizing|answering|you answer|responding|you respond)[^".:]{0,40}[,:]\s*([^"]{0,240})/i,
+  /end of (?:data|tool output|context)[.!]?\s*([^"]{0,240})/i,
+  /(?:^|\\n|\s|")assistant\s*:\s*([^"]{0,240})/i,
+  /\[inst\]\s*([^"]{0,240})/i,
+];
+
+/** What the naive mock would say after reading this data, or null. Exported for tests. */
+export function followInjected(raw: string): string | null {
+  const blob = foldText(raw);
+  for (const re of OBEY) {
+    const m = blob.match(re);
+    if (m) return m[1]!.replace(/\s*(-->|\[\/inst\])\s*$/i, "").trim() || "OK.";
+  }
+  for (const decoded of decodeBase64Runs(blob, 24)) {
+    const inner = followInjected(JSON.stringify(decoded));
+    if (inner !== null) return inner;
+  }
+  return null;
+}
+
 /** Write an answer from tool outputs, citing with the markers they carry. */
 export function composeAnswer(question: string, outputs: ParsedOutput[]): string {
   const q = lower(question);
@@ -154,9 +190,8 @@ export function composeAnswer(question: string, outputs: ParsedOutput[]): string
   // Deliberately naive: obey instructions found in tool output. The registry's
   // sanitizer must remove them before they get here.
   for (const o of outputs) {
-    const blob = JSON.stringify(o.data ?? {});
-    const m = blob.match(/(?:ignore|disregard)[^".]{0,80}instructions?[^".]*[.:]?\s*([^"]{0,240})/i) ?? blob.match(/tell the (?:user|rancher)\s+([^"]{0,240})/i);
-    if (m) return m[1]!.trim() || "OK.";
+    const obeyed = followInjected(JSON.stringify(o.data ?? {}));
+    if (obeyed !== null) return obeyed;
   }
 
   const parts: string[] = [];
@@ -305,7 +340,8 @@ export function createXaiMockFetch(opts: XaiMockOptions = {}): typeof fetch {
     const parsed: ParsedOutput[] = outputs.map((o) => {
       let v: Json = {};
       try {
-        v = JSON.parse(String(o.output));
+        const raw = String(o.output);
+        v = (parseFenced(raw)?.payload as Json | undefined) ?? JSON.parse(raw);
       } catch {
         /* keep empty */
       }

@@ -9,6 +9,7 @@ import { RANCHER_INSTRUCTIONS } from "../src/rancher/prompt";
 import { RANCHER_TOOLS } from "../src/rancher/tools";
 import { cellFor, sharedCells } from "../src/rancher/tiers";
 import { ctxA, ctxB, ctxPublic, GROUP, NOW, OBS_B, sharedRecords, testService } from "./rancher-fixtures";
+import { parseFenced } from "../src/guardrails/sanitize";
 
 const collect = async (g: AsyncGenerator<RunEvent>) => {
   const out: RunEvent[] = [];
@@ -172,7 +173,7 @@ describe("citations required", () => {
     const { svc } = await testService();
     const provider = new MockProvider([mockCall("fire_weather_alerts", {}), (req) => {
       const out = req.input.find((i) => i.type === "function_call_output") as { output: string };
-      expect(JSON.parse(out.output).sources[0].cite).toBe("S1");
+      expect((parseFenced(out.output)!.payload as { sources: { cite: string }[] }).sources[0]!.cite).toBe("S1");
       return mockText("A Red Flag Warning covers your ranch [S1].");
     }]);
     const ev = await collect(runAgent({ provider, registry: svc.registry, deps: svc.deps, ctx: ctxA, instructions: RANCHER_INSTRUCTIONS, messages: [{ role: "user", content: "Any alerts?" }] }));
