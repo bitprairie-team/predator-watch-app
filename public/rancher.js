@@ -65,6 +65,10 @@ async function refresh() {
   $("#rancher-who").textContent = `${me.tenant.name ?? "Your account"}: ${ranches}.${me.chat_available ? "" : " Chat is not set up on this server yet."}`;
   $("#rancher-mic").disabled = !me.voice_available;
   if (me.disclaimer) $("#rancher-disclaimer").textContent = `${me.disclaimer} It won't help locate individual animals or dens, or identify other ranchers. In an emergency, call 911 or the agency contact on file.`;
+  if (me.notice) $("#rancher-notice").textContent = me.notice;
+  const help = $("#rancher-can-help");
+  help.replaceChildren(...(me.can_help_with || []).map((t) => Object.assign(document.createElement("li"), { textContent: t })));
+  $("#rancher-help").hidden = !help.children.length;
   if (me.mock) $("#rancher-who").textContent += " Offline demo mode: answers come from a local test model.";
 }
 

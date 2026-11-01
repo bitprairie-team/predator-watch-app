@@ -18,7 +18,7 @@ import { AgentError, type AuthContext } from "../agents/types";
 import { classifyConversation, classifyInput, type ClassifyOptions, type GuardDecision } from "../guardrails/classifier";
 import { blockedCategory } from "../guardrails/output-check";
 import { sanitizeText } from "../guardrails/sanitize";
-import { EMERGENCY_NOTICE, GUARD_CATEGORIES, POLICY, refusalText, type GuardCategory } from "../guardrails/policy";
+import { canHelpText, EMERGENCY_NOTICE, GUARD_CATEGORIES, POLICY, refusalText, type GuardCategory } from "../guardrails/policy";
 import type { Contact, ReportingProcess } from "./model";
 import { RANCHER_INSTRUCTIONS } from "./prompt";
 import type { RancherService } from "./service";
@@ -121,6 +121,7 @@ export async function buildRefusal(
       events.push({ type: "tool_error", name: tool.name, code: err.code, message: err.message });
     }
   }
+  text += `\n\n${canHelpText()}`;
   return { text, citations, events };
 }
 

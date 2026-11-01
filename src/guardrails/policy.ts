@@ -126,6 +126,24 @@ export const EMERGENCY_NOTICE = "If people or animals are in danger right now, c
 /** Shown in the UI and echoed in MCP instructions. */
 export const DISCLAIMER = "Provides data and general information, not legal, veterinary, or financial advice.";
 
+/** What the assistant is for. Shown in the app and after every chat decline. */
+export const CAN_HELP_WITH = [
+  "Wolf activity near your ranch and on your allotments, from agency layers and your own records",
+  "Fire and weather alerts near your ranches",
+  "Who to call and how to report a suspected depredation",
+  "How fresh and how precise each data layer is",
+  "A weekly summary for your ranch",
+  "General ranching and livestock-protection questions, like fencing, guardian animals, and range riding",
+] as const;
+
+/** Always visible in the app next to the assistant. */
+export const ASSISTANT_NOTICE =
+  "Answers come from intelligence and realtime systems working over your data and published agency layers. They can be wrong or out of date. Check the listed sources before you act, and call the agency contact on file for anything urgent.";
+
+export function canHelpText(): string {
+  return `I can help with:\n${CAN_HELP_WITH.map((x) => `- ${x}`).join("\n")}`;
+}
+
 /** Label put in front of an answer that uses no Predator Watch data. */
 export const GENERAL_LABEL = "General information, not from your Predator Watch data:";
 
