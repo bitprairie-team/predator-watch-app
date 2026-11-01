@@ -1,0 +1,99 @@
+/* Brand: BitPrairie tokens (bitprairie.com/predator-watch styles.css), self-hosted IBM Plex (SIL OFL 1.1, see /fonts). */
+@font-face { font-family: "IBM Plex Sans"; src: url("/fonts/ibm-plex-sans.woff2") format("woff2"); font-weight: 400 600; font-style: normal; font-display: swap; }
+@font-face { font-family: "IBM Plex Mono"; src: url("/fonts/ibm-plex-mono-normal-500.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; }
+:root {
+  --paper: #f3f4f6; --paper-2: #e7e9ec; --card: #ffffff;
+  --rule: #c6cbd1; --rule-strong: #8b939c;
+  --ink: #111418; --ink-2: #3b424b; --quiet: #545c66;
+  --accent: #7a5530; --accent-hover: #5f4124; --accent-ink: #ffffff;
+  --muted: var(--ink-2);
+  --bg: var(--paper);
+  --panel: var(--paper);
+  --surface: var(--card);
+  --line: var(--rule);
+  --brand: var(--accent);
+  --focus: var(--accent);
+  --link: var(--accent);
+  --ok-bg: #e3efe6; --ok-ink: #1f4d2c;
+  --warn-bg: #f6ead6; --warn-ink: #6b450c;
+  --err-bg: #f7e1de; --err-ink: #8a1f15;
+  --old-bg: var(--paper-2); --old-ink: var(--ink-2);
+  --shadow: rgba(17,20,24,.14);
+  --panel-w: 360px;
+  --sans: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme: light;
+  font-family: var(--sans);
+  color: var(--ink);
+  background: var(--bg);
+}
+:root[data-theme="dark"] {
+  --paper: #0e1012; --paper-2: #1a1d21; --card: #15181b;
+  --rule: #2e3339; --rule-strong: #5b636c;
+  --ink: #e6e8eb; --ink-2: #b3bac2; --quiet: #949ca5;
+  --accent: #c9a679; --accent-hover: #dcc09a; --accent-ink: #0e1012;
+  --ok-bg: #18291d; --ok-ink: #b5dcbf;
+  --warn-bg: #2e2412; --warn-ink: #e6c48c;
+  --err-bg: #331815; --err-ink: #f4b0a7;
+  --shadow: rgba(0,0,0,.5);
+  color-scheme: dark;
+}
+a { color: var(--link); text-underline-offset: .15em; }
+a:hover { color: var(--accent-hover); }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+
+/* Masthead, as on bitprairie.com: BitPrairie symbol, rule, project mark and name. */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  padding: .45rem 1rem; background: var(--paper); color: var(--ink);
+  border-bottom: 1px solid var(--rule-strong);
+  padding-top: max(.45rem, env(safe-area-inset-top));
+}
+.brand { display: flex; align-items: center; gap: .7rem; min-width: 0; }
+.brand-home { display: inline-flex; align-items: center; gap: .55rem; color: var(--ink); text-decoration: none; min-height: 44px; flex: none; }
+.brand-symbol { width: 30px; height: 30px; flex: none; display: block; }
+.brand-wordmark { height: 16px; width: auto; display: block; color: var(--ink); }
+.brand-sep { width: 1px; height: 24px; background: var(--rule-strong); flex: none; }
+.brand-proj { display: flex; align-items: center; gap: .45rem; min-width: 0; }
+.proj-mark { width: 22px; height: 22px; color: var(--accent); flex: none; }
+.topbar h1 { font: 600 1rem/1.2 var(--sans); margin: 0; letter-spacing: 0; white-space: nowrap; }
+.byline { margin: 0; font: 500 .68rem/1.3 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--quiet); }
+.byline a { color: inherit; }
+.byline a:hover { color: var(--accent); }
+.tagline { margin: 0 0 0 .4rem; padding-left: .7rem; border-left: 1px solid var(--rule); font-size: .8rem; color: var(--ink-2); max-width: 30rem; }
+.topbar-actions { display: flex; gap: .4rem; flex: none; }
+
+.btn {
+  font: inherit; font-size: .88rem; font-weight: 500; border-radius: 0; padding: .4rem .8rem; cursor: pointer;
+  border: 1px solid var(--rule-strong); background: var(--card); color: var(--ink); min-height: 36px;
+}
+.btn:hover { border-color: var(--ink); }
+.btn-ghost { background: transparent; color: inherit; border-color: var(--rule-strong); }
+
+/* Credits, the same block on the map panel, /about and /status. */
+.credits { margin-top: 1.4rem; padding-top: .8rem; border-top: 2px solid var(--ink); font-size: .8rem; color: var(--ink-2); }
+.credits-proj { display: flex; align-items: center; gap: .45rem; margin: 0 0 .5rem; font: 600 .95rem/1.2 var(--sans); color: var(--ink); }
+.credits-brand { display: flex; align-items: center; gap: .6rem; margin: 0 0 .5rem; }
+.credits-brand a { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; }
+.credits-brand .brand-symbol { width: 28px; height: 28px; }
+.credits-links { list-style: none; display: flex; flex-wrap: wrap; gap: .2rem 1rem; margin: 0 0 .4rem; padding: 0; }
+.credits-links a { color: var(--link); }
+
+@media (max-width: 1100px) { .tagline { display: none; } }
+@media (max-width: 760px) {
+  .brand-wordmark { display: none; }
+  .brand-proj { flex-direction: column; align-items: flex-start; gap: 0; }
+  .byline { padding-left: calc(22px + .45rem); }
+  .brand-symbol { width: 28px; height: 28px; }
+  .brand { gap: .5rem; }
+  .byline { font-size: .62rem; }
+}
+@media (max-width: 420px) {
+  .brand-home, .brand-sep { display: none; }
+}
+.brand-wordmark { display: block; height: 16px; aspect-ratio: 8355.7 / 1462; background: currentColor;
+  -webkit-mask: url("/brand/bitprairie-wordmark.svg") no-repeat center / contain; mask: url("/brand/bitprairie-wordmark.svg") no-repeat center / contain; }
+.proj-link { display: flex; align-items: center; gap: .45rem; color: inherit; text-decoration: none; min-width: 0; }
+.proj-name { font: 600 1rem/1.2 var(--sans); margin: 0; white-space: nowrap; }
+a.btn { display: inline-flex; align-items: center; text-decoration: none; color: var(--ink); }

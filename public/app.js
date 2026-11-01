@@ -56,9 +56,16 @@ function badges(layer) {
     return out;
   }
   if (layer.saved_at) out.push({ cls: "warn", text: "Saved copy (offline)", title: `No connection. Showing the copy saved on this device ${fmtTime(layer.saved_at)}.` });
-  if (st.state === "never") out.push({ cls: "warn", text: "Loading…", title: "Not fetched yet." });
+  if (layer.loaded === "loading") out.push({ cls: "old", text: "Loading…", title: "Downloading this layer from the map's cache." });
+  if (layer.loaded === false && layer.loadError) out.push({ cls: "err", text: "Could not load", title: `This browser could not download the layer (${layer.loadError}). Check the connection and retry.` });
+  if (st.state === "never") out.push({ cls: "warn", text: "Waiting for first check", title: "The scheduled job has not fetched this source yet." });
   if (st.state === "fixture") out.push({ cls: "warn", text: "Sample data", title: "The agency could not be reached; showing a bundled sample." });
-  if (st.state === "error") out.push({ cls: "err", text: "Last check failed", title: st.error || "" });
+  if (st.failures > 1) {
+    out.push({ cls: "err", text: `Refresh failing (${st.failures} in a row)`, title: `Last error ${fmtTime(st.last_error_at)}: ${st.error || "unknown"}. Showing the last good copy.` });
+  } else if (st.state === "error" || st.failures === 1) {
+    out.push({ cls: "err", text: "Last check failed", title: st.error || "" });
+  }
+  if (st.overdue) out.push({ cls: "warn", text: "Refresh overdue", title: `Not checked since ${fmtTime(st.checked_at)}. See the status page.` });
   if (st.source_updated_at) {
     const ageDays = (Date.now() - Date.parse(st.source_updated_at)) / 864e5;
     out.push({
@@ -105,16 +112,17 @@ function writeHash() {
 }
 
 // ----------------------------------------------------------------- theme
-const THEME_KEY = "pw-theme";
-const prefersDark = matchMedia("(prefers-color-scheme: dark)");
-function storedTheme() {
-  try { return localStorage.getItem(THEME_KEY); } catch { return null; }
-}
+// /theme.js (BitPrairie's theme handling, "bp-theme" key) sets data-theme
+// before first paint; the map follows it and swaps the basemap on change.
+const THEME_KEY = "bp-theme";
 function currentTheme() {
-  const t = storedTheme();
-  return t === "dark" || t === "light" ? t : prefersDark.matches ? "dark" : "light";
+  return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
 }
-document.documentElement.dataset.theme = currentTheme();
+/** Layer style with the colour for the current theme. */
+function styleFor(layer) {
+  const s = layer.style || { color: layer.color, fillOpacity: 0.4 };
+  return currentTheme() === "dark" && s.colorDark ? { ...s, color: s.colorDark } : s;
+}
 
 // --------------------------------------------------------------- map setup
 const map = new maplibregl.Map({
@@ -154,7 +162,7 @@ function firstSymbolLayer() {
 // ------------------------------------------------------------- data layers
 function addVector(layer) {
   const id = layer.id;
-  const s = layer.style;
+  const s = styleFor(layer);
   map.addSource(id, { type: "geojson", data: layer.data, attribution: esc(layer.attribution) });
   const before = firstSymbolLayer();
   const vis = layer.visible ? "visible" : "none";
@@ -171,7 +179,7 @@ function addVector(layer) {
   map.addLayer({
     id: `${id}-circle`, type: "circle", source: id, filter: ["in", ["geometry-type"], ["literal", ["Point", "MultiPoint"]]],
     layout: { visibility: vis },
-    paint: { "circle-color": s.color, "circle-radius": 5, "circle-stroke-color": "#fff", "circle-stroke-width": 1.5 },
+    paint: { "circle-color": s.color, "circle-radius": 5, "circle-stroke-color": currentTheme() === "dark" ? "#0e1012" : "#fff", "circle-stroke-width": 1.5 },
   }, before);
   if (hoverBound.has(id)) return;
   hoverBound.add(id);
@@ -237,6 +245,8 @@ async function fetchWithTimeout(url, ms) {
 
 async function loadVector(layer) {
   layer.loaded = "loading";
+  layer.loadError = null;
+  renderLayerRow(layer);
   try {
     const res = await fetchWithTimeout(layer.data_url, 25000);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -249,7 +259,7 @@ async function loadVector(layer) {
     else addVector(layer);
   } catch (e) {
     layer.loaded = false;
-    layer.status = { ...(layer.status || {}), state: "error", error: String(e.message || e) };
+    layer.loadError = String(e.message || e);
   }
   renderLayerRow(layer);
   updateItems();
@@ -259,11 +269,17 @@ async function loadVector(layer) {
 function renderLayerRow(layer) {
   const li = document.getElementById(`row-${layer.id}`);
   if (!li) return;
-  const s = layer.style || { color: layer.color, fillOpacity: 0.4 };
+  const s = styleFor(layer);
   const inputId = `toggle-${layer.id}`;
   const infoUrl = safeUrl(layer.info_url);
   const endpoint = safeUrl(layer.url || layer.legend_url);
   const count = layer.status?.feature_count;
+  // Re-rendering replaces the row; keep focus and the open "About" panel.
+  const focusSel = li.contains(document.activeElement)
+    ? (document.activeElement.matches("input") ? "input" : document.activeElement.matches("summary") ? "summary" : document.activeElement.matches(".retry") ? ".retry, input" : null)
+    : null;
+  const wasOpen = li.querySelector("details")?.open;
+  const nm = esc(layer.name);
   li.innerHTML = `
     <div class="layer-row">
       <input type="checkbox" id="${inputId}" ${layer.visible ? "checked" : ""} aria-describedby="badges-${layer.id}">
@@ -275,9 +291,10 @@ function renderLayerRow(layer) {
     </div>
     <div class="badges" id="badges-${layer.id}">
       ${badges(layer).map((b) => `<span class="badge ${b.cls}" title="${esc(b.title)}">${esc(b.text)}</span>`).join("")}
+      ${layer.loaded === false && layer.loadError ? `<button type="button" class="btn btn-small retry">Retry<span class="sr-only"> loading ${nm}</span></button>` : ""}
     </div>
-    <details>
-      <summary>About this source</summary>
+    <details${wasOpen ? " open" : ""}>
+      <summary>About this source<span class="sr-only">: ${nm}</span></summary>
       <dl>
         <dt>Publisher</dt><dd>${esc(layer.attribution)}</dd>
         <dt>Updates</dt><dd>${esc(layer.cadence)}</dd>
@@ -288,14 +305,16 @@ function renderLayerRow(layer) {
         ${infoUrl ? `<dt>Agency page</dt><dd><a href="${esc(infoUrl)}" target="_blank" rel="noopener">Open<span class="sr-only"> (new tab)</span></a></dd>` : ""}
         ${endpoint ? `<dt>Endpoint</dt><dd><a href="${esc(endpoint)}" target="_blank" rel="noopener">Service</a></dd>` : ""}
         ${layer.type === "geojson" ? `<dt>Download</dt><dd class="exports">
-          <a href="${esc(layer.data_url)}.geojson" download>GeoJSON</a>
-          <a href="${esc(layer.data_url)}.kml" download>KML</a>
-          <a href="${esc(layer.data_url)}.csv" download>CSV</a>
-          <a href="/ogc/collections/${esc(layer.id)}/items" target="_blank" rel="noopener">OGC API</a></dd>` : ""}
+          <a href="${esc(layer.data_url)}.geojson" download>GeoJSON<span class="sr-only"> for ${nm}</span></a>
+          <a href="${esc(layer.data_url)}.kml" download>KML<span class="sr-only"> for ${nm}</span></a>
+          <a href="${esc(layer.data_url)}.csv" download>CSV<span class="sr-only"> for ${nm}</span></a>
+          <a href="/ogc/collections/${esc(layer.id)}/items" target="_blank" rel="noopener">OGC API<span class="sr-only"> for ${nm} (new tab)</span></a></dd>` : ""}
         ${layer.type === "geojson" ? `<dt>Recent changes</dt><dd>${changesHtml(changesBySource.get(layer.id), 3)}</dd>` : ""}
       </dl>
     </details>`;
   li.querySelector("input").addEventListener("change", (e) => setVisible(layer, e.target.checked));
+  li.querySelector(".retry")?.addEventListener("click", () => loadVector(layer));
+  if (focusSel) li.querySelector(focusSel)?.focus();
 }
 
 function renderPanel(all) {
@@ -536,7 +555,7 @@ function renderLegend() {
   const vis = [...layers.values()].filter((l) => l.visible)
     .sort((a, b) => CATEGORY_ORDER.indexOf(a.category) - CATEGORY_ORDER.indexOf(b.category));
   ul.innerHTML = vis.length ? vis.map((l) => {
-    const s = l.style || { color: l.color, fillOpacity: 0.4 };
+    const s = styleFor(l);
     const bg = s.dashed || !s.fillOpacity ? "transparent" : `${esc(s.color)}55`;
     const zoomNote = l.minzoom && map.getZoom() < l.minzoom ? ` <small>(zoom in to see)</small>` : "";
     return `<li><span class="swatch ${s.dashed ? "dashed" : ""}" style="border-color:${esc(s.color)};background:${bg}" aria-hidden="true"></span>${esc(l.name)}${zoomNote}</li>`;
@@ -546,70 +565,129 @@ map.on("zoomend", renderLegend);
 if (window.innerWidth < 760) $("#legend").removeAttribute("open");
 
 // ------------------------------------------------------------------ search
+// search.js is loaded on first use. Suggestions come from a local Census
+// Gazetteer index (debounced, 2+ characters); street addresses are looked up
+// on the server only when the form is submitted.
 const searchForm = $("#search");
+const searchInput = $("#search-q");
 const searchOut = $("#search-results");
 let searchMarker = null;
-function parseLatLon(q) {
-  const m = q.match(/^\s*(-?\d{1,3}(?:\.\d+)?)\s*[,\s]\s*(-?\d{1,3}(?:\.\d+)?)\s*$/);
-  if (!m) return null;
-  let a = Number(m[1]), b = Number(m[2]);
-  if (Math.abs(a) > 90 && Math.abs(b) <= 90) [a, b] = [b, a];
-  if (Math.abs(a) > 90 || Math.abs(b) > 180) return null;
-  return { lat: a, lon: b };
-}
+let searchMod = null;
+const loadSearch = () => (searchMod ??= import("/search.js"));
 function goTo(r) {
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (r.bbox) map.fitBounds([[r.bbox[0], r.bbox[1]], [r.bbox[2], r.bbox[3]]], { padding: 40, maxZoom: 11, duration: reduce ? 0 : 800 });
-  else map.flyTo({ center: [r.lon, r.lat], zoom: 10, duration: reduce ? 0 : 800 });
+  map.flyTo({ center: [r.lon, r.lat], zoom: r.zoom ?? 10, duration: reduce ? 0 : 800 });
   searchMarker?.remove();
   searchMarker = new maplibregl.Marker({ color: "#0050b3" }).setLngLat([r.lon, r.lat]).addTo(map);
+  searchOut.innerHTML = `<li class="hint">Showing ${esc(r.name)}.</li>`;
 }
+function showResults(results, note) {
+  searchOut.innerHTML = "";
+  for (const r of results) {
+    const li = document.createElement("li");
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "item-btn";
+    btn.innerHTML = `${esc(r.name)}${r.kind ? `<small>${esc(r.kind)}</small>` : ""}`;
+    btn.addEventListener("click", () => goTo(r));
+    li.appendChild(btn);
+    searchOut.appendChild(li);
+  }
+  if (note) {
+    const li = document.createElement("li");
+    li.className = "hint";
+    li.textContent = note;
+    searchOut.appendChild(li);
+  }
+}
+const GAZ_NOTE = "Places, counties and ZIP codes: U.S. Census Bureau Gazetteer.";
+let searchSeq = 0;
+async function suggest(q) {
+  const seq = ++searchSeq;
+  const m = await loadSearch();
+  if (m.parseLatLon(q) || m.looksLikeAddress(q) || q.trim().length < 2) return;
+  try {
+    const results = await m.searchLocal(q);
+    if (seq !== searchSeq) return;
+    if (results.length) showResults(results, GAZ_NOTE);
+    else searchOut.innerHTML = `<li class="hint">No matching place. Try a town, county, ZIP code, street address, or “44.5, -110.5”.</li>`;
+  } catch {
+    if (seq === searchSeq) searchOut.innerHTML = `<li class="hint">Place search could not load. Check your connection.</li>`;
+  }
+}
+let suggestTimer = 0;
+searchInput.addEventListener("focus", () => loadSearch(), { once: true });
+searchInput.addEventListener("input", () => {
+  clearTimeout(suggestTimer);
+  const q = searchInput.value;
+  if (q.trim().length < 2) { searchOut.innerHTML = ""; return; }
+  suggestTimer = setTimeout(() => suggest(q), 250);
+});
 searchForm.addEventListener("submit", async (e) => {
   e.preventDefault();
-  const q = $("#search-q").value.trim();
-  searchOut.innerHTML = "";
+  clearTimeout(suggestTimer);
+  const q = searchInput.value.trim();
   if (q.length < 2) return;
-  const ll = parseLatLon(q);
-  if (ll) { goTo(ll); searchOut.innerHTML = `<li class="hint">Moved to ${ll.lat.toFixed(4)}, ${ll.lon.toFixed(4)}.</li>`; return; }
-  searchOut.innerHTML = `<li class="hint">Searching…</li>`;
-  try {
-    const res = await fetchWithTimeout(`/api/geocode?q=${encodeURIComponent(q)}`, 12000);
-    if (res.status === 429) { searchOut.innerHTML = `<li class="hint">Search is busy. Try again in a moment.</li>`; return; }
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const body = await res.json();
-    if (!body.results.length) { searchOut.innerHTML = `<li class="hint">No places found in the United States for “${esc(q)}”.</li>`; return; }
-    searchOut.innerHTML = "";
-    for (const r of body.results) {
-      const li = document.createElement("li");
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "item-btn";
-      btn.textContent = r.name;
-      btn.addEventListener("click", () => { goTo(r); searchOut.innerHTML = ""; });
-      li.appendChild(btn);
-      searchOut.appendChild(li);
+  const m = await loadSearch();
+  const ll = m.parseLatLon(q);
+  if (ll) return goTo(ll);
+  const seq = ++searchSeq;
+  if (m.looksLikeAddress(q)) {
+    searchOut.innerHTML = `<li class="hint">Looking up the address…</li>`;
+    try {
+      const r = await m.searchAddress(q);
+      if (seq !== searchSeq) return;
+      if (r.busy) { searchOut.innerHTML = `<li class="hint">Address search is busy. Try again in a few seconds.</li>`; return; }
+      if (!r.results.length) { searchOut.innerHTML = `<li class="hint">No match for that address. Try adding the town and state.</li>`; return; }
+      if (r.results.length === 1) { goTo(r.results[0]); return; }
+      showResults(r.results, r.attribution);
+    } catch {
+      searchOut.innerHTML = `<li class="hint">Address search is not available right now. Try a town, county or ZIP code.</li>`;
     }
-    const note = document.createElement("li");
-    note.className = "hint";
-    note.textContent = body.attribution;
-    searchOut.appendChild(note);
-    if (body.results.length === 1) goTo(body.results[0]);
+    return;
+  }
+  try {
+    const results = await m.searchLocal(q);
+    if (seq !== searchSeq) return;
+    if (results.length) goTo(results[0]);
+    else searchOut.innerHTML = `<li class="hint">No matching place. Try a town, county, ZIP code, street address, or “44.5, -110.5”.</li>`;
   } catch {
-    searchOut.innerHTML = `<li class="hint">Search is not available right now. You can type a latitude and longitude, for example 44.5, -110.5.</li>`;
+    searchOut.innerHTML = `<li class="hint">Place search could not load. Check your connection.</li>`;
   }
 });
 
+// ------------------------------------------------------- first-visit hint
+// Shown once per browser. Not modal: the map stays usable behind it.
+{
+  const hint = $("#first-hint");
+  const KEY = "pw-hint-dismissed";
+  let seen = false;
+  try { seen = localStorage.getItem(KEY) === "1"; } catch {}
+  if (!seen && !initial.view) {
+    hint.hidden = false;
+    const close = () => {
+      hint.hidden = true;
+      try { localStorage.setItem(KEY, "1"); } catch {}
+      document.removeEventListener("keydown", onKey);
+    };
+    const onKey = (e) => { if (e.key === "Escape" && !hint.hidden) close(); };
+    $("#first-hint-close").addEventListener("click", () => { close(); $("#map").focus(); });
+    document.addEventListener("keydown", onKey);
+  }
+}
+
 // ------------------------------------------------------------- dark mode
 const themeBtn = $("#theme-toggle");
+let mapTheme = currentTheme();
 function syncThemeButton() {
   const dark = currentTheme() === "dark";
   themeBtn.setAttribute("aria-pressed", String(dark));
   themeBtn.textContent = dark ? "Light map" : "Dark map";
-  document.querySelector('meta[name="theme-color"]').setAttribute("content", dark ? "#0f1a14" : "#1d3b2a");
 }
 function applyTheme(theme) {
-  document.documentElement.dataset.theme = theme;
   syncThemeButton();
+  if (theme === mapTheme) return;
+  mapTheme = theme;
   // Swap the basemap, then put the agency layers back in their places.
   map.setStyle(BASEMAPS[theme], { diff: false });
   map.once("style.load", () => {
@@ -618,13 +696,17 @@ function applyTheme(theme) {
       if (l.type === "geojson" && l.loaded === true) addVector(l);
     }
   });
+  for (const l of layers.values()) renderLayerRow(l);
+  renderLegend();
 }
 themeBtn.addEventListener("click", () => {
   const next = currentTheme() === "dark" ? "light" : "dark";
   try { localStorage.setItem(THEME_KEY, next); } catch { /* private mode */ }
-  applyTheme(next);
+  window.pwTheme?.paint(next);
 });
-prefersDark.addEventListener("change", () => { if (!storedTheme()) applyTheme(currentTheme()); });
+// theme.js may change data-theme (device setting, another tab): follow it.
+new MutationObserver(() => applyTheme(currentTheme()))
+  .observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 syncThemeButton();
 
 // ------------------------------------------------------------- share link

@@ -5,23 +5,46 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Predator Watch: public agency predator data map</title>
   <meta name="description" content="A free, open-source map that brings together publicly available government and agency predator data, with the source and time on every item.">
-  <meta name="theme-color" content="#1d3b2a">
+  <meta name="theme-color" content="#f3f4f6" data-light="#f3f4f6" data-dark="#0e1012">
+  <script src="/theme.js"></script>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/icons/icon-32.png" sizes="32x32" type="image/png">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="canonical" href="https://app.predatorwatch.org/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Predator Watch by BitPrairie">
+  <meta property="og:title" content="Predator Watch: public agency predator data on one map">
+  <meta property="og:description" content="Free, open-source map of wolf data that government agencies publish, with the source, date and freshness on every item.">
+  <meta property="og:url" content="https://app.predatorwatch.org/">
+  <meta property="og:image" content="https://app.predatorwatch.org/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Predator Watch by BitPrairie: a map of public agency wolf data with freshness badges">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Predator Watch: public agency predator data on one map">
+  <meta name="twitter:description" content="Free, open-source map of wolf data that government agencies publish, with the source, date and freshness on every item.">
+  <meta name="twitter:image" content="https://app.predatorwatch.org/og.png">
+  <meta name="twitter:image:alt" content="Predator Watch by BitPrairie: a map of public agency wolf data with freshness badges">
   <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
   <meta name="color-scheme" content="light dark">
   <link rel="preload" href="/api/layers" as="fetch" crossorigin="anonymous">
   <link rel="stylesheet" href="/vendor/maplibre-gl/maplibre-gl.css">
+  <link rel="preload" href="/fonts/ibm-plex-sans.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/brand.css">
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
   <a class="skip-link" href="#panel">Skip to layers and data</a>
   <header class="topbar">
     <div class="brand">
-      <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 3 7v6c0 5 3.8 8.7 9 9 5.2-.3 9-4 9-9V7l-9-5Zm0 4.2 5 2.8v4c0 2.9-2.1 5.1-5 5.5-2.9-.4-5-2.6-5-5.5V9l5-2.8Z"/></svg>
-      <div>
-        <h1>Predator Watch</h1>
-        <p class="tagline">Public agency predator data, with the source and time on every item.</p>
+      <a class="brand-home" href="https://bitprairie.com/" aria-label="BitPrairie home"><img class="brand-symbol" src="/brand/bitprairie-symbol.svg" alt="" width="30" height="30"><span class="brand-wordmark" aria-hidden="true"></span></a>
+      <span class="brand-sep" aria-hidden="true"></span>
+      <div class="brand-proj">
+        <a class="proj-link" href="/"><svg class="proj-mark" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><ellipse cx="13" cy="6.6" rx="2" ry="3.2" transform="rotate(-6 13 6.6)"/><ellipse cx="19" cy="6.6" rx="2" ry="3.2" transform="rotate(6 19 6.6)"/><ellipse cx="8.4" cy="13.4" rx="1.9" ry="3" transform="rotate(-24 8.4 13.4)"/><ellipse cx="23.6" cy="13.4" rx="1.9" ry="3" transform="rotate(24 23.6 13.4)"/><path d="M16 15.8c-3 0-5.8 3.4-5.8 7 0 2.8 1.7 4.6 3.6 4.6 1 0 1.5-.6 2.2-.6s1.2.6 2.2.6c1.9 0 3.6-1.8 3.6-4.6 0-3.6-2.8-7-5.8-7z"/></svg><h1 class="proj-name">Predator Watch</h1></a>
+        <p class="byline">by <a href="https://bitprairie.com/predator-watch/">BitPrairie</a></p>
       </div>
+      <p class="tagline">Public agency predator data, with the source and time on every item.</p>
     </div>
     <div class="topbar-actions">
       <button type="button" id="panel-toggle" class="btn" aria-controls="panel" aria-expanded="true">Layers</button>
@@ -37,7 +60,7 @@
       <form id="search" class="search" role="search">
         <label for="search-q">Find a place</label>
         <div class="search-row">
-          <input id="search-q" name="q" type="search" placeholder="Town, county, or 44.5, -110.5" autocomplete="off" maxlength="120" enterkeyhint="search">
+          <input id="search-q" name="q" type="search" placeholder="Town, county, ZIP or address" autocomplete="off" maxlength="120" enterkeyhint="search">
           <button class="btn btn-solid" type="submit">Go</button>
         </div>
       </form>
@@ -84,11 +107,39 @@
         </ul>
       </section>
 
+      <nav class="panel-links" aria-label="More">
+        <a href="/about">How this works</a>
+        <a href="/status">Source status</a>
+        <a href="https://github.com/steelhead99x/predator-watch-app/issues/new?template=new-source.yml" rel="noopener">Suggest a source</a>
+        <a href="https://github.com/steelhead99x/predator-watch-app" rel="noopener">Source code</a>
+      </nav>
+
       <p class="disclaimer">Generalized public data from the agencies named on each layer. Locations are never shown more precisely than the agency publishes them. A highlighted area shows where the agency reports activity; it is not a current animal position. Check the agency's own notes before relying on any layer.</p>
+
+      <footer class="credits" aria-label="Credits">
+        <p class="credits-proj"><svg class="proj-mark" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><ellipse cx="13" cy="6.6" rx="2" ry="3.2" transform="rotate(-6 13 6.6)"/><ellipse cx="19" cy="6.6" rx="2" ry="3.2" transform="rotate(6 19 6.6)"/><ellipse cx="8.4" cy="13.4" rx="1.9" ry="3" transform="rotate(-24 8.4 13.4)"/><ellipse cx="23.6" cy="13.4" rx="1.9" ry="3" transform="rotate(24 23.6 13.4)"/><path d="M16 15.8c-3 0-5.8 3.4-5.8 7 0 2.8 1.7 4.6 3.6 4.6 1 0 1.5-.6 2.2-.6s1.2.6 2.2.6c1.9 0 3.6-1.8 3.6-4.6 0-3.6-2.8-7-5.8-7z"/></svg>Predator Watch</p>
+        <p class="credits-brand"><a href="https://bitprairie.com/predator-watch/" aria-label="Predator Watch on bitprairie.com"><img class="brand-symbol" src="/brand/bitprairie-symbol.svg" alt="" width="28" height="28"></a><span>&copy; 2026 BitPrairie LLC. Predator Watch is a BitPrairie project. Code under Apache-2.0; data from the agencies named on each layer.</span></p>
+        <ul class="credits-links">
+          <li><a href="https://bitprairie.com/predator-watch/">bitprairie.com/predator-watch</a></li>
+          <li><a href="/about">About and methodology</a></li>
+          <li><a href="/status">Source status</a></li>
+          <li><a href="https://github.com/steelhead99x/predator-watch-app" rel="noopener">Source code</a></li>
+          <li><a href="/about#credits">Credits</a></li>
+        </ul>
+      </footer>
     </aside>
 
     <div class="map-wrap">
       <div id="map" role="region" aria-label="Map. Use arrow keys to pan and plus or minus to zoom when focused." tabindex="0"></div>
+      <aside id="first-hint" class="first-hint" aria-labelledby="first-hint-title" hidden>
+        <h2 id="first-hint-title">Welcome</h2>
+        <ul>
+          <li>Turn agency layers on and off in the panel.</li>
+          <li>Select a shaded area for its agency, dates and source link.</li>
+          <li>Badges show how fresh each layer is.</li>
+        </ul>
+        <button type="button" id="first-hint-close" class="btn btn-solid">Got it</button>
+      </aside>
       <details id="legend" class="legend" open>
         <summary>Legend</summary>
         <ul id="legend-list"></ul>
@@ -108,8 +159,9 @@
     <p>Predator Watch is a free, open-source map. It brings together predator data that government agencies already publish, starting with gray wolves, and refreshes each source as often as the agency updates it.</p>
     <p>Every item shows which agency published it, when the agency observed or last updated it, and when this map received it. Each layer has a freshness badge. Data is shown at the same precision the agency publishes, never finer.</p>
     <p>Only public agency data is used here. A private collaboration space for ranchers, community members, and agencies is <strong>Planned</strong>.</p>
+    <p><a href="/about">Methodology, freshness and limitations</a> · <a href="/status">Source status</a> · <a href="https://github.com/steelhead99x/predator-watch-app/issues/new?template=new-source.yml">Suggest a source</a></p>
     <p>Source code and the full list of data sources: <a href="https://github.com/steelhead99x/predator-watch-app">github.com/steelhead99x/predator-watch-app</a> (Apache-2.0).</p>
-    <p class="small">Place search: © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors (Nominatim). Saved copies of the layer list and agency data are kept in this browser so the map still opens without a connection.</p>
+    <p class="small">Place search: <a href="https://www.census.gov/geographies/reference-files/time-series/geo/gazetteer-files.html">U.S. Census Bureau Gazetteer</a> (places, counties, ZIP codes, searched in your browser) and the <a href="https://geocoding.geo.census.gov/geocoder/">Census Bureau Geocoder</a> (street addresses). This product uses the Census Bureau Data API but is not endorsed or certified by the Census Bureau. Saved copies of the layer list and agency data are kept in this browser so the map still opens without a connection.</p>
     <p class="small">Basemap: <a href="https://openfreemap.org/">OpenFreeMap</a> © <a href="https://openmaptiles.org/">OpenMapTiles</a>, data © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors.</p>
     <form method="dialog"><button class="btn" autofocus>Close</button></form>
   </dialog>

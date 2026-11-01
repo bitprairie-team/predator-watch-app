@@ -15,8 +15,10 @@ export const SECURITY_HEADERS: Record<string, string> = {
 
 export interface RespondOptions {
   status?: number;
-  /** Browser/CDN max-age in seconds. 0 means no-store. */
+  /** Browser max-age in seconds. 0 means no-store. */
   maxAge?: number;
+  /** Edge cache lifetime in seconds; defaults to maxAge. */
+  sMaxAge?: number;
   contentType?: string;
   /** Suggest a download filename. */
   filename?: string;
@@ -42,7 +44,10 @@ export function respond(request: Request, body: string, opts: RespondOptions = {
     "content-type": opts.contentType ?? "application/json; charset=utf-8",
     "access-control-allow-origin": "*",
     "access-control-expose-headers": "ETag",
-    "cache-control": maxAge > 0 ? `public, max-age=${maxAge}, stale-while-revalidate=${maxAge * 5}` : "no-store",
+    "cache-control":
+      maxAge > 0
+        ? `public, max-age=${maxAge}, s-maxage=${opts.sMaxAge ?? maxAge}, stale-while-revalidate=${maxAge * 5}`
+        : "no-store",
     vary: "Accept-Encoding",
     ...opts.headers,
   });

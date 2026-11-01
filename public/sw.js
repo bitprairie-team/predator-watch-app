@@ -1,13 +1,20 @@
 // Predator Watch service worker: keeps a last-good copy so the map opens
 // on a weak or missing connection. Only same-origin files are cached;
 // basemap and agency map tiles always come from their providers.
-const VERSION = "pw-3";
+const VERSION = "pw-5";
 const SHELL = `${VERSION}-shell`;
 const DATA = `${VERSION}-data`;
 const SHELL_FILES = [
   "/",
   "/app.js",
+  "/search.js",
   "/styles.css",
+  "/brand.css",
+  "/theme.js",
+  "/fonts/ibm-plex-sans.woff2",
+  "/fonts/ibm-plex-mono-normal-500.woff2",
+  "/brand/bitprairie-symbol.svg",
+  "/brand/bitprairie-wordmark.svg",
   "/favicon.svg",
   "/vendor/maplibre-gl/maplibre-gl.js",
   "/vendor/maplibre-gl/maplibre-gl.css",
@@ -71,5 +78,10 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(staleWhileRevalidate(req, "/"));
     return;
   }
-  if (SHELL_FILES.includes(url.pathname)) event.respondWith(staleWhileRevalidate(req, url.pathname));
+  if (SHELL_FILES.includes(url.pathname)) {
+    event.respondWith(staleWhileRevalidate(req, url.pathname));
+    return;
+  }
+  // Place index shards: kept once fetched, so search works offline for letters already used.
+  if (url.pathname.startsWith("/data/gazetteer/")) event.respondWith(staleWhileRevalidate(req, url.pathname));
 });
