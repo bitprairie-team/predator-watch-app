@@ -56,7 +56,7 @@ describe("front end", () => {
     const app = readFileSync("public/app.js", "utf8").toString();
     expect(app).toMatch(/About this source<span class="sr-only">: \$\{nm\}/);
     expect(app).toMatch(/GeoJSON<span class="sr-only"> for \$\{nm\}/);
-    expect(app).toMatch(/class="btn btn-small retry">Retry/);
+    expect(app).toMatch(/class="btn btn-small retry">Try again/);
     expect(app).toMatch(/if \(focusSel\) li\.querySelector\(focusSel\)\?\.focus\(\)/);
   });
 });
