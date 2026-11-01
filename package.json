@@ -15,6 +15,7 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "vendor": "node scripts/copy-vendor.mjs",
+    "loadtest": "node scripts/loadtest.mjs",
     "postinstall": "node scripts/copy-vendor.mjs"
   },
   "dependencies": {
@@ -25,6 +26,7 @@
     "@types/node": "^26.6.6",
     "ajv": "^8.20.0",
     "ajv-formats": "^3.0.1",
+    "autocannon": "^8.0.0",
     "typescript": "^5.9.3",
     "vitest": "^3.2.7",
     "wrangler": "^4.156.0"

@@ -72,6 +72,12 @@ export interface SourceStatus {
   /** Agency-reported last edit time of the data, if they publish one. */
   source_updated_at: string | null;
   feature_count: number;
+  /** Last refresh attempt by the cron, successful or not. */
+  attempted_at?: string | null;
+  /** Failed refreshes in a row; 0 after a success. */
+  failures?: number;
+  /** When the most recent failure happened. */
+  last_error_at?: string | null;
   error?: string;
 }
 
@@ -99,8 +105,10 @@ export interface PublicSourceInfo {
 }
 
 export interface LayerStyle {
-  /** Fill / line / circle colour, hex. */
+  /** Fill / line / circle colour on the light basemap, hex (BitPrairie palette, at least 3:1 against the basemap). */
   color: string;
+  /** Colour on the dark basemap, hex. Falls back to `color`. */
+  colorDark?: string;
   /** Polygon fill opacity, 0..1 */
   fillOpacity?: number;
   /** Optional dashed outline for management boundaries. */

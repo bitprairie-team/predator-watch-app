@@ -35,7 +35,7 @@ export const SOURCES: SourceConfig[] = [
       observedAt: { field: "most_recent_adj", format: "date-text", precision: "day" },
       details: { "Pack of origin": "pack_origin", "Time of day (agency)": "time_of_day" },
     },
-    style: { color: "#0b7a4b", fillOpacity: 0.35, order: 30, defaultVisible: true },
+    style: { color: "#7a5530", colorDark: "#c9a679", fillOpacity: 0.35, order: 30, defaultVisible: true },
   },
   {
     type: "arcgis",
@@ -58,7 +58,7 @@ export const SOURCES: SourceConfig[] = [
       observedAt: { field: "Year", format: "year" },
       details: { "Survey year": "Year", "Pack status": "PackStatus" },
     },
-    style: { color: "#1f5fa8", fillOpacity: 0.2, order: 20, defaultVisible: true },
+    style: { color: "#1f5a8a", colorDark: "#7fb2e0", fillOpacity: 0.2, order: 20, defaultVisible: true },
   },
   {
     type: "arcgis",
@@ -77,7 +77,7 @@ export const SOURCES: SourceConfig[] = [
     notes: "General extent of wolf distribution. The date shown is the layer's last data edit reported by FWP.",
     fields: { label: "Gray wolf distribution", observedAt: { fromLayer: true }, details: { Acres: "ACRES" } },
     maxAllowableOffset: 0.002,
-    style: { color: "#6b3fa0", fillOpacity: 0.15, order: 10, defaultVisible: true },
+    style: { color: "#5b3f8c", colorDark: "#b49be0", fillOpacity: 0.15, order: 10, defaultVisible: true },
   },
   {
     type: "arcgis",
@@ -95,7 +95,7 @@ export const SOURCES: SourceConfig[] = [
     precision: "distribution-area",
     fields: { label: "Mexican wolf occupied range (2020)", observedAt: { fromLayer: true } },
     maxAllowableOffset: 0.002,
-    style: { color: "#a34a00", fillOpacity: 0.15, order: 11, defaultVisible: true },
+    style: { color: "#0f6b5c", colorDark: "#5cc8b0", fillOpacity: 0.15, order: 11, defaultVisible: true },
   },
 
   // ---------------------------------------------------------- management areas
@@ -115,7 +115,7 @@ export const SOURCES: SourceConfig[] = [
     precision: "management-unit",
     fields: { label: "Mexican Wolf Experimental Population Area" },
     maxAllowableOffset: 0.002,
-    style: { color: "#7a4a1d", fillOpacity: 0, dashed: true, order: 5 },
+    style: { color: "#8a5a12", colorDark: "#d9a75a", fillOpacity: 0, dashed: true, order: 5 },
   },
   {
     type: "arcgis",
@@ -133,7 +133,7 @@ export const SOURCES: SourceConfig[] = [
     precision: "management-unit",
     fields: { label: "{DAU} wolf management zone", observedAt: { fromLayer: true } },
     maxAllowableOffset: 0.002,
-    style: { color: "#3d4f63", fillOpacity: 0, dashed: true, order: 4 },
+    style: { color: "#3b424b", colorDark: "#b3bac2", fillOpacity: 0, dashed: true, order: 4 },
   },
   {
     type: "arcgis",
@@ -155,7 +155,7 @@ export const SOURCES: SourceConfig[] = [
       details: { Region: "REG", "Harvest type": "HARVTYPE", "Regulations page": "WEBPAGE" },
     },
     maxAllowableOffset: 0.002,
-    style: { color: "#3d4f63", fillOpacity: 0, dashed: true, order: 4 },
+    style: { color: "#3b424b", colorDark: "#b3bac2", fillOpacity: 0, dashed: true, order: 4 },
   },
   {
     type: "arcgis",
@@ -178,7 +178,7 @@ export const SOURCES: SourceConfig[] = [
       details: { "Management area": "MGMTAREA" },
     },
     maxAllowableOffset: 0.002,
-    style: { color: "#3d4f63", fillOpacity: 0, dashed: true, order: 4 },
+    style: { color: "#3b424b", colorDark: "#b3bac2", fillOpacity: 0, dashed: true, order: 4 },
   },
   {
     type: "arcgis",
@@ -200,7 +200,7 @@ export const SOURCES: SourceConfig[] = [
       details: { Zone: "WOLF_MGMT_ZONE", Subzone: "IS_SUBZONE" },
     },
     maxAllowableOffset: 0.002,
-    style: { color: "#3d4f63", fillOpacity: 0, dashed: true, order: 4 },
+    style: { color: "#3b424b", colorDark: "#b3bac2", fillOpacity: 0, dashed: true, order: 4 },
   },
 
   // ----------------------------------------------------------------- context
@@ -226,7 +226,7 @@ export const SOURCES: SourceConfig[] = [
     },
     maxAllowableOffset: 0.001,
     geometryPrecision: 5,
-    style: { color: "#c62828", fillOpacity: 0.25, order: 40, defaultVisible: true },
+    style: { color: "#a3271b", colorDark: "#f08a7e", fillOpacity: 0.25, order: 40, defaultVisible: true },
   },
   {
     type: "arcgis",
@@ -250,7 +250,7 @@ export const SOURCES: SourceConfig[] = [
     },
     maxAllowableOffset: 0.01,
     geometryPrecision: 3,
-    style: { color: "#b8860b", fillOpacity: 0.15, order: 35 },
+    style: { color: "#6b5d0f", colorDark: "#d8c86a", fillOpacity: 0.15, order: 35 },
   },
 ];
 

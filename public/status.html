@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Source status · Predator Watch</title>
+  <meta name="description" content="When each public agency source was last refreshed, how many items it has, and any recent errors.">
+  <meta name="theme-color" content="#f3f4f6" data-light="#f3f4f6" data-dark="#0e1012">
+  <script src="/theme.js"></script>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="stylesheet" href="/brand.css">
+  <link rel="stylesheet" href="/page.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <a class="brand-home" href="https://bitprairie.com/" aria-label="BitPrairie home"><img class="brand-symbol" src="/brand/bitprairie-symbol.svg" alt="" width="30" height="30"><span class="brand-wordmark" aria-hidden="true"></span></a>
+      <span class="brand-sep" aria-hidden="true"></span>
+      <div class="brand-proj">
+        <a class="proj-link" href="/"><svg class="proj-mark" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><ellipse cx="13" cy="6.6" rx="2" ry="3.2" transform="rotate(-6 13 6.6)"/><ellipse cx="19" cy="6.6" rx="2" ry="3.2" transform="rotate(6 19 6.6)"/><ellipse cx="8.4" cy="13.4" rx="1.9" ry="3" transform="rotate(-24 8.4 13.4)"/><ellipse cx="23.6" cy="13.4" rx="1.9" ry="3" transform="rotate(24 23.6 13.4)"/><path d="M16 15.8c-3 0-5.8 3.4-5.8 7 0 2.8 1.7 4.6 3.6 4.6 1 0 1.5-.6 2.2-.6s1.2.6 2.2.6c1.9 0 3.6-1.8 3.6-4.6 0-3.6-2.8-7-5.8-7z"/></svg><span class="proj-name">Predator Watch</span></a>
+        <p class="byline">by <a href="https://bitprairie.com/predator-watch/">BitPrairie</a></p>
+      </div>
+    </div>
+    <nav class="topbar-actions" aria-label="Pages">
+      <a class="btn btn-ghost" href="/">Open the map</a>
+      <a class="btn btn-ghost" href="/about">About</a>
+      <button type="button" class="btn btn-ghost" data-theme-toggle aria-label="Switch light or dark theme">Theme</button>
+    </nav>
+  </header>
+  <main>
+    <p class="eyebrow">Predator Watch · Data sources</p>
+    <h1>Source status</h1>
+    <p class="muted">Each agency source is checked on its own schedule by a job that runs every 15 minutes. Visitors never trigger a request to an agency. Machine-readable: <a href="/api/status"><code>/api/status</code></a>.</p>
+    <p id="summary" role="status" aria-live="polite">Loading…</p>
+    <div class="table-wrap">
+      <table>
+        <caption class="muted" style="text-align:left;padding:.4rem 0">Times are shown in your time zone.</caption>
+        <thead><tr><th scope="col">Source</th><th scope="col">State</th><th scope="col">Last success</th><th scope="col">Items</th><th scope="col">Last error</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <p class="muted">Something looks wrong? <a href="https://github.com/steelhead99x/predator-watch-app/issues/new?template=bug.yml">Report it on GitHub</a>.</p>
+    <footer class="credits" aria-label="Credits">
+      <p class="credits-proj"><svg class="proj-mark" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><ellipse cx="13" cy="6.6" rx="2" ry="3.2" transform="rotate(-6 13 6.6)"/><ellipse cx="19" cy="6.6" rx="2" ry="3.2" transform="rotate(6 19 6.6)"/><ellipse cx="8.4" cy="13.4" rx="1.9" ry="3" transform="rotate(-24 8.4 13.4)"/><ellipse cx="23.6" cy="13.4" rx="1.9" ry="3" transform="rotate(24 23.6 13.4)"/><path d="M16 15.8c-3 0-5.8 3.4-5.8 7 0 2.8 1.7 4.6 3.6 4.6 1 0 1.5-.6 2.2-.6s1.2.6 2.2.6c1.9 0 3.6-1.8 3.6-4.6 0-3.6-2.8-7-5.8-7z"/></svg>Predator Watch</p>
+      <p class="credits-brand"><a href="https://bitprairie.com/predator-watch/" aria-label="Predator Watch on bitprairie.com"><img class="brand-symbol" src="/brand/bitprairie-symbol.svg" alt="" width="28" height="28"></a><span>&copy; 2026 BitPrairie LLC. Predator Watch is a BitPrairie project. Code under Apache-2.0; data from the agencies named on each layer.</span></p>
+      <ul class="credits-links">
+        <li><a href="https://bitprairie.com/predator-watch/">bitprairie.com/predator-watch</a></li>
+        <li><a href="/about">About and methodology</a></li>
+        <li><a href="/status">Source status</a></li>
+        <li><a href="https://github.com/steelhead99x/predator-watch-app" rel="noopener">Source code</a></li>
+        <li><a href="/about#credits">Credits</a></li>
+      </ul>
+    </footer>
+  </main>
+  <script type="module" src="/status.js"></script>
+</body>
+</html>
