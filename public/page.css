@@ -43,3 +43,59 @@ th .muted { font-weight: 400; }
 @media (pointer: coarse) { .sources-table a { display: inline-flex; align-items: center; min-height: 44px; } }
 .page-prefs { margin: 0 0 1.2rem; padding: .7rem .8rem .3rem; border: 1px solid var(--rule); background: var(--card); }
 body { font-size: 1rem; }
+
+/* ---- UI review (stage 6) ------------------------------------------------- */
+:root { --sp-1: .25rem; --sp-2: .5rem; --sp-3: .75rem; --sp-4: 1rem; --sp-5: 1.5rem; --sp-6: 2rem; --fs-label: .75rem; --fs-tag: .6875rem; }
+/* Line length: prose stays near 65-75 characters; the status tables use
+   the wider page. */
+.page-prose main { max-width: 46rem; }
+.page-wide main { max-width: 64rem; }
+main > p, main > ul, main > ol, main li, .table-caption { max-width: 68ch; }
+main > h1 { margin: var(--sp-1) 0 var(--sp-3); }
+.eyebrow { margin: var(--sp-5) 0 0; }
+.eyebrow, thead th, .sources-table .group th, .pref-label { font-size: var(--fs-label); }
+.badge { font-size: var(--fs-tag); }
+.table-caption { text-align: left; padding: var(--sp-2) 0; caption-side: top; }
+
+/* Same page links in the same order on every page; the current one is marked. */
+.topbar-actions .btn[aria-current="page"] { border-color: var(--ink); font-weight: 600; }
+@media (max-width: 560px) { .topbar-actions .btn[aria-current="page"] { display: none; } }
+
+/* Text size and contrast: a slim tool row, not a boxed panel above the title. */
+.page-prefs { display: flex; justify-content: flex-end; margin: var(--sp-2) 0 0; padding: 0; border: 0; background: none; }
+.page-prefs .pref-row { margin: 0; gap: var(--sp-1); justify-content: flex-end; }
+.page-prefs .pref-label { min-width: 0; margin-right: var(--sp-1); }
+.page-prefs .pref-btn { min-height: 32px; padding: 0 var(--sp-2); font-size: .875rem; }
+@media (pointer: coarse) { .page-prefs .pref-btn { min-height: 44px; min-width: 44px; } }
+
+/* Status summary first, as a tag plus one line; space held while it loads
+   so the table does not jump. */
+.status-summary { min-height: 1.6em; margin: var(--sp-4) 0 var(--sp-2); line-height: 1.6; }
+.status-summary .badge { font-size: .8125rem; padding: .1rem .5rem; margin-right: var(--sp-2); }
+@media (max-width: 640px) { .status-summary { min-height: 3.2em; } }
+.status-wrap[aria-busy="true"] { min-height: 100vh; }
+.src-meta, .cell-sub { display: block; }
+.sources-table th .muted, .src-meta { font-weight: 400; }
+td time, th time { white-space: nowrap; }
+td.num { text-align: right; }
+thead th:nth-child(5) { text-align: right; }
+
+/* Narrow screens: each source becomes a card with labeled fields instead
+   of a six-column table that scrolls sideways. */
+@media (max-width: 640px) {
+  .stack-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .stack-table, .stack-table tbody { display: block; }
+  .stack-table tr { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-2) var(--sp-4); padding: var(--sp-3) 0; border-bottom: 1px solid var(--line); }
+  .stack-table th[scope="row"] { grid-column: 1 / -1; padding: 0; border: 0; }
+  .stack-table td { display: block; padding: 0; border: 0; min-width: 0; }
+  .stack-table td[data-label="Sources checked"] { grid-column: 1 / -1; }
+  .stack-table td::before { content: attr(data-label); display: block; font: 500 var(--fs-tag)/1.4 var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--ink-2); margin-bottom: 2px; }
+  .stack-table td.num { text-align: left; }
+  .stack-table caption { display: block; }
+  .stack-table td[colspan] { grid-column: 1 / -1; }
+  .stack-table td[colspan]::before { content: none; }
+}
+/* Hold the tool row's height before prefs.js fills it (no layout shift). */
+.page-prefs:empty { min-height: 32px; }
+@media (pointer: coarse) { .page-prefs:empty { min-height: 44px; } }
+thead th { white-space: nowrap; }
