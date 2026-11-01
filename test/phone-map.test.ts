@@ -4,18 +4,19 @@ import { readFileSync } from "node:fs";
 const html = readFileSync("public/index.html", "utf8");
 const css = readFileSync("public/styles.css", "utf8");
 const app = readFileSync("public/app.js", "utf8");
-const phoneRules = css.slice(css.indexOf("/* Phone map round"));
+const phoneRules = css.slice(css.indexOf("@media (max-width: 760px) {"));
 
 describe("phone map layout", () => {
   it("keeps the basemap credit on one compact strip and moves agency credits behind a Data button", () => {
     const bar = html.slice(html.indexOf('id="credits-bar"'), html.indexOf("</div>", html.indexOf('id="sources-open"')));
     expect(bar).toMatch(/<span class="osm-short" aria-hidden="true">OSM<\/span>/);
-    expect(bar).toMatch(/<span class="src-phone">Data: <span id="credits-count">/);
+    expect(bar).toMatch(/<span class="src-phone"><span id="credits-count">/);
     expect(bar).toMatch(/<span class="src-wide">Sources<\/span>/);
     expect(phoneRules).toMatch(/\.credits-agencies \{ display: none; \}/);
     // Fixed px sizes: larger text settings do not grow the credits bar.
     expect(phoneRules).toMatch(/:root\[data-text\] \.credits-bar \{\s*font-size: 11px/);
-    expect(phoneRules).toMatch(/\.credits-btn, :root\[data-text\] \.credits-btn \{ min-height: 44px/);
+    expect(phoneRules).toMatch(/\.credits-agencies \{ display: none; \}/);
+    expect(phoneRules).toMatch(/\.credits-btn, :root\[data-text\] \.credits-btn \{[^}]*min-height: 44px/);
     expect(app).toMatch(/#credits-count"\)\.textContent = `\$\{n\} source\$\{n === 1 \? "" : "s"\}`/);
   });
 
@@ -27,9 +28,9 @@ describe("phone map layout", () => {
   });
 
   it("shows the legend as a 44px icon and label chip on phones", () => {
-    expect(html).toMatch(/<summary><svg class="legend-icon"[^>]*aria-hidden="true"[^>]*>.*<\/svg><span>Legend<\/span><\/summary>/);
+    expect(html).toMatch(/<summary><svg class="ico legend-icon"[^>]*aria-hidden="true"[^>]*>.*<\/svg><span>Legend<\/span><\/summary>/);
     expect(phoneRules).toMatch(/\.legend summary, :root\[data-text\] \.legend summary \{ min-height: 44px/);
-    expect(phoneRules).toMatch(/\.legend \{\s*top: 8px; right: 8px; bottom: auto;/);
+    expect(phoneRules).toMatch(/\.legend \{\s*top: var\(--sp-2\); right: var\(--sp-2\); bottom: auto;/);
   });
 
   it("fits the first view to the data that is on, inside map padding that follows the sheet", () => {

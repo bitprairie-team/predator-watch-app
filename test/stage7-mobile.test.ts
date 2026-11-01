@@ -10,7 +10,8 @@ const sw = read("sw.js");
 const headers = read("_headers");
 const css = read("styles.css");
 const page = read("page.css");
-const stage7 = css.slice(css.indexOf("/* ---- Mobile and app round (stage 7)"));
+// Stage 8 folded the per-round override sections into one stylesheet.
+const stage7 = css;
 const page7 = page.slice(page.indexOf("/* ---- Mobile and app round (stage 7)"));
 const maplibreVersion = JSON.parse(readFileSync("node_modules/maplibre-gl/package.json", "utf8")).version;
 
@@ -31,9 +32,10 @@ describe("mobile round (stage 7)", () => {
   });
 
   it("never cuts the word Layers in the phone sheet header", () => {
-    expect(index).toMatch(/<span class="sheet-title">Layers<span class="sheet-title-more"> and data<\/span><\/span>/);
-    expect(stage7).toMatch(/\.sheet-title, :root\[data-text\] \.sheet-title \{ flex: none; overflow: visible; text-overflow: clip; \}/);
-    expect(stage7).toMatch(/:root\[data-text="3"\] \.sheet-title-more \{ display: none; \}|:root\[data-text="3"\] \.sheet-title-more/);
+    expect(index).toMatch(/<span class="sheet-title">Layers<\/span><span id="sheet-count" class="sheet-count"><\/span>/);
+    expect(stage7).toMatch(/\.sheet-title, :root\[data-text\] \.sheet-title \{ flex: none; overflow: visible; text-overflow: clip; font: 600 16px\/1\.2 var\(--sans\);/);
+    // Only the view name may shorten, never the title.
+    expect(stage7).toMatch(/\.sheet-mode, :root\[data-text\] \.sheet-mode \{ flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis;/);
   });
 
   it("serves the map library from a versioned folder cached as immutable", () => {
@@ -53,12 +55,14 @@ describe("mobile round (stage 7)", () => {
   });
 
   it("keeps a one-line masthead and clears the side notch on landscape phones", () => {
-    expect(stage7).toMatch(/@media \(max-width: 760px\) and \(max-height: 500px\) \{\n\s+\.byline, \.tagline \{ display: none; \}/);
+    expect(stage7).toMatch(/@media \(max-width: 760px\) and \(max-height: 500px\) \{\n\s+\.byline \{ display: none; \}/);
     expect(stage7).toMatch(/\.maplibregl-ctrl-top-right \{ padding-right: env\(safe-area-inset-right\); \}/);
   });
 
   it("gives Sources links full touch targets and keeps search input at 16px or more", () => {
-    expect(stage7).toMatch(/@media \(pointer: coarse\) \{\n\s+\.sources-list a, \.sources-more a \{ display: inline-flex; align-items: center; min-height: 44px; \}/);
+    const coarse = css.slice(css.indexOf("@media (pointer: coarse) {"), css.indexOf("/* ------------------------------------------------------------ phones */"));
+    expect(coarse).toMatch(/\.sources-list a, \.sources-more a, \.search-results button \{ min-height: 44px; \}/);
+    expect(coarse).toMatch(/\.exports a, \.sources-list a, \.sources-more a \{ display: inline-flex; align-items: center; \}/);
     // iOS zooms into inputs under 16px; the search and filter boxes use 1rem or more.
     expect(css).not.toMatch(/#search-q[^{]*\{[^}]*font-size: (?:0?\.\d+rem|1[0-5]px)/);
   });
