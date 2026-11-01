@@ -8,11 +8,32 @@
     {
       "id": "home",
       "name": "Home place",
-      "location": { "lat": 0, "lon": 0 },
+      "location": {
+        "lat": 0,
+        "lon": 0
+      },
       "allotments": []
     }
   ],
   "contacts": [],
   "reporting": [],
+  "agents": {
+    "morning_digest": {
+      "enabled": true,
+      "hour_utc": 14,
+      "days": 1
+    },
+    "new_report_alert": {
+      "enabled": true,
+      "interval_minutes": 60,
+      "radius_miles": 10
+    },
+    "meeting_prep": {
+      "enabled": false,
+      "contact_index": 0,
+      "days": 30,
+      "topics": []
+    }
+  },
   "updated_at": "2026-10-31T00:00:00Z"
 }
