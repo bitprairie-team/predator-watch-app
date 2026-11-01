@@ -84,7 +84,7 @@ export const THEME_BACKGROUNDS = {
 /**
  * Installed-app colors (web app manifest, iOS meta tags, store app splash
  * screens and icons). The theme and background are the light paper color;
- * the icon tile is the BitPrairie accent. test/stage7-app.test.ts checks
+ * the icon is the BitPrairie bison tile on its warm plate (never recolored). test/stage7-app.test.ts checks
  * that public/manifest.webmanifest and capacitor.config.ts use these.
  */
 export const APP_COLORS = {
@@ -94,13 +94,8 @@ export const APP_COLORS = {
   background: THEME_BACKGROUNDS.light[1],
   /** Dark theme bar color (meta theme-color data-dark). */
   themeDark: THEME_BACKGROUNDS.dark[0],
-  /** Icon tile behind the white paw mark. */
-  icon: "#7a5530",
-  /** Paw mark on the icon tile. */
-  iconMark: "#ffffff",
-  /** Paw mark on the light and dark launch screens (brand accents). */
-  splashMark: "#7a5530",
-  splashMarkDark: "#c9a679",
+  /** The BitPrairie mark plate behind the bison symbol (brand fixed, light and dark). */
+  icon: "#c4ae96",
 } as const;
 
 /** "#rrggbb" to [r, g, b, a] for ArcGIS symbol JSON. */

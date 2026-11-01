@@ -37,6 +37,25 @@ Recommendation: Capacitor for both stores (works offline from first launch,
 and Apple does not accept a plain website wrapper). The TWA is there if you
 would rather Play always run the live site.
 
+
+## Brand
+
+- **App icon, favicon, launch screen:** the BitPrairie bison tile
+  (`public/brand/bitprairie-symbol.svg`, always on its warm #c4ae96 plate,
+  never recolored). `npm run app:assets` draws every size from it, then
+  `npx capacitor-assets generate --ios --android --iconBackgroundColor '#c4ae96' --iconBackgroundColorDark '#c4ae96' --splashBackgroundColor '#f3f4f6' --splashBackgroundColorDark '#0e1012'`
+  writes the native sizes. Do not edit the generated PNGs by hand.
+- **Predator Watch mark:** the line paw (`public/brand/predator-watch-mark.svg`,
+  1.8 stroke, round caps, currentColor), next to "Predator Watch" in IBM Plex
+  Sans 600.
+- **Type:** self-hosted IBM Plex Sans 400/500/600 and IBM Plex Mono 500
+  (`public/fonts`, SIL OFL). Never 700.
+- **UI colors:** every chrome color is a token in `public/brand.css`
+  (`:root` light, `[data-theme="dark"]`). Switching the chrome palette means
+  editing those two blocks, plus `THEME_BACKGROUNDS` in
+  `src/config/palette.ts` so the map background, manifest and launch screens
+  match. Map data layer colors live only in `src/config/palette.ts`.
+
 ## Screenshots
 
 `npm run dev`, then `npm run store:shots` (needs Playwright: `npm i -g
