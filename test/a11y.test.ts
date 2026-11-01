@@ -50,7 +50,8 @@ describe("screen reader and keyboard support", () => {
     expect(index).toMatch(/id="sec-list"/);
     expect(index).toMatch(/data-jump="sec-list"/);
     expect(app).toMatch(/function renderListView/);
-    expect(index).toMatch(/id="locate-me"[^>]*>[\s\S]*Use my location<\/button>/);
+    // An icon button beside Go, named by aria-label with a matching tooltip.
+    expect(index).toMatch(/<button type="button" id="locate-me" class="btn icon-btn locate-btn" aria-label="Use my location" title="Use my location">/);
     expect(app).toMatch(/geolocation\.getCurrentPosition/);
   });
 

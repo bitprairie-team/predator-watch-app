@@ -15,8 +15,8 @@ describe("side panel navigation", () => {
     expect(html).toMatch(/<label for="layer-filter">/);
     expect(html).toMatch(/id="layer-filter" type="search"/);
     expect(html).toMatch(/id="active-only"/);
-    expect(html).toMatch(/id="reset-layers"[^>]*>Reset to defaults</);
-    expect(html).toMatch(/id="all-off"[^>]*>Turn all off</);
+    expect(html).toMatch(/id="reset-layers" class="link-btn">Reset to defaults</);
+    expect(html).toMatch(/id="all-off" class="link-btn">Turn all off</);
     expect(html).toMatch(/id="active-chips"/);
   });
 
