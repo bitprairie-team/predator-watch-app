@@ -1,7 +1,7 @@
 // Predator Watch front end. Plain ES module, no build step.
 /* global maplibregl */
 import { creditGroups, swatchHtml, vectorPaint, vectorTilePaint } from "/layer-style.js";
-import { NATIVE, api, apiFetch } from "/net.js";
+import { API_BASE, NATIVE, api, apiFetch } from "/net.js";
 
 const BASEMAPS = {
   light: "https://tiles.openfreemap.org/styles/positron",
@@ -1406,11 +1406,14 @@ $("#share-link").addEventListener("click", async () => {
   writeHash();
   await new Promise((r) => setTimeout(r, 300));
   const msg = $("#share-status");
+  // In the store apps the page address is local to the device; share the
+  // public site's address for the same view instead.
+  const link = NATIVE ? `${API_BASE}/${location.hash}` : location.href;
   try {
-    await navigator.clipboard.writeText(location.href);
+    await navigator.clipboard.writeText(link);
     msg.textContent = "Link copied. It opens this view with these layers.";
   } catch {
-    msg.textContent = `Copy this link: ${location.href}`;
+    msg.textContent = `Copy this link: ${link}`;
   }
 });
 window.addEventListener("hashchange", () => {
