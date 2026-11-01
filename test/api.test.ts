@@ -66,7 +66,7 @@ describe("exports", () => {
     const env = await seeded();
     const g = await get(env, `/api/sources/${ID}.geojson`);
     expect(g.headers.get("content-type")).toMatch(/geo\+json/);
-    expect(g.headers.get("content-disposition")).toMatch(/cdfw-collared-wolf-cells-2026-10-31\.geojson/);
+    expect(g.headers.get("content-disposition")).toMatch(/cdfw-collared-wolf-cells-\d{4}-\d{2}-\d{2}\.geojson/);
     const k = await get(env, `/api/sources/${ID}.kml`);
     const kml = await k.text();
     expect(kml).toMatch(/^<\?xml/);
