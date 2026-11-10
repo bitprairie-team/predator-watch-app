@@ -20,19 +20,23 @@
 
   function render(data) {
     if (checkedEl) {
-      const when = data.checked_at ? fmtDate(data.checked_at.slice(0, 10)) : "not yet";
-      checkedEl.textContent = `Last checked ${when}. Each item is as reported by the agency named on the line.`;
+      const when = data.checked_at ? fmtDate(data.checked_at.slice(0, 10)) : "";
+      checkedEl.textContent = when ? `Last checked ${when}.` : "Not checked yet.";
     }
     if (factsEl) {
       const facts = data.facts || [];
       factsEl.innerHTML = facts.length
-        ? facts.map((f) => `<li><strong>${esc(f.value)}</strong> (${esc(f.label)}), ${esc(f.attribution)}. <a href="${esc(f.url)}">Source</a></li>`).join("")
-        : `<li class="muted">No official counts are cached yet.</li>`;
+        ? facts.map((f) => {
+            const period = f.date || f.year || "";
+            const meta = [f.agency, period].filter(Boolean).join(", ");
+            return `<li><span class="fact-value">${esc(f.value)}</span><span class="fact-detail"><span class="fact-label">${esc(f.label)}</span> <span class="fact-meta"><a href="${esc(f.url)}">${esc(meta)}</a></span></span></li>`;
+          }).join("")
+        : `<li class="muted">No official counts are listed yet.</li>`;
     }
     const items = data.items || [];
     listEl.innerHTML = items.length
-      ? items.map((i) => `<li><time datetime="${esc(i.date)}">${esc(fmtDate(i.date))}</time> <a href="${esc(i.url)}">${esc(i.title)}</a> <span class="muted">as reported by ${esc(i.agency)}</span></li>`).join("")
-      : `<li class="muted">No official updates are cached yet.</li>`;
+      ? items.map((i) => `<li><time datetime="${esc(i.date)}">${esc(fmtDate(i.date))}</time><span class="updates-detail"><a class="updates-title" href="${esc(i.url)}">${esc(i.title)}</a> <span class="updates-agency">${esc(i.agency)}</span></span></li>`).join("")
+      : `<li class="muted">No official updates are listed yet.</li>`;
   }
 
   fetch("/api/updates")

@@ -578,7 +578,19 @@ dialog h2 { margin: 0 0 var(--sp-3); font: 600 var(--t-title)/1.3 var(--sans); }
 
 /* Official updates fold */
 .updates-facts { margin: 0 0 var(--sp-2); padding: 0; list-style: none; }
-.updates-facts li, .updates-list li { margin: 0; padding: var(--sp-2) 0; border-bottom: 1px solid var(--rule); font: 400 var(--t-body)/1.4 var(--sans); }
 .updates-list { margin: 0; padding: 0; list-style: none; }
-.updates-list time { display: block; font: 500 var(--t-meta)/1.3 var(--sans); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.updates-facts li, .updates-list li {
+  margin: 0; padding: 6px 0; border-bottom: 1px solid var(--rule);
+  font: 400 var(--t-meta)/1.35 var(--sans);
+}
+.updates-facts li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--sp-2); }
+.updates-facts .fact-value { font: 600 var(--t-body)/1.3 var(--sans); font-variant-numeric: tabular-nums; }
+.updates-facts .fact-meta { color: var(--ink-2); }
+.updates-list li { display: grid; grid-template-columns: 7.5rem 1fr; column-gap: var(--sp-2); align-items: baseline; }
+.updates-list time {
+  display: block; grid-column: 1; font: 500 var(--t-meta)/1.35 var(--sans);
+  color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.updates-list .updates-detail { grid-column: 2; min-width: 0; }
 .updates-list .muted, .updates-facts .muted { color: var(--ink-2); }
+.updates-list .muted { white-space: nowrap; }

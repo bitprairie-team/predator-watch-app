@@ -1121,13 +1121,18 @@ async function renderUpdates() {
     const facts = data.facts || [];
     if (factsEl) {
       factsEl.innerHTML = facts.length
-        ? facts.slice(0, 4).map((f) => `<li>${esc(f.value)}, ${esc(f.attribution)}.</li>`).join("")
+        ? facts.slice(0, 4).map((f) => {
+            const period = f.date || f.year || "";
+            const who = f.credit_short || f.agency;
+            const meta = [who, period].filter(Boolean).join(", ");
+            return `<li><span class="fact-value">${esc(f.value)}</span> <span class="fact-meta">${esc(meta)}</span></li>`;
+          }).join("")
         : "";
     }
     const items = (data.items || []).slice(0, 8);
     listEl.innerHTML = items.length
-      ? items.map((i) => `<li><time datetime="${esc(i.date)}">${esc(fmtUpdateDate(i.date))}</time> <a href="${esc(i.url)}">${esc(i.title)}</a> <span class="muted">as reported by ${esc(i.credit_short || i.agency)}</span></li>`).join("")
-      : `<li class="hint">No official updates are cached yet.</li>`;
+      ? items.map((i) => `<li><time datetime="${esc(i.date)}">${esc(fmtUpdateDate(i.date))}</time><span class="updates-detail"><a href="${esc(i.url)}">${esc(i.title)}</a> <span class="muted">${esc(i.credit_short || i.agency)}</span></span></li>`).join("")
+      : `<li class="hint">No official updates are listed yet.</li>`;
   } catch (e) {
     listEl.innerHTML = `<li class="hint">Official updates could not load right now.</li>`;
   }
