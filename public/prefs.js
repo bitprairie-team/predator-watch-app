@@ -40,7 +40,7 @@
     sync();
   }
 
-  var TEXT_LABELS = { "0": ["S", "Small text (default)"], "1": ["M", "Medium text"], "2": ["L", "Large text"], "3": ["XL", "Largest text"] };
+  var TEXT_LABELS = { "0": ["S", "Default"], "1": ["M", "Medium text"], "2": ["L", "Large text"], "3": ["XL", "Largest text"] };
   function controlsHtml(withMode) {
     var h = "";
     if (withMode) {
