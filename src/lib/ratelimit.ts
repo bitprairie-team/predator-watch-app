@@ -28,6 +28,9 @@ const BINDING: Record<LimitClass, keyof Limiters> = {
   upstream: "UPSTREAM_LIMITER",
 };
 
+/** Classes that deny the request when the limiter binding errors. */
+export const FAIL_CLOSED: ReadonlySet<LimitClass> = new Set<LimitClass>(["search", "upstream", "export"]);
+
 const windows = new Map<string, { start: number; count: number }>();
 
 function memoryLimit(cls: LimitClass, key: string, now: number): boolean {
@@ -49,8 +52,10 @@ export async function allow(env: Limiters, cls: LimitClass, key: string, now = D
     try {
       return (await binding.limit({ key: `${cls}:${key}` })).success;
     } catch {
-      // A limiter outage should not take the map down.
-      return true;
+      // A limiter outage should not take the map down, so cached catalog
+      // reads stay open. Address search, the shared upstream cap and file
+      // exports fail closed: they cost more and are the abuse targets.
+      return !FAIL_CLOSED.has(cls);
     }
   }
   return memoryLimit(cls, key, now);

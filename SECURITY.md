@@ -3,7 +3,7 @@
 ## Reporting a vulnerability
 
 Please report security problems privately through
-[GitHub security advisories](https://github.com/steelhead99x/predator-watch-app/security/advisories/new).
+[GitHub security advisories](https://github.com/bitprairie-team/predator-watch-app/security/advisories/new).
 Do not open a public issue.
 
 Include what you found, how to reproduce it and the impact you expect. We aim

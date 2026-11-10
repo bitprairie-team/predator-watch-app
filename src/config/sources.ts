@@ -144,7 +144,8 @@ export const SOURCES: SourceConfig[] = [
       idField: "OBJECTID",
       label: "{pack}",
       observedAt: { field: "date_time", format: "date-text", precision: "day" },
-      details: { Pack: "pack", Studbook: "studbook" },
+      // Pack only. Studbook numbers identify single animals; they are not shown.
+      details: { Pack: "pack" },
     },
     style: { color: layerColor("usfws-mexican-wolf-recent-hexagons"), fillOpacity: 0.35, order: 31 },
   },

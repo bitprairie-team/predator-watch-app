@@ -4,7 +4,11 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-10-01",
   "compatibility_flags": ["nodejs_compat"],
-  "observability": { "enabled": true },
+  // Query strings can hold street addresses (/api/geocode?q=); keep them out of logs.
+  "observability": { "enabled": true, "redact_query_string": true },
+  // Custom domain only: no workers.dev URL and no preview URLs.
+  "workers_dev": false,
+  "preview_urls": false,
   // Copies MapLibre into public/vendor before dev and deploy.
   "build": { "command": "node scripts/copy-vendor.mjs" },
   "assets": {
@@ -34,7 +38,7 @@
     { "name": "UPSTREAM_LIMITER", "namespace_id": "47104", "simple": { "limit": 10, "period": 10 } }
   ],
   "vars": {
-    "USER_AGENT": "predator-watch-app/0.1 (+https://github.com/steelhead99x/predator-watch-app)"
+    "USER_AGENT": "predator-watch-app/0.1 (+https://github.com/bitprairie-team/predator-watch-app)"
   }
   // Secrets (optional): `npx wrangler secret put ARCGIS_API_KEY`.
   // Locally, put them in .dev.vars (gitignored).

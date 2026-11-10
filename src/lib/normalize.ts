@@ -100,6 +100,8 @@ export function parseObserved(
       break;
     }
   }
+  // Day precision means the date only: drop any time of day the source sent.
+  if (iso && precision === "day") iso = `${iso.slice(0, 10)}T00:00:00.000Z`;
   return { observed_at: iso, observed_at_precision: iso ? precision : "dataset" };
 }
 

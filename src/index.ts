@@ -6,7 +6,7 @@
 import { EXPORT_TYPES, toCsv, toKml, type ExportFormat } from "./api/export";
 import { GEOCODER_ATTRIBUTION, geocode, looksLikeAddress, normalizeQuery } from "./api/geocode";
 import { BadRequest, collectionInfo, CONFORMANCE, items, landing } from "./api/ogc";
-import { json, problem, respond } from "./api/respond";
+import { json, problem, respond, withGeocodeCors } from "./api/respond";
 import { collection, PUBLIC_KV_TTL, publicStatus, readRunLog, readStatus, refreshDue, type Env } from "./cache";
 import { readUpdates, refreshUpdates } from "./updates/refresh";
 import { cached } from "./lib/edge";
@@ -116,7 +116,7 @@ function limitClass(path: string, url: URL): LimitClass {
 
 /** Normalized edge cache key: path plus sorted query, never client headers. */
 /** Bump when response shapes change, so the edge cache cannot serve old ones. */
-const CACHE_VERSION = "5";
+const CACHE_VERSION = "6";
 
 function cacheKey(url: URL, path: string): string {
   const params = [...url.searchParams.entries()].sort(([a], [b]) => a.localeCompare(b));
@@ -205,6 +205,12 @@ async function route(request: Request, env: Env, ctx: ExecutionContext, url: URL
 }
 
 export async function handleRequest(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  const res = await handle(request, env, ctx);
+  // Address search is for this site and its apps only, not a public proxy.
+  return new URL(request.url).pathname.replace(/\/+$/, "") === "/api/geocode" ? withGeocodeCors(request, res) : res;
+}
+
+async function handle(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const url = new URL(request.url);
   const path = url.pathname.length > 1 ? url.pathname.replace(/\/+$/, "") : url.pathname;
   const isApi = path.startsWith("/api/") || path === "/ogc" || path.startsWith("/ogc/");

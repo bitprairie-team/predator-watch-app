@@ -68,6 +68,22 @@ export function json(request: Request, value: unknown, opts: RespondOptions = {}
   return respond(request, JSON.stringify(value), opts);
 }
 
+/**
+ * Browser origins allowed to call address search: the site, and the iOS and
+ * Android apps (Capacitor serves them from capacitor://localhost and
+ * https://localhost). The rest of the API is open data and stays CORS "*".
+ */
+export const GEOCODE_ORIGINS: readonly string[] = ["https://app.predatorwatch.org", "capacitor://localhost", "https://localhost"];
+
+/** Set address-search CORS for this caller. Runs after the edge cache, so one cached copy serves every allowed origin. */
+export function withGeocodeCors(request: Request, res: Response): Response {
+  const origin = request.headers.get("origin");
+  const headers = new Headers(res.headers);
+  headers.set("access-control-allow-origin", origin && GEOCODE_ORIGINS.includes(origin) ? origin : GEOCODE_ORIGINS[0]!);
+  headers.set("vary", [headers.get("vary"), "Origin"].filter(Boolean).join(", "));
+  return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
+}
+
 export function problem(request: Request, status: number, message: string, extra: Record<string, string> = {}): Response {
   return json(request, { error: message, status }, { status, maxAge: 0, headers: extra });
 }
