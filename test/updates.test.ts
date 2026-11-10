@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { UPDATE_SOURCES } from "../src/config/updates";
 import { dateFromText, parseUpdateSource } from "../src/updates/parse";
-import { emptyUpdates, refreshUpdates, UPDATES_KEY } from "../src/updates/refresh";
+import { emptyUpdates, readUpdates, refreshUpdates, updatesNeedRefresh, withStaticCounts, UPDATES_KEY } from "../src/updates/refresh";
 import { memoryKV } from "./helpers";
 
 const fx = (name: string) => readFileSync(join(__dirname, "fixtures/updates", name), "utf8");
@@ -147,5 +147,42 @@ describe("refresh keeps the last good copy", () => {
     const stored = JSON.parse(String(await kv.get(UPDATES_KEY)));
     expect(stored.items.length).toBe(count);
     expect(emptyUpdates().items).toEqual([]);
+  });
+});
+
+describe("recorded official counts are served before the first cron", () => {
+  it("returns the CDFW year-end minimum from an empty KV", async () => {
+    const feed = await readUpdates(memoryKV());
+    const cdfw = feed.facts.find((f) => f.id === "cdfw-minimum-count");
+    expect(cdfw?.value).toBe("at least 55 wolves");
+    expect(cdfw?.label).toBe("Year-end minimum count");
+    expect(cdfw?.date).toBe("December 31, 2025");
+    expect(cdfw?.attribution).toBe(
+      "as reported by California Department of Fish and Wildlife, December 31, 2025",
+    );
+    expect(cdfw?.url).toBe("https://nrm.dfg.ca.gov/FileHandler.ashx?DocumentID=245250");
+    expect(feed.sources.some((s) => s.id === "cdfw-minimum-count" && s.state === "ok")).toBe(true);
+    expect(feed.state).toBe("ok");
+    expect(updatesNeedRefresh(feed)).toBe(true);
+  });
+
+  it("merges a new recorded count into a feed written before that source existed", async () => {
+    const kv = memoryKV();
+    const stale = withStaticCounts(emptyUpdates());
+    // Simulate a KV snapshot from before cdfw-minimum-count was added.
+    const old = {
+      ...emptyUpdates(),
+      state: "ok" as const,
+      checked_at: "2026-11-10T08:06:27.296Z",
+      generated_at: "2026-11-10T08:06:27.296Z",
+      sources: emptyUpdates().sources.filter((s) => s.id !== "cdfw-minimum-count"),
+      facts: stale.facts.filter((f) => f.id !== "cdfw-minimum-count"),
+      items: stale.items.filter((i) => i.source_id !== "cdfw-minimum-count"),
+    };
+    expect(old.facts.some((f) => f.id === "cdfw-minimum-count")).toBe(false);
+    await kv.put(UPDATES_KEY, JSON.stringify(old));
+    const feed = await readUpdates(kv);
+    expect(feed.facts.some((f) => f.id === "cdfw-minimum-count" && f.value === "at least 55 wolves")).toBe(true);
+    expect(feed.sources.some((s) => s.id === "cdfw-minimum-count" && s.state === "ok")).toBe(true);
   });
 });

@@ -146,3 +146,87 @@ main > h1 { font-size: 2rem; }
 .updates-list, .updates-facts { list-style: none; margin: 0 0 var(--sp-5, 1.5rem); padding: 0; max-width: 68ch; }
 .updates-list li, .updates-facts li { padding: var(--sp-2, .5rem) 0; border-bottom: 1px solid var(--rule); line-height: 1.45; }
 .updates-list time { display: block; font: 500 var(--t-meta, .875rem)/1.3 var(--sans); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+
+
+/* ---- Layout round (stage 10) --------------------------------------------- */
+/* Quiet chrome, a real type scale, counts and dates in columns with tabular
+   numerals, and lists instead of disclaimer paragraphs. */
+.page {
+  --t-meta: .8125rem;
+  --t-body: 1rem;
+  --t-h2: 1.0625rem;
+  --t-h1: 1.75rem;
+  --t-num: 1.25rem;
+}
+main > h1, .page-prose main > h1, .page-wide main > h1 { font: 600 var(--t-h1)/1.15 var(--sans); letter-spacing: -.01em; margin: var(--sp-2) 0 var(--sp-3); }
+h2 { font: 600 var(--t-h2)/1.3 var(--sans); margin-top: var(--sp-5); padding-top: var(--sp-3); }
+.eyebrow { display: none; }
+#updates-checked { margin: 0 0 var(--sp-4); font: 400 var(--t-meta)/1.4 var(--sans); }
+
+/* Current page: underline only, never a box. */
+.topbar-actions .btn[aria-current="page"] { border-color: transparent; background: transparent; font-weight: 500; }
+
+/* Text size and contrast: a small text control, not a row of keys. */
+.page-prefs { margin: var(--sp-2) 0 0; }
+.page-prefs .pref-label { font: 400 .75rem/1.2 var(--sans); color: var(--ink-2); min-width: 0; margin-right: var(--sp-2); }
+.page-prefs .pref-btn {
+  min-height: 1.75rem; min-width: 0; padding: 0 .4rem;
+  border: 0; background: transparent; color: var(--ink-2);
+  font: 500 .75rem/1.2 var(--sans); border-radius: 0;
+}
+.page-prefs .pref-btn:hover { color: var(--ink); border-color: transparent; background: transparent; }
+.page-prefs .pref-btn[aria-pressed="true"] {
+  background: transparent; color: var(--ink); border-color: transparent;
+  font-weight: 600; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px;
+}
+.page-prefs .pref-contrast { margin-left: var(--sp-1); }
+@media (pointer: coarse) { .page-prefs .pref-btn { min-height: 44px; min-width: 44px; } }
+
+/* Status labels are words in color, not pills. */
+.page .badge {
+  display: inline; padding: 0; border: 0; background: none;
+  font: 500 var(--t-meta)/1.4 var(--sans); white-space: nowrap; font-variant-numeric: tabular-nums;
+}
+.page .ok { background: none; color: var(--ok-ink); }
+.page .warn { background: none; color: var(--warn-ink); }
+.page .err { background: none; color: var(--err-ink); }
+.status-summary { margin: var(--sp-3) 0 var(--sp-3); }
+.status-summary .badge { font-size: inherit; padding: 0; margin-right: 0; }
+
+/* Tighter tables; dates and counts use tabular numerals. */
+table { font-variant-numeric: tabular-nums; }
+th, td { padding: .4rem .6rem .4rem 0; }
+.src-cadence { display: block; }
+td time, th time, td.num, .fact-value { font-variant-numeric: tabular-nums; }
+
+@media (max-width: 640px) {
+  .stack-table tr { gap: var(--sp-1) var(--sp-3); padding: var(--sp-3) 0; }
+  .stack-table td::before { font-size: var(--t-meta); margin-bottom: 0; }
+}
+
+/* Official updates: number or date in a fixed column, detail on the right. */
+.updates-facts, .updates-list {
+  list-style: none; margin: 0 0 var(--sp-5); padding: 0; max-width: 68ch;
+}
+.updates-facts li, .updates-list li {
+  display: grid; grid-template-columns: 9.5rem 1fr; column-gap: var(--sp-4);
+  align-items: baseline; padding: var(--sp-2) 0; border-bottom: 1px solid var(--rule); line-height: 1.4;
+}
+.updates-facts li { grid-template-columns: 13.5rem 1fr; }
+.fact-value, .updates-list time { grid-column: 1; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fact-value { font: 600 var(--t-num)/1.2 var(--sans); }
+.fact-detail, .updates-detail { grid-column: 2; min-width: 0; }
+.fact-label { display: block; font-weight: 500; }
+.fact-meta, .updates-agency {
+  display: block; font: 400 var(--t-meta)/1.4 var(--sans); color: var(--ink-2);
+}
+.fact-meta a { color: var(--link); }
+.updates-title { font-weight: 500; }
+.updates-list time { display: block; font: 500 var(--t-meta)/1.4 var(--sans); color: var(--ink-2); }
+@media (max-width: 560px) {
+  .updates-facts li { grid-template-columns: 1fr; column-gap: 0; }
+  .updates-facts .fact-value, .updates-facts .fact-detail { grid-column: 1; }
+  .fact-value { font-size: 1.125rem; }
+  .updates-list li { grid-template-columns: 6.75rem 1fr; }
+}
+thead th:nth-child(5), td.num { padding-right: 1.1rem; }

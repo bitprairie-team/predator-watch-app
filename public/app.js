@@ -1028,6 +1028,8 @@ function fitMargin(pad = mapPadding()) {
   // Wide screens: the open legend sits bottom right, so keep the data above it.
   const legend = $("#legend");
   if (!isPhone() && legend?.open) m.bottom = Math.max(m.bottom, Math.round(legend.getBoundingClientRect().height) + 16);
+  const note = $("#map-precision");
+  if (!isPhone() && note) m.bottom = Math.max(m.bottom, Math.round((legend?.open ? legend.getBoundingClientRect().height : 0) + note.getBoundingClientRect().height) + 16);
   const freeH = map.getContainer().clientHeight - pad.bottom;
   if (freeH - m.top - m.bottom < 160) { m.top = Math.min(m.top, 8); m.bottom = Math.min(m.bottom, 8); }
   return m;
@@ -1103,6 +1105,9 @@ function visibleLayers() {
     .sort((a, b) => CATEGORY_ORDER.indexOf(a.category) - CATEGORY_ORDER.indexOf(b.category) || (b.style?.order ?? 0) - (a.style?.order ?? 0));
 }
 
+function tidyTitle(s) {
+  return String(s).replace(/([A-Za-z])-\s+([A-Za-z])/g, "$1 - $2");
+}
 function fmtUpdateDate(iso) {
   const m = String(iso || "").match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (!m) return "";
@@ -1121,13 +1126,18 @@ async function renderUpdates() {
     const facts = data.facts || [];
     if (factsEl) {
       factsEl.innerHTML = facts.length
-        ? facts.slice(0, 4).map((f) => `<li>${esc(f.value)}, ${esc(f.attribution)}.</li>`).join("")
+        ? facts.slice(0, 4).map((f) => {
+            const period = f.date || f.year || "";
+            const who = f.credit_short || f.agency;
+            const meta = [who, period].filter(Boolean).join(", ");
+            return `<li><span class="fact-value">${esc(f.value)}</span> <span class="fact-meta">${esc(meta)}</span></li>`;
+          }).join("")
         : "";
     }
     const items = (data.items || []).slice(0, 8);
     listEl.innerHTML = items.length
-      ? items.map((i) => `<li><time datetime="${esc(i.date)}">${esc(fmtUpdateDate(i.date))}</time> <a href="${esc(i.url)}">${esc(i.title)}</a> <span class="muted">as reported by ${esc(i.credit_short || i.agency)}</span></li>`).join("")
-      : `<li class="hint">No official updates are cached yet.</li>`;
+      ? items.map((i) => `<li><time datetime="${esc(i.date)}">${esc(fmtUpdateDate(i.date))}</time><span class="updates-detail"><a href="${esc(i.url)}">${esc(tidyTitle(i.title))}</a> <span class="muted">${esc(i.credit_short || i.agency)}</span></span></li>`).join("")
+      : `<li class="hint">No official updates are listed yet.</li>`;
   } catch (e) {
     listEl.innerHTML = `<li class="hint">Official updates could not load right now.</li>`;
   }

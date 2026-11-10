@@ -38,12 +38,13 @@ describe("stage 9 sources and updates", () => {
     const ctx = { waitUntil: () => {}, passThroughOnException: () => {} } as unknown as ExecutionContext;
     const updates = await handleRequest(new Request("https://example.org/api/updates"), env, ctx);
     expect(updates.status).toBe(200);
-    const body = await updates.json() as { items: unknown[]; state: string };
-    expect(body.state).toBe("never");
-    expect(body.items).toEqual([]);
+    const body = await updates.json() as { items: { id?: string }[]; state: string; facts: { id: string; value: string }[] };
+    expect(body.state).toBe("ok");
+    expect(body.facts.some((f) => f.id === "cdfw-minimum-count" && f.value === "at least 55 wolves")).toBe(true);
     const status = await handleRequest(new Request("https://example.org/api/status"), env, ctx);
-    const s = await status.json() as { updates?: { state: string } };
-    expect(s.updates?.state).toBe("never");
+    const s = await status.json() as { updates?: { state: string; fact_count?: number } };
+    expect(s.updates?.state).toBe("ok");
+    expect((s.updates?.fact_count ?? 0)).toBeGreaterThanOrEqual(1);
   });
 
   it("ships the Updates fold and the official updates page", () => {

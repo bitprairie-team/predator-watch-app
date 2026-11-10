@@ -2,6 +2,7 @@
 // static assets for the map, and a Cron Trigger that refreshes sources into KV.
 // Public requests read KV through the edge cache and never call an agency;
 // the cron is the only code path that contacts agency servers.
+// Visitors are served from KV and from recorded official counts in the Worker.
 import { EXPORT_TYPES, toCsv, toKml, type ExportFormat } from "./api/export";
 import { GEOCODER_ATTRIBUTION, geocode, looksLikeAddress, normalizeQuery } from "./api/geocode";
 import { BadRequest, collectionInfo, CONFORMANCE, items, landing } from "./api/ogc";
@@ -115,7 +116,7 @@ function limitClass(path: string, url: URL): LimitClass {
 
 /** Normalized edge cache key: path plus sorted query, never client headers. */
 /** Bump when response shapes change, so the edge cache cannot serve old ones. */
-const CACHE_VERSION = "4";
+const CACHE_VERSION = "5";
 
 function cacheKey(url: URL, path: string): string {
   const params = [...url.searchParams.entries()].sort(([a], [b]) => a.localeCompare(b));
@@ -266,18 +267,21 @@ export async function handleRequest(request: Request, env: Env, ctx: ExecutionCo
 export default {
   fetch: handleRequest,
   async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext) {
+    // Run the updates feed beside the layer refresh so a slow or failed layer
+    // pass cannot skip official counts and reports.
     ctx.waitUntil(
-      refreshDue(registry, env).then(async (r) => {
-        let updates: string = "skipped";
-        try {
-          const u = await refreshUpdates(env);
-          updates = `${u.state}:${u.items.length}`;
-        } catch (e) {
-          updates = e instanceof Error ? e.message : "error";
-        }
-        console.log(JSON.stringify({ msg: "refresh complete", results: r, updates }));
-        await env.LAYER_CACHE.put(CRON_KEY, JSON.stringify({ at: new Date().toISOString(), results: r, updates }));
-      }),
+      (async () => {
+        const [layers, feed] = await Promise.allSettled([refreshDue(registry, env), refreshUpdates(env)]);
+        const results = layers.status === "fulfilled" ? layers.value : { error: layers.reason instanceof Error ? layers.reason.message : "error" };
+        const updates =
+          feed.status === "fulfilled"
+            ? `${feed.value.state}:${feed.value.items.length}`
+            : feed.reason instanceof Error
+              ? feed.reason.message
+              : "error";
+        console.log(JSON.stringify({ msg: "refresh complete", results, updates }));
+        await env.LAYER_CACHE.put(CRON_KEY, JSON.stringify({ at: new Date().toISOString(), results, updates }));
+      })(),
     );
   },
 } satisfies ExportedHandler<Env>;
