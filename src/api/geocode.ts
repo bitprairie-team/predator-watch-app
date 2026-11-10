@@ -83,3 +83,38 @@ export async function geocode(
 export function resetGeocodeThrottle() {
   lastCall = 0;
 }
+
+/** The public map origin. Address lookup is not an open CORS proxy. */
+export const GEOCODE_SITE_ORIGIN = "https://app.predatorwatch.org";
+
+/** Allow the map origin always, and localhost only when the Worker itself is local. */
+export function allowedGeocodeOrigin(request: Request): string | null {
+  const origin = request.headers.get("Origin");
+  if (!origin) return null;
+  if (origin === GEOCODE_SITE_ORIGIN) return origin;
+  let host: string;
+  try {
+    host = new URL(request.url).hostname;
+  } catch {
+    return null;
+  }
+  const localWorker = host === "localhost" || host === "127.0.0.1";
+  if (localWorker && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return origin;
+  return null;
+}
+
+/** Restrict CORS on a geocode response. Applied after the edge cache so cached bodies are reused. */
+export function withGeocodeCors(request: Request, res: Response): Response {
+  const headers = new Headers(res.headers);
+  headers.delete("access-control-allow-origin");
+  const vary = new Set((headers.get("vary") ?? "").split(",").map((s) => s.trim()).filter(Boolean));
+  vary.add("Origin");
+  headers.set("vary", [...vary].join(", "));
+  const origin = allowedGeocodeOrigin(request);
+  if (origin) {
+    headers.set("access-control-allow-origin", origin);
+    headers.set("access-control-allow-methods", "GET, HEAD, OPTIONS");
+    headers.set("access-control-allow-headers", "If-None-Match");
+  }
+  return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
+}

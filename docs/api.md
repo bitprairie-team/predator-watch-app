@@ -1,7 +1,9 @@
 # Public API
 
-All endpoints are read-only, need no key, and allow cross-origin `GET`,
-`HEAD`, and `OPTIONS`. Data is the agencies' own published data, refreshed
+All endpoints are read-only and need no key. Catalog, source and export
+endpoints allow cross-origin `GET`, `HEAD`, and `OPTIONS`.
+`/api/geocode` allows those methods only from `https://app.predatorwatch.org`
+(and from localhost when the Worker is running locally). Data is the agencies' own published data, refreshed
 by the Worker on each source's schedule (see `docs/data-sources.md`).
 Credit the agency named in each response when you reuse it.
 
@@ -77,7 +79,7 @@ never reach an outside service:
 `/api/geocode?q=` only accepts street addresses (a house number then a
 street, 8 to 120 characters). Anything else gets a 400. Addresses are looked
 up with the [U.S. Census Bureau Geocoder](https://geocoding.geo.census.gov/geocoder/).
-Results are cached at the edge for a week. Calls to the Census service are
+Results are cached at the edge for a day. Calls to the Census service are
 capped across all clients, and one isolate calls it at most once a second.
 
 ```json
@@ -97,7 +99,7 @@ The map also accepts `lat, lon` typed directly without calling this endpoint.
 ### Caching and rate limits
 
 Every public response is built from the KV cache and stored in the
-Cloudflare edge cache (`s-maxage`, 30 seconds to a week depending on the
+Cloudflare edge cache (`s-maxage`, 30 seconds to a day depending on the
 endpoint; `x-edge-cache: HIT|MISS` says which). Public requests never call an
 agency server. Only the 15-minute cron does that.
 

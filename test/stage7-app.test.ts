@@ -112,13 +112,13 @@ describe("privacy page", () => {
     expect(h).toMatch(/No accounts/);
     expect(h).toMatch(/No rancher data/);
     expect(h).toMatch(/not sent to Predator Watch/);
-    expect(h).toMatch(/up to 7 days/);
+    expect(h).toMatch(/up to 1 day/);
     expect(h).toMatch(/U\.S\. Census Bureau Geocoder/);
     // The claims above hold in the code:
     const app = read("app.js");
     expect(app).not.toMatch(/fetch\([^)]*coords/);
     expect(read("search.js")).toMatch(/looksLikeAddress|address/);
-    expect(readFileSync(join(__dirname, "..", "src", "index.ts"), "utf8")).toMatch(/sMaxAge: 7 \* 86400/);
+    expect(readFileSync(join(__dirname, "..", "src", "index.ts"), "utf8")).toMatch(/sMaxAge: 86400/);
     for (const f of ["index.html", "about.html", "status.html", "privacy.html"]) {
       expect(read(f)).not.toMatch(/googletagmanager|google-analytics|plausible|segment\.com|hotjar|doubleclick/i);
     }

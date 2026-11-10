@@ -4,7 +4,7 @@
 // the cron is the only code path that contacts agency servers.
 // Visitors are served from KV and from recorded official counts in the Worker.
 import { EXPORT_TYPES, toCsv, toKml, type ExportFormat } from "./api/export";
-import { GEOCODER_ATTRIBUTION, geocode, looksLikeAddress, normalizeQuery } from "./api/geocode";
+import { GEOCODER_ATTRIBUTION, geocode, looksLikeAddress, normalizeQuery, withGeocodeCors } from "./api/geocode";
 import { BadRequest, collectionInfo, CONFORMANCE, items, landing } from "./api/ogc";
 import { json, problem, respond } from "./api/respond";
 import { collection, PUBLIC_KV_TTL, publicStatus, readRunLog, readStatus, refreshDue, type Env } from "./cache";
@@ -116,7 +116,7 @@ function limitClass(path: string, url: URL): LimitClass {
 
 /** Normalized edge cache key: path plus sorted query, never client headers. */
 /** Bump when response shapes change, so the edge cache cannot serve old ones. */
-const CACHE_VERSION = "5";
+const CACHE_VERSION = "6";
 
 function cacheKey(url: URL, path: string): string {
   const params = [...url.searchParams.entries()].sort(([a], [b]) => a.localeCompare(b));
@@ -172,7 +172,7 @@ async function route(request: Request, env: Env, ctx: ExecutionContext, url: URL
       return problem(request, 502, "address search is not available right now");
     }
     if (results === "busy") return problem(request, 429, "address search is busy; try again in a moment", { "retry-after": "1" });
-    return json(request, { query: q, results, attribution: GEOCODER_ATTRIBUTION }, { maxAge: 86400, sMaxAge: 7 * 86400 });
+    return json(request, { query: q, results, attribution: GEOCODER_ATTRIBUTION }, { maxAge: 86400, sMaxAge: 86400 });
   }
 
   if (path === "/ogc") return json(request, landing(base), { maxAge: 3600 });
@@ -207,6 +207,11 @@ async function route(request: Request, env: Env, ctx: ExecutionContext, url: URL
 export async function handleRequest(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const url = new URL(request.url);
   const path = url.pathname.length > 1 ? url.pathname.replace(/\/+$/, "") : url.pathname;
+  const res = await dispatch(request, env, ctx, url, path);
+  return path === "/api/geocode" ? withGeocodeCors(request, res) : res;
+}
+
+async function dispatch(request: Request, env: Env, ctx: ExecutionContext, url: URL, path: string): Promise<Response> {
   const isApi = path.startsWith("/api/") || path === "/ogc" || path.startsWith("/ogc/");
 
   // Android app links for the Play Store app (Trusted Web Activity). Served
