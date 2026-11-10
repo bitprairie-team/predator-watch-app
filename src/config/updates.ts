@@ -49,7 +49,20 @@ export interface HtmlCountSource extends UpdateSourceBase {
   factLabel: string;
 }
 
-export type UpdateSource = FederalRegisterSource | HtmlLinksSource | CsvCountSource | HtmlCountSource;
+export interface StaticCountSource extends UpdateSourceBase {
+  type: "static-count";
+  factId: string;
+  factLabel: string;
+  /** Official number as published. Never invent or adjust this figure. */
+  count: number;
+  year: number;
+  /** Official date phrase, for example "December 31, 2025". */
+  factDate: string;
+  /** When the agency published a minimum count, the value is written "at least N wolves". */
+  minimum?: boolean;
+}
+
+export type UpdateSource = FederalRegisterSource | HtmlLinksSource | CsvCountSource | HtmlCountSource | StaticCountSource;
 
 const FR =
   "https://www.federalregister.gov/api/v1/documents.json?per_page=40&order=newest" +
@@ -125,6 +138,26 @@ export const UPDATE_SOURCES: UpdateSource[] = [
     hrefRe: "(?:https://(?:www\\.)?dfw\\.state\\.or\\.us)?(?:/Wolves/)?docs/[^\"?#]*[Aa]nnual[^\"?#]*\\.[Pp][Dd][Ff]",
     titleRe: "Annual Report",
     maxItems: 6,
+  },
+  {
+    type: "static-count",
+    id: "cdfw-minimum-count",
+    agency: "California Department of Fish and Wildlife",
+    creditShort: "CDFW",
+    // Official PDF: California Gray Wolf Conservation and Management Annual Report 2025,
+    // published May 14, 2026. The report states: "As of December 31, 2025, the
+    // minimum number of wolves in California was 55." Table 1 lists the 2025
+    // year-end minimum population count as 55. Later Known Wolves documents and
+    // quarterly wolf news updates do not state a newer statewide headcount.
+    url: "https://nrm.dfg.ca.gov/FileHandler.ashx?DocumentID=245250",
+    license: "Published by CDFW for public information under the CDFW Conditions of Use.",
+    refreshMinutes: 7 * 24 * 60,
+    factId: "cdfw-minimum-count",
+    factLabel: "Year-end minimum count",
+    count: 55,
+    year: 2025,
+    factDate: "December 31, 2025",
+    minimum: true,
   },
   {
     type: "html-count",
