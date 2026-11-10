@@ -89,9 +89,11 @@ describe("stage 10: the public map does not show exact locations", () => {
   const line = "Areas are general. The map never shows exact locations or den sites.";
   it("renders a short caption by the map credits, and the same sentence on About and Privacy", () => {
     expect(html).toContain(`<p id="map-precision" class="map-precision">${line}</p>`);
+    expect(html).toMatch(/id="credits-bar"[\s\S]*id="map-precision"/);
     expect(html).toContain(`id="details-note">${line}`);
     expect(about).toContain(line);
     expect(privacy).toContain(line);
     expect(css).toMatch(/\.map-precision \{/);
+    expect(css).not.toMatch(/\.map-precision \{[^}]*position: absolute/);
   });
 });
