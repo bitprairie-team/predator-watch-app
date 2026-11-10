@@ -25,7 +25,7 @@ describe("Simple view", () => {
   });
 
   it("starts with only the four wolf activity layers on", () => {
-    expect(DEFAULT_ON.sort()).toEqual(["cdfw-collared-wolf-cells", "mtfwp-wolf-distribution", "usfws-mexican-wolf-occupied-range-2020", "wdfw-wolf-packs-current"]);
+    expect(DEFAULT_ON.sort()).toEqual(["cdfw-collared-wolf-cells", "mtfwp-wolf-distribution", "usfws-mexican-wolf-occupied-range-2023", "wdfw-wolf-packs-current"]);
   });
 
   it("includes every layer that is on by default, so defaults match Expert view", () => {

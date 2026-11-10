@@ -101,7 +101,7 @@ export const SOURCES: SourceConfig[] = [
     precision: "distribution-area",
     fields: { label: "Mexican wolf occupied range (2020)", observedAt: { fromLayer: true } },
     maxAllowableOffset: 0.002,
-    style: { color: layerColor("usfws-mexican-wolf-occupied-range-2020"), fillOpacity: 0.15, order: 11, defaultVisible: true },
+    style: { color: layerColor("usfws-mexican-wolf-occupied-range-2020"), fillOpacity: 0.15, order: 11 },
   },
   {
     type: "arcgis",
@@ -118,10 +118,10 @@ export const SOURCES: SourceConfig[] = [
     cadence: "Annual; this layer is the 2023 occupied range from the program annual report.",
     refreshMinutes: 24 * 60,
     precision: "distribution-area",
-    notes: "The area Mexican wolves were known to occupy in 2023, as published for the annual report. Off by default; the 2020 range stays on as the existing default layer.",
+    notes: "The area Mexican wolves were known to occupy in 2023, as published for the annual report. On by default. The 2020 range stays available, off by default.",
     fields: { label: "Mexican wolf occupied range (2023)", observedAt: { fromLayer: true }, details: { "Square miles": "area_mi2", "Square kilometers": "area_km2" } },
     maxAllowableOffset: 0.002,
-    style: { color: layerColor("usfws-mexican-wolf-occupied-range-2023"), fillOpacity: 0.15, order: 12 },
+    style: { color: layerColor("usfws-mexican-wolf-occupied-range-2023"), fillOpacity: 0.15, order: 12, defaultVisible: true },
   },
   {
     type: "arcgis",
