@@ -1,0 +1,14 @@
+{
+  "layers": [
+    {
+      "id": 400,
+      "name": "RecentHexagons20261015",
+      "type": "Feature Layer"
+    },
+    {
+      "id": 477,
+      "name": "RecentHexagons20261102",
+      "type": "Feature Layer"
+    }
+  ]
+}

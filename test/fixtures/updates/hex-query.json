@@ -1,0 +1,267 @@
+{
+  "objectIdFieldName": "OBJECTID",
+  "uniqueIdField": {
+    "name": "OBJECTID",
+    "isSystemMaintained": true
+  },
+  "globalIdFieldName": "",
+  "geometryProperties": {
+    "shapeAreaFieldName": "Shape__Area",
+    "shapeLengthFieldName": "Shape__Length",
+    "units": "esriDecimalDegrees"
+  },
+  "geometryType": "esriGeometryPolygon",
+  "spatialReference": {
+    "wkid": 4326,
+    "latestWkid": 4326
+  },
+  "fields": [
+    {
+      "name": "OBJECTID",
+      "type": "esriFieldTypeOID",
+      "alias": "OBJECTID",
+      "sqlType": "sqlTypeOther",
+      "domain": null,
+      "defaultValue": null
+    },
+    {
+      "name": "pack",
+      "type": "esriFieldTypeString",
+      "alias": "pack",
+      "sqlType": "sqlTypeOther",
+      "length": 255,
+      "domain": null,
+      "defaultValue": null
+    },
+    {
+      "name": "id",
+      "type": "esriFieldTypeString",
+      "alias": "id",
+      "sqlType": "sqlTypeOther",
+      "length": 255,
+      "domain": null,
+      "defaultValue": null
+    },
+    {
+      "name": "studbook",
+      "type": "esriFieldTypeDouble",
+      "alias": "studbook",
+      "sqlType": "sqlTypeOther",
+      "domain": null,
+      "defaultValue": null
+    },
+    {
+      "name": "date_time",
+      "type": "esriFieldTypeString",
+      "alias": "date time",
+      "sqlType": "sqlTypeOther",
+      "length": 255,
+      "domain": null,
+      "defaultValue": null
+    },
+    {
+      "name": "Shape__Area",
+      "type": "esriFieldTypeDouble",
+      "alias": "Shape__Area",
+      "sqlType": "sqlTypeDouble",
+      "domain": null,
+      "defaultValue": null
+    },
+    {
+      "name": "Shape__Length",
+      "type": "esriFieldTypeDouble",
+      "alias": "Shape__Length",
+      "sqlType": "sqlTypeDouble",
+      "domain": null,
+      "defaultValue": null
+    }
+  ],
+  "exceededTransferLimit": false,
+  "features": [
+    {
+      "attributes": {
+        "OBJECTID": 1,
+        "pack": "Rocky Prairie",
+        "id": "M",
+        "studbook": 3081,
+        "date_time": "11/1/2026, 4:00 AM",
+        "Shape__Area": 0.0007909464218300855,
+        "Shape__Length": 0.1054801076401314
+      },
+      "geometry": {
+        "rings": [
+          [
+            [
+              -110,
+              34
+            ],
+            [
+              -110,
+              34.1
+            ],
+            [
+              -109.9,
+              34.1
+            ],
+            [
+              -109.9,
+              34
+            ],
+            [
+              -110,
+              34
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 2,
+        "pack": "Whiskey Creek",
+        "id": "AM",
+        "studbook": 1842,
+        "date_time": "10/31/2026, 2:00 AM",
+        "Shape__Area": 0.0007869600508456642,
+        "Shape__Length": 0.10516555658913132
+      },
+      "geometry": {
+        "rings": [
+          [
+            [
+              -110,
+              34
+            ],
+            [
+              -110,
+              34.1
+            ],
+            [
+              -109.9,
+              34.1
+            ],
+            [
+              -109.9,
+              34
+            ],
+            [
+              -110,
+              34
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 3,
+        "pack": "Hoodoo",
+        "id": "AM",
+        "studbook": 1789,
+        "date_time": "11/1/2026, 5:01 PM",
+        "Shape__Area": 0.0007897024145222531,
+        "Shape__Length": 0.10538129887224698
+      },
+      "geometry": {
+        "rings": [
+          [
+            [
+              -110,
+              34
+            ],
+            [
+              -110,
+              34.1
+            ],
+            [
+              -109.9,
+              34.1
+            ],
+            [
+              -109.9,
+              34
+            ],
+            [
+              -110,
+              34
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 4,
+        "pack": "Crow Poison",
+        "id": "AM",
+        "studbook": 1897,
+        "date_time": "11/1/2026, 10:00 PM",
+        "Shape__Area": 0.0007877099069446558,
+        "Shape__Length": 0.10522400381897193
+      },
+      "geometry": {
+        "rings": [
+          [
+            [
+              -110,
+              34
+            ],
+            [
+              -110,
+              34.1
+            ],
+            [
+              -109.9,
+              34.1
+            ],
+            [
+              -109.9,
+              34
+            ],
+            [
+              -110,
+              34
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "attributes": {
+        "OBJECTID": 5,
+        "pack": "Single",
+        "id": "F",
+        "studbook": 2929,
+        "date_time": "11/1/2026, 4:00 AM",
+        "Shape__Area": 0.0007869024091178289,
+        "Shape__Length": 0.1051607095814282
+      },
+      "geometry": {
+        "rings": [
+          [
+            [
+              -110,
+              34
+            ],
+            [
+              -110,
+              34.1
+            ],
+            [
+              -109.9,
+              34.1
+            ],
+            [
+              -109.9,
+              34
+            ],
+            [
+              -110,
+              34
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}

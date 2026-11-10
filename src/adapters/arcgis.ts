@@ -36,6 +36,13 @@ export interface ArcGisSourceConfig extends BaseSourceConfig {
   maxFeatures?: number;
   useApiKey?: boolean;
   http?: PoliteOptions;
+  /**
+   * When set, `url` is a FeatureServer or MapServer root (no layer id). On
+   * each fetch the adapter lists the service layers and uses the one whose
+   * name starts with `namePrefix`, preferring the newest YYYYMMDD suffix.
+   * Use this when an agency republishes a layer under a dated name.
+   */
+  discoverLayer?: { namePrefix: string };
 }
 
 export interface LayerMetadata {
@@ -60,12 +67,34 @@ interface QueryResponse {
 }
 
 const LAYER_URL = /^https:\/\/[^?#]+\/(FeatureServer|MapServer)\/\d+$/;
+const SERVICE_URL = /^https:\/\/[^?#]+\/(FeatureServer|MapServer)\/?$/;
 
 export function validateArcGisConfig(c: ArcGisSourceConfig): string[] {
   const errs: string[] = [];
-  if (!LAYER_URL.test(c.url)) errs.push(`${c.id}: url must be an https FeatureServer/MapServer layer URL`);
+  if (c.discoverLayer) {
+    if (!c.discoverLayer.namePrefix) errs.push(`${c.id}: discoverLayer.namePrefix is required`);
+    if (!SERVICE_URL.test(c.url)) errs.push(`${c.id}: url must be an https FeatureServer/MapServer root when discoverLayer is set`);
+  } else if (!LAYER_URL.test(c.url)) {
+    errs.push(`${c.id}: url must be an https FeatureServer/MapServer layer URL`);
+  }
   if (!c.fields?.label) errs.push(`${c.id}: fields.label is required`);
   return errs;
+}
+
+/** Pick the current layer id from a service listing when names are dated. */
+export function pickDatedLayer(
+  layers: { id: number; name?: string }[] | undefined,
+  namePrefix: string,
+): { id: number; name: string } {
+  const matches = (layers ?? [])
+    .filter((l) => typeof l.id === "number" && (l.name ?? "").startsWith(namePrefix))
+    .map((l) => {
+      const m = (l.name ?? "").match(/(\d{8})$/);
+      return { id: l.id, name: l.name ?? "", stamp: m ? m[1]! : "" };
+    })
+    .sort((a, b) => b.stamp.localeCompare(a.stamp) || b.id - a.id);
+  if (!matches.length) throw new Error(`no layer named ${namePrefix}*`);
+  return { id: matches[0]!.id, name: matches[0]!.name };
 }
 
 export class ArcGisAdapter implements SourceAdapter {
@@ -86,10 +115,24 @@ export class ArcGisAdapter implements SourceAdapter {
     return { userAgent: ctx.env.USER_AGENT, ...this.config.http };
   }
 
-  async metadata(ctx: FetchContext): Promise<LayerMetadata> {
+  /** Resolved layer URL for this load (stable `config.url` when no discovery). */
+  private async layerUrl(ctx: FetchContext): Promise<string> {
+    if (!this.config.discoverLayer) return this.config.url;
+    const root = this.config.url.replace(/\/$/, "");
+    const listing = await fetchJson<{ layers?: { id: number; name?: string }[]; error?: { code: number; message: string } }>(
+      ctx.fetch,
+      `${root}?${this.params(ctx, {})}`,
+      this.http(ctx),
+    );
+    if (listing.error) throw new Error(`ArcGIS error ${listing.error.code}: ${listing.error.message}`);
+    const layer = pickDatedLayer(listing.layers, this.config.discoverLayer.namePrefix);
+    return `${root}/${layer.id}`;
+  }
+
+  async metadata(ctx: FetchContext, url?: string): Promise<LayerMetadata> {
     const meta = await fetchJson<LayerMetadata>(
       ctx.fetch,
-      `${this.config.url}?${this.params(ctx, {})}`,
+      `${url ?? this.config.url}?${this.params(ctx, {})}`,
       this.http(ctx),
     );
     if (meta.error) throw new Error(`ArcGIS error ${meta.error.code}: ${meta.error.message}`);
@@ -97,7 +140,8 @@ export class ArcGisAdapter implements SourceAdapter {
   }
 
   async load(ctx: FetchContext): Promise<AdapterResult> {
-    const meta = await this.metadata(ctx);
+    const url = await this.layerUrl(ctx);
+    const meta = await this.metadata(ctx, url);
     const lastEdit = meta.editingInfo?.lastEditDate ?? null;
     const dataEdit = meta.editingInfo?.dataLastEditDate ?? lastEdit;
     const prev = ctx.previous;
@@ -127,7 +171,7 @@ export class ArcGisAdapter implements SourceAdapter {
     if (supportsPaging) {
       let offset = 0;
       for (;;) {
-        const page = await this.query(ctx, {
+        const page = await this.query(ctx, url, {
           ...base,
           orderByFields: oidField,
           resultOffset: String(offset),
@@ -140,10 +184,10 @@ export class ArcGisAdapter implements SourceAdapter {
         if (!more || got.length === 0 || raw.length >= cap) break;
       }
     } else {
-      const ids = (await this.query(ctx, { where: base.where!, returnIdsOnly: "true" })).objectIds ?? [];
+      const ids = (await this.query(ctx, url, { where: base.where!, returnIdsOnly: "true" })).objectIds ?? [];
       ids.sort((a, b) => a - b);
       for (let i = 0; i < ids.length && raw.length < cap; i += pageSize) {
-        const page = await this.query(ctx, { ...base, objectIds: ids.slice(i, i + pageSize).join(",") });
+        const page = await this.query(ctx, url, { ...base, objectIds: ids.slice(i, i + pageSize).join(",") });
         raw.push(...(page.features ?? []));
       }
     }
@@ -164,10 +208,10 @@ export class ArcGisAdapter implements SourceAdapter {
     return { changed: true, features: ensureUniqueIds(features), sourceUpdatedMs: lastEdit, validator: null };
   }
 
-  private async query(ctx: FetchContext, params: Record<string, string>): Promise<QueryResponse> {
+  private async query(ctx: FetchContext, url: string, params: Record<string, string>): Promise<QueryResponse> {
     const res = await fetchJson<QueryResponse>(
       ctx.fetch,
-      `${this.config.url}/query?${this.params(ctx, params)}`,
+      `${url}/query?${this.params(ctx, params)}`,
       this.http(ctx),
     );
     if (res.error) throw new Error(`ArcGIS query error ${res.error.code}: ${res.error.message}`);
