@@ -195,3 +195,62 @@ describe("geocode input", () => {
     expect(normalizeQuery(null)).toBeNull();
   });
 });
+
+describe("public Mexican wolf cells", () => {
+  it("drops studbook fields and times of day from JSON, CSV and KML, including stale cache", async () => {
+    const id = "usfws-mexican-wolf-recent-hexagons";
+    const env: Env = { LAYER_CACHE: memoryKV() };
+    const feature = {
+      type: "Feature",
+      id: `${id}:1`,
+      geometry: { type: "Polygon", coordinates: [[[-109, 33], [-109, 34], [-108, 34], [-108, 33], [-109, 33]]] },
+      properties: {
+        id: `${id}:1`,
+        source_id: id,
+        source_name: "Recent Mexican wolf locations (generalized cells)",
+        category: "wolf-activity",
+        species: "Mexican wolf",
+        agency: "U.S. Fish and Wildlife Service",
+        label: "Rocky Prairie",
+        observed_at: "2026-11-01T12:00:00.000Z",
+        observed_at_precision: "day",
+        received_at: "2026-11-02T00:00:00.000Z",
+        precision: "hex-cell",
+        geometry_type: "Polygon",
+        attribution: "USFWS",
+        url: "https://example.org",
+        license: "public domain",
+        details: { Pack: "Rocky Prairie", Studbook: 3081 },
+      },
+    };
+    await env.LAYER_CACHE.put(`data:${id}`, JSON.stringify([feature]));
+    await env.LAYER_CACHE.put(
+      `status:${id}`,
+      JSON.stringify({
+        source_id: id,
+        state: "ok",
+        checked_at: "2026-11-02T00:00:00.000Z",
+        received_at: "2026-11-02T00:00:00.000Z",
+        feature_count: 1,
+      }),
+    );
+    const body = (await (await get(env, `/api/sources/${id}`)).json()) as {
+      features: { properties: { details: Record<string, unknown>; observed_at: string; label: string } }[];
+    };
+    expect(body.features[0]!.properties.details).toEqual({ Pack: "Rocky Prairie" });
+    expect(body.features[0]!.properties.observed_at).toBe("2026-11-01T00:00:00.000Z");
+    expect(body.features[0]!.properties.label).toBe("Rocky Prairie");
+    expect(JSON.stringify(body)).not.toMatch(/studbook/i);
+    expect(JSON.stringify(body)).not.toMatch(/3081/);
+    const csv = await (await get(env, `/api/sources/${id}.csv`)).text();
+    expect(csv).toMatch(/Rocky Prairie/);
+    expect(csv).not.toMatch(/studbook/i);
+    expect(csv).not.toMatch(/3081/);
+    expect(csv).toMatch(/2026-11-01T00:00:00.000Z/);
+    expect(csv).not.toMatch(/2026-11-01T12:00:00.000Z/);
+    const kml = await (await get(env, `/api/sources/${id}.kml`)).text();
+    expect(kml).toMatch(/Rocky Prairie/);
+    expect(kml).not.toMatch(/studbook/i);
+    expect(kml).not.toMatch(/3081/);
+  });
+});

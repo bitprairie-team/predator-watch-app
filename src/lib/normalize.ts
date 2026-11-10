@@ -50,16 +50,46 @@ export function renderLabel(m: FieldMapping, a: Attrs, fallback: string): string
   return s || fallback;
 }
 
-/** Parse "Oct 31, 2026" style text as a calendar date (UTC midnight). */
+/** Parse agency date text as a calendar date (UTC midnight), ignoring any time of day. */
 function parseDateText(s: string): string | null {
-  const m = s.match(/^([A-Za-z]{3,9})\.?\s+(\d{1,2}),\s*(\d{4})$/);
   const months = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+  const m = s.match(/^([A-Za-z]{3,9})\.?\s+(\d{1,2}),\s*(\d{4})(?:$|\s)/);
   if (m) {
     const mi = months.indexOf(m[1]!.slice(0, 3).toLowerCase());
     if (mi >= 0) return new Date(Date.UTC(Number(m[3]), mi, Number(m[2]))).toISOString();
   }
+  // M/D/YYYY or MM/DD/YYYY, optionally followed by a time ("11/1/2026, 5:01 PM").
+  const md = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:$|[,\sT])/);
+  if (md) {
+    const month = Number(md[1]), day = Number(md[2]), year = Number(md[3]);
+    if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+      return new Date(Date.UTC(year, month - 1, day)).toISOString();
+    }
+  }
+  const isoDay = s.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (isoDay) return `${isoDay[1]}T00:00:00.000Z`;
   const t = Date.parse(s);
   return Number.isFinite(t) ? new Date(t).toISOString() : null;
+}
+
+/** Keep only the UTC calendar date, so a "day" value never carries a time of day. */
+export function dateOnly(iso: string | null): string | null {
+  if (!iso) return iso;
+  const day = iso.slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(day) ? `${day}T00:00:00.000Z` : iso;
+}
+
+const SENSITIVE_DETAIL = /^(studbook|animal[_ -]?id)$/i;
+
+/** Strip animal-id fields and truncate day-precision times for public output, including stale KV copies. */
+export function sanitizePublicFeature(f: NormalizedFeature): NormalizedFeature {
+  const details: NormalizedFeature["properties"]["details"] = {};
+  for (const [k, v] of Object.entries(f.properties.details ?? {})) {
+    if (!SENSITIVE_DETAIL.test(k)) details[k] = v;
+  }
+  let observed_at = f.properties.observed_at;
+  if (observed_at && f.properties.observed_at_precision === "day") observed_at = dateOnly(observed_at);
+  return { ...f, properties: { ...f.properties, details, observed_at } };
 }
 
 export function parseObserved(
@@ -100,6 +130,7 @@ export function parseObserved(
       break;
     }
   }
+  if (iso && precision === "day") iso = dateOnly(iso);
   return { observed_at: iso, observed_at_precision: iso ? precision : "dataset" };
 }
 
