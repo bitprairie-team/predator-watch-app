@@ -5,7 +5,7 @@ Display name everywhere: **Predator Watch by BitPrairie**. Seller / developer:
 shortens it under the icon); the installable website uses "Predator Watch".
 
 Copy rules for anything added here: say "rancher"; describe the tech as
-"intelligence and realtime systems"; name no states, places or other apps;
+"realtime intelligence systems"; name no states, places or other apps;
 mark anything unbuilt as Planned; on wolves, state what the agency data shows
 and nothing more.
 
@@ -87,7 +87,7 @@ Predator Watch is a reference map. Agency data can be incomplete, late or
 generalized on purpose to protect animals and people; always check the
 agency's own page, linked from every layer, before acting on it.
 
-Built by BitPrairie with intelligence and realtime systems that check each
+Built by BitPrairie with realtime intelligence systems that check each
 agency source on a schedule and keep the last good copy.
 
 ## What's new (first release)
