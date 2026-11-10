@@ -7,6 +7,8 @@
   if (!listEl) return;
 
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  // Display only: put a space around a title hyphen that is missing one ("report- October").
+  const tidyTitle = (s) => String(s).replace(/([A-Za-z])-\s+([A-Za-z])/g, "$1 - $2");
 
   function fmtDate(iso) {
     if (!iso) return "";
@@ -35,7 +37,7 @@
     }
     const items = data.items || [];
     listEl.innerHTML = items.length
-      ? items.map((i) => `<li><time datetime="${esc(i.date)}">${esc(fmtDate(i.date))}</time><span class="updates-detail"><a class="updates-title" href="${esc(i.url)}">${esc(i.title)}</a> <span class="updates-agency">${esc(i.agency)}</span></span></li>`).join("")
+      ? items.map((i) => `<li><time datetime="${esc(i.date)}">${esc(fmtDate(i.date))}</time><span class="updates-detail"><a class="updates-title" href="${esc(i.url)}">${esc(tidyTitle(i.title))}</a> <span class="updates-agency">${esc(i.agency)}</span></span></li>`).join("")
       : `<li class="muted">No official updates are listed yet.</li>`;
   }
 
