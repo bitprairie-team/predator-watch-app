@@ -59,6 +59,15 @@ describe("official parsers (fixtures from agency pages, 2026-11-09)", () => {
     expect(items.some((i) => /2025 Wolf Monitoring Report/i.test(i.title))).toBe(true);
   });
 
+  it("reads ODFW annual wolf report PDFs from the official reports page", () => {
+    const { items } = parseUpdateSource(src("odfw-wolf-reports"), fx("odfw-annual-reports.html"));
+    expect(items.length).toBeGreaterThanOrEqual(4);
+    expect(items[0]?.title).toMatch(/2025 Annual Report/);
+    expect(items.every((i) => i.url.endsWith(".pdf") || i.url.endsWith(".PDF"))).toBe(true);
+    expect(items.every((i) => i.url.includes("/Wolves/docs/"))).toBe(true);
+    expect(items.some((i) => i.date.startsWith("2025"))).toBe(true);
+  });
+
   it("copies the official ODFW minimum count and does not invent a number", () => {
     const { facts, items } = parseUpdateSource(src("odfw-minimum-count"), fx("odfw-population.html"));
     expect(facts).toHaveLength(1);
@@ -99,6 +108,7 @@ describe("refresh keeps the last good copy", () => {
       if (u.includes("wildlife.ca.gov")) return new Response(fx("cdfw-updates.html"), { status: 200 });
       if (u.includes("dnr.state.mn.us")) return new Response(fx("mn-wolf.html"), { status: 200 });
       if (u.includes("dnr.wisconsin.gov")) return new Response(fx("wi-wolf.html"), { status: 200 });
+      if (u.includes("annual_reports")) return new Response(fx("odfw-annual-reports.html"), { status: 200 });
       if (u.includes("dfw.state.or.us")) return new Response(fx("odfw-population.html"), { status: 200 });
       if (u.includes("nps.gov/yell")) return new Response(fx("nps-yellowstone.html"), { status: 200 });
       if (u.includes("sortable_dataset")) return new Response(fx("nps-isro.csv"), { status: 200 });

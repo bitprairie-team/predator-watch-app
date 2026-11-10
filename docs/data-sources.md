@@ -36,7 +36,8 @@ A dated feed of official wolf reports, counts and status notices is stored in KV
 | Gray wolf news updates (`cdfw-wolf-updates`) | California Department of Fish and Wildlife | https://wildlife.ca.gov/Conservation/Mammals/Gray-Wolf/Updates | Monthly or quarterly posts | Daily | HTML list | Live |
 | Wolf population surveys (`mn-dnr-wolf-surveys`) | Minnesota Department of Natural Resources | https://www.dnr.state.mn.us/wolves/index.html | Annual PDF surveys | Weekly | HTML links to PDFs | Live |
 | Wolf monitoring reports (`wi-dnr-wolf-reports`) | Wisconsin Department of Natural Resources | https://dnr.wisconsin.gov/topic/WildlifeHabitat/wolf | Annual monitoring reports | Weekly | HTML links to PDFs | Live |
-| Annual wolf reports (`odfw-wolf-reports`) and official minimum count (`odfw-minimum-count`) | Oregon Department of Fish and Wildlife | https://dfw.state.or.us/Wolves/population.html | Annual | Weekly | HTML (report links and the official count table) | Live |
+| Annual wolf reports (`odfw-wolf-reports`) | Oregon Department of Fish and Wildlife | https://dfw.state.or.us/Wolves/annual_reports.asp | Annual PDF reports | Weekly | HTML links to PDFs | Live |
+| Official minimum count (`odfw-minimum-count`) | Oregon Department of Fish and Wildlife | https://dfw.state.or.us/Wolves/population.html | Annual count table | Weekly | HTML table | Live |
 | Wolf project minimum count (`nps-yellowstone-count`) | National Park Service | https://www.nps.gov/yell/learn/management/wolf.htm | Updated on the official page when a new count is posted | Weekly | HTML sentence | Live |
 | Isle Royale wolf count (`nps-isro-count`) | National Park Service | Official CSV linked from the park's ecological studies materials | Annual winter count | Weekly | CSV | Live |
 
