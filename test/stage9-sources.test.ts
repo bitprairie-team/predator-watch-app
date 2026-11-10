@@ -9,15 +9,17 @@ import { memoryKV } from "./helpers";
 describe("stage 9 sources and updates", () => {
   it("adds the new USFWS layers off by default and keeps only the original four wolf activity layers on", () => {
     const hex = SOURCES.find((s) => s.id === "usfws-mexican-wolf-recent-hexagons");
-    const range = SOURCES.find((s) => s.id === "usfws-mexican-wolf-occupied-range-2023");
+    const range2023 = SOURCES.find((s) => s.id === "usfws-mexican-wolf-occupied-range-2023");
+    const range2020 = SOURCES.find((s) => s.id === "usfws-mexican-wolf-occupied-range-2020");
     expect(hex?.style.defaultVisible).toBeFalsy();
-    expect(range?.style.defaultVisible).toBeFalsy();
+    expect(range2020?.style.defaultVisible).toBeFalsy();
+    expect(range2023?.style.defaultVisible).toBe(true);
     expect("discoverLayer" in (hex ?? {}) && (hex as { discoverLayer?: { namePrefix: string } }).discoverLayer?.namePrefix).toBe("RecentHexagons");
     const on = SOURCES.filter((s) => s.style.defaultVisible).map((s) => s.id).sort();
     expect(on).toEqual([
       "cdfw-collared-wolf-cells",
       "mtfwp-wolf-distribution",
-      "usfws-mexican-wolf-occupied-range-2020",
+      "usfws-mexican-wolf-occupied-range-2023",
       "wdfw-wolf-packs-current",
     ]);
     expect(LAYER_COLORS["usfws-mexican-wolf-recent-hexagons"]).toBe("#c05850");
