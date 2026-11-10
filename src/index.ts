@@ -129,8 +129,8 @@ function cacheKey(url: URL, path: string): string {
 async function route(request: Request, env: Env, ctx: ExecutionContext, url: URL, path: string): Promise<Response> {
   const base = url.origin;
   if (path === "/api/layers") return json(request, await layersIndex(env), { maxAge: 30, sMaxAge: 60 });
-  if (path === "/api/status") return json(request, await statusReport(env), { maxAge: 30, sMaxAge: 30 });
-  if (path === "/api/updates") return json(request, await readUpdates(env.LAYER_CACHE, PUBLIC_KV_TTL), { maxAge: 30, sMaxAge: 60 });
+  if (path === "/api/status") return json(request, await statusReport(env), { maxAge: 30, sMaxAge: 30, mustRevalidate: true });
+  if (path === "/api/updates") return json(request, await readUpdates(env.LAYER_CACHE, PUBLIC_KV_TTL), { maxAge: 30, sMaxAge: 30, mustRevalidate: true });
   if (path === "/api/changes") {
     const all = await Promise.all(registry.ids().map((id) => changesFor(env, id)));
     return json(request, { sources: all }, { maxAge: 60, sMaxAge: 120 });

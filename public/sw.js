@@ -12,7 +12,7 @@
 //   returned only with an x-pw-saved-at header holding the time it was
 //   saved, and the pages show that time ("Saved copy", offline line). Saved
 //   data is never served silently.
-const VERSION = "pw-13";
+const VERSION = "pw-14";
 const SHELL = `${VERSION}-shell`;
 const DATA = `${VERSION}-data`;
 const NET_TIMEOUT_MS = 5000;
@@ -20,7 +20,7 @@ const DATA_TIMEOUT_MS = 10000;
 // The extensionless URL: /offline.html redirects there, and a redirected
 // response cannot answer a navigation.
 const OFFLINE_PAGE = "/offline";
-const PAGES = ["/", "/about", "/status", "/privacy"];
+const PAGES = ["/", "/about", "/status", "/privacy", "/updates"];
 const SHELL_FILES = [
   ...PAGES,
   OFFLINE_PAGE,
@@ -34,10 +34,10 @@ const SHELL_FILES = [
   "/prefs.js",
   "/credits.js",
   "/status.js",
+  "/updates.js",
   "/layer-style.js",
   "/manifest.webmanifest",
   "/fonts/ibm-plex-sans.woff2",
-  "/fonts/ibm-plex-mono-normal-500.woff2",
   "/brand/bitprairie-symbol.svg",
   "/brand/bitprairie-wordmark.svg",
   "/brand/predator-watch-mark.svg",
@@ -49,7 +49,7 @@ const SHELL_FILES = [
   "/vendor/maplibre-gl-6.17.0/maplibre-gl.css",
 ];
 const IMMUTABLE_RE = /^\/(vendor|fonts)\//;
-const DATA_RE = /^\/api\/(layers|changes|status|sources\/[a-z0-9-]+(\/changes)?)$/;
+const DATA_RE = /^\/api\/(layers|changes|status|updates|sources\/[a-z0-9-]+(\/changes)?)$/;
 
 self.addEventListener("install", (event) => {
   // Each file on its own, so one missing file cannot leave the cache empty.
