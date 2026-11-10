@@ -86,6 +86,19 @@ async function load() {
       .join("");
     document.querySelector(".status-wrap")?.removeAttribute("aria-busy");
     renderRuns(r.runs ?? [], new Map(r.sources.map((s) => [s.id, s.name])));
+    const upd = r.updates?.sources ?? [];
+    const updRows = document.getElementById("update-rows");
+    if (updRows) {
+      updRows.innerHTML = upd.length
+        ? upd.map((u) => `<tr>
+            <th scope="row">${esc(u.id)}<span class="muted src-meta">${esc(u.agency)}</span></th>
+            <td data-label="State">${u.state === "ok" ? `<span class="badge ok">OK</span>` : u.state === "error" ? `<span class="badge warn">Failed, kept last good</span>` : `<span class="badge warn">Not loaded yet</span>`}</td>
+            <td data-label="Last success">${time(u.checked_at)}</td>
+            <td data-label="Items" class="num">${esc(u.item_count ?? 0)}</td>
+            <td data-label="Last error">${u.error ? `<span class="muted cell-sub">${esc(u.error)}</span>` : `<span class="muted">None</span>`}</td>
+          </tr>`).join("")
+        : `<tr><td colspan="5" class="muted">Not checked yet.</td></tr>`;
+    }
     keepTableRoles();
   } catch (e) {
     summary.innerHTML = `<span class="badge err">Could not load</span> Status could not load (${esc(e.message)}). This page tries again every minute.`;
