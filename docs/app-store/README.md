@@ -84,7 +84,7 @@ Needs: macOS with **Xcode 26+** (and its command line tools), **Node 22+**,
 SDK Platform 36 in Tools > SDK Manager).
 
 ```bash
-git clone https://github.com/steelhead99x/predator-watch-app.git
+git clone https://github.com/bitprairie-team/predator-watch-app.git
 cd predator-watch-app
 git checkout feat/stage7-mobile        # or main, once merged
 npm ci                                 # also copies MapLibre into public/vendor

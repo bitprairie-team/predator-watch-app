@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/steelhead99x/predator-watch-app/schemas/integrations/pasturetrace/v1/outbound.schema.json",
+  "$id": "https://github.com/bitprairie-team/predator-watch-app/schemas/integrations/pasturetrace/v1/outbound.schema.json",
   "title": "Predator Watch outbound alert (v1)",
   "description": "An alert sent from a private Predator Watch tenant to PastureTrace for a time window. It carries no location; PastureTrace matches it to the tenant's own pastures. Status: Planned.",
   "type": "object",

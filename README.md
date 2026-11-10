@@ -74,7 +74,7 @@ Live means the map reads it today. Full details, endpoints and terms:
 | Agency wolf activity maps published only as PDF or images, token-only services, and agencies with no public layer yet | Several state and federal agencies | – | – | Planned |
 
 Know a public agency dataset that belongs here?
-[Suggest a source](https://github.com/steelhead99x/predator-watch-app/issues/new?template=new-source.yml).
+[Suggest a source](https://github.com/bitprairie-team/predator-watch-app/issues/new?template=new-source.yml).
 
 ## How it works
 
