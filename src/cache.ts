@@ -2,6 +2,7 @@
 // refresh logic. Only the Cron Trigger calls agency servers; public requests
 // read KV (see collection()) and never fan out to an agency.
 import type { FetchContext, SourceAdapter } from "./adapters/types";
+import { sanitizePublicFeature } from "./lib/normalize";
 import { publicInfo, type Registry } from "./registry";
 import type { NormalizedCollection, NormalizedFeature, SourceStatus } from "./schema";
 import cdfwSample from "./fixtures/cdfw-wolf-bins.sample.json";
@@ -392,7 +393,7 @@ export async function collection(registry: Registry, env: Env, id: string): Prom
   }
   return {
     type: "FeatureCollection",
-    features,
+    features: features.map(sanitizePublicFeature),
     metadata: { ...publicStatus(status), source: publicInfo(adapter) },
   };
 }

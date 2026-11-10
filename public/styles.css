@@ -179,7 +179,7 @@ body { display: flex; flex-direction: column; height: 100%; height: 100dvh; over
 .layer-row { display: flex; align-items: center; gap: var(--sp-2); min-height: var(--row); padding: 2px 0; }
 .layer-row label { flex: 1; min-width: 0; cursor: pointer; padding: 2px 0; }
 .layer-name { display: block; font-size: var(--t-body); font-weight: 500; line-height: 1.3; color: var(--ink); }
-.layer-meta { display: block; font-size: var(--t-meta); line-height: 1.35; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.layer-meta { display: block; font-size: var(--t-meta); line-height: 1.35; color: var(--ink-2); overflow: visible; white-space: normal; }
 .layer-meta.is-warn { color: var(--warn-ink); }
 .layer-meta.is-err { color: var(--err-ink); }
 .row-info {
@@ -382,10 +382,10 @@ body { display: flex; flex-direction: column; height: 100%; height: 100dvh; over
 
 /* Credits strip: always on screen. Basemap credit, then short agency credits. */
 .credits-bar {
-  position: absolute; left: 0; right: 0; bottom: var(--sheet-h, 0px); z-index: 5;
+  position: absolute; left: 0; right: 0; bottom: var(--sheet-h, 0px); z-index: 8;
   display: flex; align-items: center; gap: var(--sp-3); min-height: 28px;
   padding: 2px max(var(--sp-2), env(safe-area-inset-right)) max(2px, env(safe-area-inset-bottom)) max(var(--sp-3), env(safe-area-inset-left));
-  background: var(--credits-bg); color: var(--ink-2); border-top: 1px solid var(--rule);
+  background: var(--surface); color: var(--ink-2); border-top: 1px solid var(--rule);
   font-size: min(.8125rem, 12px); line-height: 1.35;
 }
 .credits-line { flex: 1; min-width: 0; margin: 0; display: flex; flex-wrap: wrap; column-gap: var(--sp-4); }
@@ -403,14 +403,13 @@ body { display: flex; flex-direction: column; height: 100%; height: 100dvh; over
 .credits-btn:hover, .credits-btn[aria-expanded="true"] { color: var(--accent); text-decoration-color: currentColor; }
 .src-phone, .osm-short, .credits-colon { display: none; }
 
-/* Quiet caption: the public map shows general areas, never exact sites. */
+/* Quiet caption, inside the credits bar so it stays clear of the legend,
+   the first-run tip and the scale bar, including on a 390 px phone. */
+.credits-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 0; }
 .map-precision {
-  position: absolute; z-index: 4; right: var(--sp-3); left: auto;
-  bottom: calc(var(--sheet-h, 0px) + var(--credits-h, 0px) + var(--sp-2));
-  margin: 0; margin-right: env(safe-area-inset-right);
-  max-width: min(18rem, calc(100% - 24px)); width: fit-content; padding: 2px 6px;
-  font: 400 var(--t-meta)/1.35 var(--sans); color: var(--ink-2);
-  background: var(--credits-bg); border: 0; box-shadow: none;
+  margin: 0; padding: 0; max-width: none; width: auto;
+  font: 400 11px/1.3 var(--sans); color: var(--ink-2);
+  background: none; border: 0; box-shadow: none;
   pointer-events: none;
 }
 
@@ -437,11 +436,12 @@ body { display: flex; flex-direction: column; height: 100%; height: 100dvh; over
 :root[data-first-visit] .first-hint[hidden] { display: flex; }
 .map-wrap:has(.splash:not(.done)) .first-hint { z-index: 21; }
 
-/* Loading state with the line paw. */
+/* Loading state with the Predator Watch tile. */
 .splash { position: absolute; inset: 0; z-index: 20; display: grid; place-items: center; background: var(--paper); transition: opacity .35s ease; }
 .splash.done { opacity: 0; pointer-events: none; }
 .splash-card { display: flex; flex-direction: column; align-items: center; gap: var(--sp-1); }
-.splash-mark { width: 48px; height: 48px; color: var(--ink); }
+.splash-mark { width: 64px; height: 64px; flex: none; display: block; }
+.splash-mark img { width: 64px; height: 64px; display: block; }
 .splash-name { margin: var(--sp-1) 0 0; font: 600 1.0625rem/1.2 var(--sans); color: var(--ink); }
 .splash-msg { margin: 0; font: 400 var(--t-meta)/1.4 var(--sans); color: var(--ink-2); }
 .splash-bar { position: relative; width: 96px; height: 2px; margin-top: var(--sp-2); overflow: hidden; background: var(--rule); }
@@ -526,10 +526,10 @@ dialog h2 { margin: 0 0 var(--sp-3); font: 600 var(--t-title)/1.3 var(--sans); }
      there instead of showing them clipped. Credits stay visible. */
   .layout:has(.panel[data-sheet="full"]) .maplibregl-ctrl-top-left,
   .layout:has(.panel[data-sheet="full"]) .maplibregl-ctrl-bottom-left,
-  .layout:has(.panel[data-sheet="full"]) .legend,
-  .layout:has(.panel[data-sheet="full"]) .map-precision { visibility: hidden; }
+  .layout:has(.panel[data-sheet="full"]) .legend { visibility: hidden; }
 
-  /* Map controls close to the corner. */
+  /* Map controls close to the corner, with 44 px touch targets. */
+  .maplibregl-ctrl-group button { width: 44px; height: 44px; }
   .maplibregl-ctrl-top-left { margin-left: 0; }
   .maplibregl-ctrl-top-left .maplibregl-ctrl { margin: var(--sp-2) 0 0 var(--sp-2); }
   .maplibregl-ctrl-top-left .maplibregl-ctrl + .maplibregl-ctrl { margin-top: 6px; }
@@ -543,17 +543,15 @@ dialog h2 { margin: 0 0 var(--sp-3); font: 600 var(--t-title)/1.3 var(--sans); }
   .details { left: var(--sp-2); right: var(--sp-2); width: auto; top: var(--sp-2); max-height: calc(100% - var(--sheet-h, 0px) - var(--credits-h, 0px) - 16px); z-index: 7; }
   .sources-panel { left: var(--sp-2); right: var(--sp-2); width: auto; bottom: calc(var(--sheet-h, 0px) + var(--credits-h, 0px) + var(--sp-2)); max-height: calc(100% - var(--sheet-h, 0px) - var(--credits-h, 0px) - 16px); }
   .first-hint { left: max(var(--sp-2), env(safe-area-inset-left)); right: auto; max-width: calc(100% - 16px); bottom: calc(var(--sheet-h, 0px) + var(--credits-h, 0px) + 36px); }
+  :root[data-first-visit]:has(.panel[data-sheet="half"]) .first-hint,
+  :root[data-first-visit]:has(.panel[data-sheet="full"]) .first-hint,
+  :root:has(.panel[data-sheet="half"]) .first-hint,
+  :root:has(.panel[data-sheet="full"]) .first-hint { display: none; }
   .offline-bar { top: 60px; max-width: calc(100% - 16px - env(safe-area-inset-left) - env(safe-area-inset-right)); }
 
   /* Credits: one strip in fixed px so larger text cannot grow it past two
      lines. The basemap credit (required) is always shown; agency credits
      move behind "N sources", which opens Sources. */
-  .map-precision {
-    left: max(6.75rem, env(safe-area-inset-left)); right: auto;
-    bottom: calc(var(--sheet-h, 0px) + var(--credits-h, 0px) + 4px);
-    max-width: calc(100% - 7.5rem - env(safe-area-inset-left) - env(safe-area-inset-right));
-    font-size: 11px; line-height: 1.3; padding: 2px 6px;
-  }
   .credits-bar, :root[data-text] .credits-bar {
     font-size: 11px; line-height: 1.3; gap: var(--sp-2); min-height: 44px;
     padding-top: 0; padding-bottom: env(safe-area-inset-bottom);

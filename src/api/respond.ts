@@ -5,7 +5,7 @@ import { fnv1a } from "../lib/hash";
 export const SECURITY_HEADERS: Record<string, string> = {
   "x-content-type-options": "nosniff",
   "referrer-policy": "strict-origin-when-cross-origin",
-  "strict-transport-security": "max-age=63072000; includeSubDomains",
+  "strict-transport-security": "max-age=31536000; includeSubDomains",
   "permissions-policy": "camera=(), microphone=(), payment=(), usb=(), interest-cohort=()",
   "x-frame-options": "DENY",
   // API responses are data, never documents.
@@ -22,6 +22,8 @@ export interface RespondOptions {
   contentType?: string;
   /** Suggest a download filename. */
   filename?: string;
+  /** Short-lived responses that should be rechecked with the server. */
+  mustRevalidate?: boolean;
   headers?: Record<string, string>;
 }
 
@@ -45,9 +47,11 @@ export function respond(request: Request, body: string, opts: RespondOptions = {
     "access-control-allow-origin": "*",
     "access-control-expose-headers": "ETag",
     "cache-control":
-      maxAge > 0
-        ? `public, max-age=${maxAge}, s-maxage=${opts.sMaxAge ?? maxAge}, stale-while-revalidate=${maxAge * 5}`
-        : "no-store",
+      maxAge <= 0
+        ? "no-store"
+        : opts.mustRevalidate
+          ? `public, max-age=${maxAge}, s-maxage=${opts.sMaxAge ?? maxAge}, must-revalidate`
+          : `public, max-age=${maxAge}, s-maxage=${opts.sMaxAge ?? maxAge}, stale-while-revalidate=${maxAge * 5}`,
     vary: "Accept-Encoding",
     ...opts.headers,
   });

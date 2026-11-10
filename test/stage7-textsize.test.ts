@@ -30,7 +30,7 @@ describe("text size: small is the default", () => {
     expect(brand).toMatch(/:root\[data-text="0"\] \{ font-size: 87\.5%; \}/);
     expect(brand).not.toMatch(/:root\[data-text="1"\] \{ font-size/);
     const prefs = read("prefs.js");
-    expect(prefs).toMatch(/"0": \["S", "Small text \(default\)"\], "1": \["M", "Medium text"\], "2": \["L", "Large text"\], "3": \["XL", "Largest text"\]/);
+    expect(prefs).toMatch(/"0": \["S", "Default"\], "1": \["M", "Medium text"\], "2": \["L", "Large text"\], "3": \["XL", "Largest text"\]/);
   });
   it("new visitors get small; an old saved A maps to the new default; old A+ and A++ keep their size", () => {
     expect(runPrefs({}).text).toBe("0");

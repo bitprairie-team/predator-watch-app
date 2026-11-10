@@ -228,7 +228,7 @@ describe("dated layer discovery", () => {
       url,
       discoverLayer: { namePrefix: "RecentHexagons" },
       precision: "hex-cell",
-      fields: { idField: "OBJECTID", label: "{pack}", observedAt: { field: "date_time", format: "date-text", precision: "day" }, details: { Pack: "pack", Studbook: "studbook" } },
+      fields: { idField: "OBJECTID", label: "{pack}", observedAt: { field: "date_time", format: "date-text", precision: "day" }, details: { Pack: "pack" } },
       http: { minIntervalMs: 0 },
     };
     const r = await new ArcGisAdapter(cfg).load({ fetch: stub.fetch, now, env: {} });
@@ -237,6 +237,10 @@ describe("dated layer discovery", () => {
     expect(r.features.length).toBe(5);
     expect(r.features[0]!.properties.label).toBe("Rocky Prairie");
     expect(r.features[0]!.properties.label).not.toMatch(/3081/);
-    expect(r.features[0]!.properties.details.Studbook).toBe(3081);
+    expect(r.features[0]!.properties.details).toEqual({ Pack: "Rocky Prairie" });
+    expect(r.features[0]!.properties.details).not.toHaveProperty("Studbook");
+    expect(r.features[0]!.properties.observed_at).toBe("2026-11-01T00:00:00.000Z");
+    expect(JSON.stringify(r.features)).not.toMatch(/studbook/i);
+    expect(JSON.stringify(r.features)).not.toMatch(/3081/);
   });
 });

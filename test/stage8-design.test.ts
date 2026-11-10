@@ -79,9 +79,9 @@ describe("stage 8: type, lines and icons", () => {
     }
     for (const m of allCss.matchAll(/^.*gradient\(.*$/gm)) expect(m[0]).toMatch(/\.swatch\.mark-/);
   });
-  it("draws UI icons at a 1.5 stroke; only the paw mark is 1.8", () => {
+  it("draws UI icons at a 1.5 stroke", () => {
     for (const m of html.matchAll(/<svg class="([^"]*)"[^>]*stroke-width="([\d.]+)"/g)) {
-      if (m[2] !== "1.5") expect(m[1]).toMatch(/proj-mark|splash-mark/);
+      expect(m[2], m[1]).toBe("1.5");
     }
   });
   it("keeps 44px rows on touch", () => {
