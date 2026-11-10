@@ -11,7 +11,7 @@ Status key:
   (raster context layers; not cached).
 - **Planned:** identified but not wired in, with the reason.
 
-Endpoints and terms were checked on 2026-10-31 and rechecked on 2026-11-09. "Refresh" is how often this app
+Endpoints and terms were checked on 2026-10-31 and rechecked on 2026-11-09. The CDFW year-end minimum was recorded from the official 2025 annual report on 2026-11-10. "Refresh" is how often this app
 checks the source; the agency's own cadence is listed separately.
 
 ## Wolf activity
@@ -27,7 +27,7 @@ checks the source; the agency's own cadence is listed separately.
 
 ## Official updates
 
-A dated feed of official wolf reports, counts and status notices is stored in KV by the same 15-minute cron (each source has its own daily or weekly check). Public requests read `/api/updates`. Items keep the agency's title, date and link. Counts appear only when a strict parser matches an official table or sentence, written as "as reported by <agency>, <date>".
+A dated feed of official wolf reports, counts and status notices is stored in KV by the same 15-minute cron (each source has its own daily or weekly check). Public requests read `/api/updates`. Items keep the agency's title, date and link. Counts appear only when a strict parser matches an official table or sentence, or when a dated official figure is recorded from a published report, written as "as reported by <agency>, <date>".
 
 | Source (id) | Owner | Endpoint | Cadence | Refresh | Format | Status |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -37,6 +37,7 @@ A dated feed of official wolf reports, counts and status notices is stored in KV
 | Wolf population surveys (`mn-dnr-wolf-surveys`) | Minnesota Department of Natural Resources | https://www.dnr.state.mn.us/wolves/index.html | Annual PDF surveys | Weekly | HTML links to PDFs | Live |
 | Wolf monitoring reports (`wi-dnr-wolf-reports`) | Wisconsin Department of Natural Resources | https://dnr.wisconsin.gov/topic/WildlifeHabitat/wolf | Annual monitoring reports | Weekly | HTML links to PDFs | Live |
 | Annual wolf reports (`odfw-wolf-reports`) | Oregon Department of Fish and Wildlife | https://dfw.state.or.us/Wolves/annual_reports.asp | Annual PDF reports | Weekly | HTML links to PDFs | Live |
+| Year-end minimum count (`cdfw-minimum-count`) | California Department of Fish and Wildlife | Official PDF: https://nrm.dfg.ca.gov/FileHandler.ashx?DocumentID=245250 (California Gray Wolf Conservation and Management Annual Report 2025, published May 14, 2026; also linked from https://wildlife.ca.gov/Conservation/Mammals/Gray-Wolf) | Annual year-end minimum, as of December 31, 2025 | Weekly check of the recorded figure (the number is not parsed from a live page) | Dated official figure from the published report | Live |
 | Official minimum count (`odfw-minimum-count`) | Oregon Department of Fish and Wildlife | https://dfw.state.or.us/Wolves/population.html | Annual count table | Weekly | HTML table | Live |
 | Wolf project minimum count (`nps-yellowstone-count`) | National Park Service | https://www.nps.gov/yell/learn/management/wolf.htm | Updated on the official page when a new count is posted | Weekly | HTML sentence | Live |
 | Isle Royale wolf count (`nps-isro-count`) | National Park Service | Official CSV linked from the park's ecological studies materials | Annual winter count | Weekly | CSV | Live |
