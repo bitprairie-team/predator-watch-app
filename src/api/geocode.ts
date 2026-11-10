@@ -87,11 +87,15 @@ export function resetGeocodeThrottle() {
 /** The public map origin. Address lookup is not an open CORS proxy. */
 export const GEOCODE_SITE_ORIGIN = "https://app.predatorwatch.org";
 
-/** Allow the map origin always, and localhost only when the Worker itself is local. */
+/** Origins of the store apps, which load bundled map files from inside the app (iOS, then Android). */
+export const GEOCODE_APP_ORIGINS = ["capacitor://localhost", "https://localhost"];
+
+/** Allow the map origin and the store apps always, and other localhost origins only when the Worker itself is local. */
 export function allowedGeocodeOrigin(request: Request): string | null {
   const origin = request.headers.get("Origin");
   if (!origin) return null;
   if (origin === GEOCODE_SITE_ORIGIN) return origin;
+  if (GEOCODE_APP_ORIGINS.includes(origin)) return origin;
   let host: string;
   try {
     host = new URL(request.url).hostname;
