@@ -80,9 +80,9 @@ OAuth 2.0, using an app it registers in its own portal.
 - Tokens are per org and are refreshed on the server. Removing the
   connection revokes access.
 
-## Intelligence and realtime systems
+## Realtime intelligence systems
 
-Alerts can come from partner intelligence and realtime systems such as
+Alerts can come from partner realtime intelligence systems such as
 PastureTrace, which reads livestock tags and collars. The link is defined
 in versioned JSON Schemas:
 
