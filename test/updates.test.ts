@@ -162,6 +162,16 @@ describe("recorded official counts are served before the first cron", () => {
     );
     expect(cdfw?.url).toBe("https://nrm.dfg.ca.gov/FileHandler.ashx?DocumentID=245250");
     expect(feed.sources.some((s) => s.id === "cdfw-minimum-count" && s.state === "ok")).toBe(true);
+    const usfws = feed.facts.find((f) => f.id === "usfws-mexican-wolf-minimum-count");
+    expect(usfws?.value).toBe("at least 319 wolves");
+    expect(usfws?.label).toBe("Minimum population estimate");
+    expect(usfws?.date).toBe("December 31, 2025");
+    expect(usfws?.url).toMatch(/mexican-wolf-population-statistics-populationestimate2025\.pdf$/);
+    const wdfw = feed.facts.find((f) => f.id === "wdfw-minimum-count");
+    expect(wdfw?.value).toBe("at least 270 wolves");
+    expect(wdfw?.label).toBe("Minimum year-end wolf count");
+    expect(wdfw?.date).toBe("December 31, 2025");
+    expect(wdfw?.url).toMatch(/9-2025-wdfw-annual-wolf-report-web-0\.pdf$/);
     expect(feed.state).toBe("ok");
     expect(updatesNeedRefresh(feed)).toBe(true);
   });
