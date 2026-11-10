@@ -1028,6 +1028,8 @@ function fitMargin(pad = mapPadding()) {
   // Wide screens: the open legend sits bottom right, so keep the data above it.
   const legend = $("#legend");
   if (!isPhone() && legend?.open) m.bottom = Math.max(m.bottom, Math.round(legend.getBoundingClientRect().height) + 16);
+  const note = $("#map-precision");
+  if (!isPhone() && note) m.bottom = Math.max(m.bottom, Math.round((legend?.open ? legend.getBoundingClientRect().height : 0) + note.getBoundingClientRect().height) + 16);
   const freeH = map.getContainer().clientHeight - pad.bottom;
   if (freeH - m.top - m.bottom < 160) { m.top = Math.min(m.top, 8); m.bottom = Math.min(m.bottom, 8); }
   return m;

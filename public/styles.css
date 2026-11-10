@@ -334,9 +334,9 @@ body { display: flex; flex-direction: column; height: 100%; height: 100dvh; over
 
 /* Legend: the one legend (the panel rows carry the same swatches). */
 .legend {
-  position: absolute; z-index: 4; right: var(--sp-3); bottom: calc(var(--sheet-h, 0px) + var(--credits-h, 0px) + var(--sp-3));
+  position: absolute; z-index: 4; right: var(--sp-3); bottom: calc(var(--sheet-h, 0px) + var(--credits-h, 0px) + var(--sp-3) + 2.8em);
   margin-right: env(safe-area-inset-right);
-  max-width: min(18rem, calc(100% - 24px)); max-height: calc(100% - var(--sheet-h, 0px) - var(--credits-h, 0px) - 8rem);
+  max-width: min(18rem, calc(100% - 24px)); max-height: calc(100% - var(--sheet-h, 0px) - var(--credits-h, 0px) - 8rem - 2.8em);
   overflow-y: auto; padding: 0 var(--sp-3); font-size: var(--t-meta);
 }
 .legend summary { display: flex; align-items: center; gap: 6px; min-height: var(--ctl); font-weight: 600; cursor: pointer; list-style: none; }
@@ -402,6 +402,17 @@ body { display: flex; flex-direction: column; height: 100%; height: 100dvh; over
 }
 .credits-btn:hover, .credits-btn[aria-expanded="true"] { color: var(--accent); text-decoration-color: currentColor; }
 .src-phone, .osm-short, .credits-colon { display: none; }
+
+/* Quiet caption: the public map shows general areas, never exact sites. */
+.map-precision {
+  position: absolute; z-index: 4; right: var(--sp-3); left: auto;
+  bottom: calc(var(--sheet-h, 0px) + var(--credits-h, 0px) + var(--sp-2));
+  margin: 0; margin-right: env(safe-area-inset-right);
+  max-width: min(18rem, calc(100% - 24px)); width: fit-content; padding: 2px 6px;
+  font: 400 var(--t-meta)/1.35 var(--sans); color: var(--ink-2);
+  background: var(--credits-bg); border: 0; box-shadow: none;
+  pointer-events: none;
+}
 
 /* Offline: one clear line at the top of the map with the saved copy's time. */
 .offline-bar {
@@ -515,7 +526,8 @@ dialog h2 { margin: 0 0 var(--sp-3); font: 600 var(--t-title)/1.3 var(--sans); }
      there instead of showing them clipped. Credits stay visible. */
   .layout:has(.panel[data-sheet="full"]) .maplibregl-ctrl-top-left,
   .layout:has(.panel[data-sheet="full"]) .maplibregl-ctrl-bottom-left,
-  .layout:has(.panel[data-sheet="full"]) .legend { visibility: hidden; }
+  .layout:has(.panel[data-sheet="full"]) .legend,
+  .layout:has(.panel[data-sheet="full"]) .map-precision { visibility: hidden; }
 
   /* Map controls close to the corner. */
   .maplibregl-ctrl-top-left { margin-left: 0; }
@@ -536,6 +548,12 @@ dialog h2 { margin: 0 0 var(--sp-3); font: 600 var(--t-title)/1.3 var(--sans); }
   /* Credits: one strip in fixed px so larger text cannot grow it past two
      lines. The basemap credit (required) is always shown; agency credits
      move behind "N sources", which opens Sources. */
+  .map-precision {
+    left: max(6.75rem, env(safe-area-inset-left)); right: auto;
+    bottom: calc(var(--sheet-h, 0px) + var(--credits-h, 0px) + 4px);
+    max-width: calc(100% - 7.5rem - env(safe-area-inset-left) - env(safe-area-inset-right));
+    font-size: 11px; line-height: 1.3; padding: 2px 6px;
+  }
   .credits-bar, :root[data-text] .credits-bar {
     font-size: 11px; line-height: 1.3; gap: var(--sp-2); min-height: 44px;
     padding-top: 0; padding-bottom: env(safe-area-inset-bottom);
