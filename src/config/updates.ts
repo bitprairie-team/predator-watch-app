@@ -160,6 +160,46 @@ export const UPDATE_SOURCES: UpdateSource[] = [
     minimum: true,
   },
   {
+    type: "static-count",
+    id: "usfws-mexican-wolf-minimum-count",
+    agency: "U.S. Fish and Wildlife Service",
+    creditShort: "USFWS",
+    // Official PDF: Mexican Wolf Population Statistics, "Minimum population
+    // estimate, minimum breeding pair estimate, and population estimate
+    // numbers per state 1998-2025". The table's 2025 "Minimum Population
+    // Estimate" is 319. The document states: "Data Current as of 31 December
+    // 2025."
+    url: "https://www.fws.gov/sites/default/files/documents/2026-02/mexican-wolf-population-statistics-populationestimate2025.pdf",
+    license: "U.S. federal government work; public domain in the U.S.",
+    refreshMinutes: 7 * 24 * 60,
+    factId: "usfws-mexican-wolf-minimum-count",
+    factLabel: "Minimum population estimate",
+    count: 319,
+    year: 2025,
+    factDate: "December 31, 2025",
+    minimum: true,
+  },
+  {
+    type: "static-count",
+    id: "wdfw-minimum-count",
+    agency: "Washington Department of Fish and Wildlife",
+    creditShort: "WDFW",
+    // Official PDF: Washington Gray Wolf Conservation and Management 2025
+    // Annual Report. The report states: "After a decline in 2024,
+    // Washington's minimum year-end wolf count increased by 17.4% to its
+    // highest count to date. As of Dec. 31, 2025, WDFW and Tribes counted
+    // 270 wolves and 49 packs."
+    url: "https://wdfw.wa.gov/sites/default/files/2026-04/9-2025-wdfw-annual-wolf-report-web-0.pdf",
+    license: "Public WDFW report; credit WDFW.",
+    refreshMinutes: 7 * 24 * 60,
+    factId: "wdfw-minimum-count",
+    factLabel: "Minimum year-end wolf count",
+    count: 270,
+    year: 2025,
+    factDate: "December 31, 2025",
+    minimum: true,
+  },
+  {
     type: "html-count",
     id: "odfw-minimum-count",
     agency: "Oregon Department of Fish and Wildlife",

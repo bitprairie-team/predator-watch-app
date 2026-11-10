@@ -52,10 +52,10 @@ describe("service worker", () => {
   const sw = read("sw.js");
   const shell = JSON.parse(`[${/const SHELL_FILES = \[([\s\S]*?)\];/.exec(sw)![1]!.replace(/\.\.\.PAGES,|OFFLINE_PAGE,/g, "").replace(/,\s*$/, "")}]`) as string[];
   it("caches the app shell, every listed file exists, and the offline page is saved", () => {
-    expect(sw).toMatch(/const PAGES = \["\/", "\/about", "\/status", "\/privacy"\]/);
+    expect(sw).toMatch(/const PAGES = \["\/", "\/about", "\/status", "\/privacy", "\/updates"\]/);
     expect(sw).toContain('const OFFLINE_PAGE = "/offline"');
     for (const f of shell) expect(existsSync(pub(f.slice(1))), f).toBe(true);
-    expect(shell).toEqual(expect.arrayContaining(["/app.js", "/net.js", "/styles.css", "/page.css", "/prefs.js", "/status.js", "/credits.js"]));
+    expect(shell).toEqual(expect.arrayContaining(["/app.js", "/net.js", "/styles.css", "/page.css", "/prefs.js", "/status.js", "/credits.js", "/updates.js"]));
   });
   it("never serves saved data silently: saved copies carry x-pw-saved-at", () => {
     expect(sw).toMatch(/headers\.set\("x-pw-saved-at"/);
@@ -112,13 +112,13 @@ describe("privacy page", () => {
     expect(h).toMatch(/No accounts/);
     expect(h).toMatch(/No rancher data/);
     expect(h).toMatch(/not sent to Predator Watch/);
-    expect(h).toMatch(/up to 7 days/);
+    expect(h).toMatch(/up to 1 day/);
     expect(h).toMatch(/U\.S\. Census Bureau Geocoder/);
     // The claims above hold in the code:
     const app = read("app.js");
     expect(app).not.toMatch(/fetch\([^)]*coords/);
     expect(read("search.js")).toMatch(/looksLikeAddress|address/);
-    expect(readFileSync(join(__dirname, "..", "src", "index.ts"), "utf8")).toMatch(/sMaxAge: 7 \* 86400/);
+    expect(readFileSync(join(__dirname, "..", "src", "index.ts"), "utf8")).toMatch(/sMaxAge: 86400/);
     for (const f of ["index.html", "about.html", "status.html", "privacy.html"]) {
       expect(read(f)).not.toMatch(/googletagmanager|google-analytics|plausible|segment\.com|hotjar|doubleclick/i);
     }

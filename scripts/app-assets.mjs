@@ -1,52 +1,80 @@
-// Draws every app icon, favicon and launch screen from the BitPrairie bison
-// tile (public/brand/bitprairie-symbol.svg, the same file the brand owner
-// shares as bitprairie-bison-mark.svg): the symbol always sits on the warm
-// #c4ae96 plate and is never recolored. Page colors come from
-// src/config/palette.ts (APP_COLORS). Writes:
+// Draws every app icon, favicon and launch screen from the official v9.1
+// Predator Watch tiles (public/brand/predator-watch-mark.svg and
+// predator-watch-mark-dark.svg): a trail camera on a fence post, in Stone
+// #6E6259 (light) / #A59C94 (dark). The path data is copied from swag bot
+// and is never recolored. Page colors come from src/config/palette.ts
+// (APP_COLORS). Writes:
 //   public/favicon.svg, favicon.ico, icons/icon-32.png        browser tab
 //   public/icons/apple-touch-icon.png                          iOS home screen (web)
-//   public/icons/icon-192.png, icon-512.png                    manifest, purpose "any" (rounded tile)
+//   public/icons/icon-192.png, icon-512.png                    manifest, purpose "any"
 //   public/icons/icon-maskable-192.png, icon-maskable-512.png  manifest, purpose "maskable"
 //   assets/icon-only.png, icon-foreground.png,                 sources for `npx capacitor-assets generate`,
 //   icon-background.png, splash.png, splash-dark.png           which writes the iOS and Android sizes
 // Run: npm run app:assets   (needs Node 22.18+ for the .ts import)
 import sharp from "sharp";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync, copyFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { APP_COLORS } from "../src/config/palette.ts";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const tile = readFileSync(join(root, "public/brand/bitprairie-symbol.svg"), "utf8");
-// The drawing group (with its own transform into the 64-unit tile) and the plate.
-const DRAWING = tile.slice(tile.indexOf("<g "), tile.lastIndexOf("</g>") + 4);
-const PLATE = /<rect[^>]*fill="(#[0-9a-fA-F]{6})"/.exec(tile)[1];
-// Where the drawing sits inside the 64-unit tile (measured from the master).
-const BOX = { x: 3.687, y: 14.726, w: 56.626, h: 34.548 };
+const STONE = { light: "#6E6259", dark: "#A59C94" };
+const INK = "#141416";
+const NIGHT = "#161310";
+const RX = 14 / 64; // official tile corner, same as the brand favicon tile
+
+function markSvg(kind = "light") {
+  return readFileSync(join(root, "public/brand", kind === "dark" ? "predator-watch-mark-dark.svg" : "predator-watch-mark.svg"), "utf8");
+}
+
+/** Rasterize the official tile at a high density, then downscale. */
+async function tilePng(size, kind = "light") {
+  const src = Math.max(size * 4, 1024);
+  const hi = await sharp(Buffer.from(markSvg(kind)))
+    .resize(src, src, { fit: "fill", kernel: sharp.kernel.lanczos3 })
+    .png()
+    .toBuffer();
+  return sharp(hi).resize(size, size, { kernel: sharp.kernel.lanczos3 }).png().toBuffer();
+}
 
 /**
- * A square canvas. `plate`: "full" (edge to edge, for masks the OS applies),
- * "tile" (rounded 14/64 tile, as in the brand files) or none. `width` is the
- * drawing's width as a fraction of the plate. `bg` fills the canvas first.
+ * Official tiles are a Stone plate with the camera knocked out (transparent).
+ * For home-screen and tab icons, fill the knockouts with ink (light) or night
+ * (dark) so the camera stays readable at 16 and 32 px, matching the v9.1
+ * contact sheet. Corners outside the 14/64 plate stay transparent unless a
+ * background is passed.
  */
-function svg(size, { plate = "full", width, tileFraction = 1, bg }) {
-  const t = size * tileFraction; // plate side
-  const o = (size - t) / 2;
-  const s = (t * width) / BOX.w;
-  const cx = BOX.x + BOX.w / 2, cy = BOX.y + BOX.h / 2;
-  const tx = size / 2 - cx * s, ty = size / 2 - cy * s;
-  const back = bg ? `<rect width="${size}" height="${size}" fill="${bg}"/>` : "";
-  const p = plate === "full" ? `<rect x="${o}" y="${o}" width="${t}" height="${t}" fill="${PLATE}"/>`
-    : plate === "tile" ? `<rect x="${o}" y="${o}" width="${t}" height="${t}" rx="${(t * 14) / 64}" fill="${PLATE}"/>` : "";
-  return Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">${back}${p}<g transform="translate(${tx.toFixed(3)} ${ty.toFixed(3)}) scale(${s.toFixed(5)})">${DRAWING}</g></svg>`);
+async function iconPng(size, { kind = "light", bg = null, tileFraction = 1 } = {}) {
+  const t = Math.round(size * tileFraction);
+  const o = Math.round((size - t) / 2);
+  const plate = kind === "dark" ? STONE.dark : STONE.light;
+  const hole = kind === "dark" ? NIGHT : INK;
+  const rx = Math.round(t * RX * 1000) / 1000;
+  const mask = Buffer.from(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${t}" height="${t}"><rect width="${t}" height="${t}" rx="${rx}" fill="#fff"/></svg>`,
+  );
+  const ink = await sharp({ create: { width: t, height: t, channels: 4, background: hole } })
+    .composite([{ input: mask, blend: "dest-in" }])
+    .png()
+    .toBuffer();
+  const tile = await tilePng(t, kind);
+  const layered = await sharp(ink).composite([{ input: tile, blend: "over" }]).png().toBuffer();
+  const canvasBg = bg || { r: 0, g: 0, b: 0, alpha: 0 };
+  const out = await sharp({ create: { width: size, height: size, channels: 4, background: canvasBg } })
+    .composite([{ input: layered, left: o, top: o }])
+    .png({ compressionLevel: 9 })
+    .toBuffer();
+  return out;
 }
-async function png(file, size, opts) {
-  mkdirSync(dirname(join(root, file)), { recursive: true });
-  const buf = await sharp(svg(size, opts)).png({ compressionLevel: 9 }).toBuffer();
-  writeFileSync(join(root, file), buf);
+
+async function writePng(file, buf) {
+  const dest = join(root, file);
+  mkdirSync(dirname(dest), { recursive: true });
+  writeFileSync(dest, buf);
   console.log("wrote", file);
   return buf;
 }
+
 /** A .ico holding PNG images (supported by every current browser). */
 function ico(pngs) {
   const head = Buffer.alloc(6 + 16 * pngs.length);
@@ -62,27 +90,47 @@ function ico(pngs) {
   return Buffer.concat([head, ...pngs.map((p) => p.buf)]);
 }
 
-const TILE = { plate: "tile", width: BOX.w / 64 }; // exactly the brand tile
-// Browser tab: the brand tile itself.
-writeFileSync(join(root, "public/favicon.svg"), tile.endsWith("\n") ? tile : tile + "\n");
-console.log("wrote public/favicon.svg");
-const i16 = await png("public/icons/icon-16.png", 16, TILE);
-const i32 = await png("public/icons/icon-32.png", 32, TILE);
+// Browser tab: the official rounded tile, camera filled with ink.
+const i16 = await iconPng(16);
+const i32 = await iconPng(32);
+await writePng("public/icons/icon-16.png", i16);
+await writePng("public/icons/icon-32.png", i32);
 writeFileSync(join(root, "public/favicon.ico"), ico([{ size: 16, buf: i16 }, { size: 32, buf: i32 }]));
 console.log("wrote public/favicon.ico");
-// Manifest "any": the rounded tile, as in the brand files.
-await png("public/icons/icon-192.png", 192, TILE);
-await png("public/icons/icon-512.png", 512, TILE);
-// iOS rounds the corners itself: full-bleed plate, no transparency.
-await png("public/icons/apple-touch-icon.png", 180, { width: 0.78 });
-await png("assets/icon-only.png", 1024, { width: 0.78 });
-// Maskable: the drawing stays inside the 80% safe circle.
-await png("public/icons/icon-maskable-192.png", 192, { width: 0.62 });
-await png("public/icons/icon-maskable-512.png", 512, { width: 0.62 });
-// Android adaptive icon: drawing inside the 66/108 safe circle, plate behind.
-await png("assets/icon-foreground.png", 1024, { plate: "none", width: 0.52 });
-await sharp({ create: { width: 1024, height: 1024, channels: 3, background: PLATE } }).png().toFile(join(root, "assets/icon-background.png"));
+
+// Manifest "any": official rounded tile on a transparent field.
+await writePng("public/icons/icon-192.png", await iconPng(192));
+await writePng("public/icons/icon-512.png", await iconPng(512));
+
+// iOS rounds the corners itself: full-bleed Stone, ink camera.
+await writePng("public/icons/apple-touch-icon.png", await iconPng(180, { bg: STONE.light }));
+copyFileSync(join(root, "public/icons/apple-touch-icon.png"), join(root, "public/apple-touch-icon.png"));
+console.log("wrote public/apple-touch-icon.png");
+await writePng("assets/icon-only.png", await iconPng(1024, { bg: STONE.light }));
+
+// Maskable: the tile stays inside the 80% safe zone, Stone behind.
+await writePng("public/icons/icon-maskable-192.png", await iconPng(192, { bg: STONE.light, tileFraction: 0.8 }));
+await writePng("public/icons/icon-maskable-512.png", await iconPng(512, { bg: STONE.light, tileFraction: 0.8 }));
+
+// Android adaptive icon: the tile is the foreground, Stone is the background.
+await writePng("assets/icon-foreground.png", await iconPng(1024, { tileFraction: 1 }));
+await sharp({ create: { width: 1024, height: 1024, channels: 3, background: STONE.light } })
+  .png()
+  .toFile(join(root, "assets/icon-background.png"));
 console.log("wrote assets/icon-background.png");
-// Launch screens: the rounded tile centered on the page color, light and dark.
-await png("assets/splash.png", 2732, { ...TILE, tileFraction: 0.16, bg: APP_COLORS.background });
-await png("assets/splash-dark.png", 2732, { ...TILE, tileFraction: 0.16, bg: APP_COLORS.themeDark });
+
+// Launch screens: the official tile, merch-style (shirt color shows through
+// the camera), centered on the page paper / night color.
+const splashTile = 0.16;
+async function splash(file, size, kind, bg) {
+  const t = Math.round(size * splashTile);
+  const o = Math.round((size - t) / 2);
+  const tile = await tilePng(t, kind);
+  const buf = await sharp({ create: { width: size, height: size, channels: 3, background: bg } })
+    .composite([{ input: tile, left: o, top: o }])
+    .png({ compressionLevel: 9 })
+    .toBuffer();
+  return writePng(file, buf);
+}
+await splash("assets/splash.png", 2732, "light", APP_COLORS.background);
+await splash("assets/splash-dark.png", 2732, "dark", APP_COLORS.themeDark);

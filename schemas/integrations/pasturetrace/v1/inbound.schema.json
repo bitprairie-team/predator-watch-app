@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/steelhead99x/predator-watch-app/schemas/integrations/pasturetrace/v1/inbound.schema.json",
+  "$id": "https://github.com/bitprairie-team/predator-watch-app/schemas/integrations/pasturetrace/v1/inbound.schema.json",
   "title": "PastureTrace inbound event (v1)",
   "description": "An animal event sent from PastureTrace to a private Predator Watch tenant. It carries no location. Location stays in PastureTrace and is never sent in this message. Status: Planned.",
   "type": "object",

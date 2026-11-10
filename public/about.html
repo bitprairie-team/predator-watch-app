@@ -27,11 +27,8 @@
   <a class="skip-link" href="#main">Skip to content</a>
   <header class="topbar">
     <div class="brand">
-      <a class="brand-home" href="https://bitprairie.com/" aria-label="BitPrairie home"><img class="brand-symbol" src="/brand/bitprairie-symbol.svg" alt="" width="30" height="30"><span class="brand-wordmark" aria-hidden="true"></span></a>
-      <span class="brand-sep" aria-hidden="true"></span>
       <div class="brand-proj">
-        <a class="proj-link" href="/"><svg class="proj-mark" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><ellipse cx="13" cy="6.6" rx="2" ry="3.2" transform="rotate(-6 13 6.6)"/><ellipse cx="19" cy="6.6" rx="2" ry="3.2" transform="rotate(6 19 6.6)"/><ellipse cx="8.4" cy="13.4" rx="1.9" ry="3" transform="rotate(-24 8.4 13.4)"/><ellipse cx="23.6" cy="13.4" rx="1.9" ry="3" transform="rotate(24 23.6 13.4)"/><path d="M16 15.8c-3 0-5.8 3.4-5.8 7 0 2.8 1.7 4.6 3.6 4.6 1 0 1.5-.6 2.2-.6s1.2.6 2.2.6c1.9 0 3.6-1.8 3.6-4.6 0-3.6-2.8-7-5.8-7z"/></svg><span class="proj-name">Predator Watch</span></a>
-        <p class="byline">by <a href="https://bitprairie.com/predator-watch/">BitPrairie</a><span class="byline-site"><span class="byline-sep" aria-hidden="true">·</span><a href="https://predatorwatch.org/">predatorwatch.org</a></span></p>
+        <a class="proj-link" href="/"><span class="proj-mark" aria-hidden="true"><img class="proj-mark-light" src="/brand/predator-watch-mark.svg" alt="" width="32" height="32"><img class="proj-mark-dark" src="/brand/predator-watch-mark-dark.svg" alt="" width="32" height="32"></span><span class="proj-name">Predator Watch</span></a>
       </div>
     </div>
     <nav class="topbar-actions" aria-label="Pages">
@@ -50,7 +47,7 @@
 
     <h2 id="methodology">Methodology</h2>
     <ul>
-      <li><strong>Public agency sources only.</strong> Each source is a dataset that a wildlife or land agency publishes for anyone to use. Sources are added only after their terms of use are checked. The <a href="https://github.com/steelhead99x/predator-watch-app/blob/main/docs/data-sources.md">data sources list</a> gives the URL, license and terms for each one.</li>
+      <li><strong>Public agency sources only.</strong> Each source is a dataset that a wildlife or land agency publishes for anyone to use. Sources are added only after their terms of use are checked. The <a href="https://github.com/bitprairie-team/predator-watch-app/blob/main/docs/data-sources.md">data sources list</a> gives the URL, license and terms for each one.</li>
       <li><strong>No added precision.</strong> Geometry is shown as the agency publishes it. Some agencies generalize locations into cells, pack areas or management units; the map never makes them finer. A shaded area is where the agency reports activity, not where an animal is now. Areas are general. The map never shows exact locations or den sites.</li>
       <li><strong>One format.</strong> Each source is converted into the same GeoJSON shape, with the agency name, the agency's own observed or edited date, the date this map received it, the license and a link back to the original.</li>
       <li><strong>Change tracking.</strong> When a source changes, the map records how many items were added, changed or removed, so you can see what moved between updates.</li>
@@ -78,10 +75,11 @@
 
     <h2 id="report">Report an error or suggest a source</h2>
     <ul>
-      <li>Wrong or out-of-date data, or something broken: <a href="https://github.com/steelhead99x/predator-watch-app/issues/new?template=bug.yml">open a bug report</a>. Include the layer name and a link to the view (the address bar keeps it).</li>
-      <li>A public agency dataset we should add: <a href="https://github.com/steelhead99x/predator-watch-app/issues/new?template=new-source.yml">suggest a source</a>.</li>
+      <li>Wrong or out-of-date data, or something broken: <a href="https://github.com/bitprairie-team/predator-watch-app/issues/new?template=bug.yml">open a bug report</a>. Include the layer name and a link to the view (the address bar keeps it).</li>
+      <li>A public agency dataset we should add: <a href="https://github.com/bitprairie-team/predator-watch-app/issues/new?template=new-source.yml">suggest a source</a>.</li>
       <li>Errors in the data itself are best reported to the agency that published it as well; each layer links to its source.</li>
-      <li>Security issues: see <a href="https://github.com/steelhead99x/predator-watch-app/blob/main/SECURITY.md">SECURITY.md</a>.</li>
+      <li>Questions about the map: <a href="mailto:hello@predatorwatch.org">hello@predatorwatch.org</a>.</li>
+      <li>Security issues: see <a href="https://github.com/bitprairie-team/predator-watch-app/blob/main/SECURITY.md">SECURITY.md</a>.</li>
     </ul>
 
     <h2 id="sources">Sources and credits</h2>
@@ -93,20 +91,20 @@
         <tbody id="sources-rows"><tr><td colspan="3" class="muted">Loading the source list…</td></tr></tbody>
       </table>
     </div>
-    <noscript><p class="muted">The source list needs JavaScript. The <a href="https://github.com/steelhead99x/predator-watch-app/blob/main/docs/data-sources.md">data sources list</a> has the same credits.</p></noscript>
+    <noscript><p class="muted">The source list needs JavaScript. The <a href="https://github.com/bitprairie-team/predator-watch-app/blob/main/docs/data-sources.md">data sources list</a> has the same credits.</p></noscript>
 
     <h2 id="credits">Credits</h2>
     <p class="muted">Predator Watch is a <a href="https://bitprairie.com/predator-watch/">BitPrairie project</a>. Logo, colors and type follow the BitPrairie brand; the type is IBM Plex Sans, used under the <a href="/fonts/OFL-IBMPlexSans.txt">SIL Open Font License 1.1</a>.</p>
-    <p class="muted">Data from the agencies named on each layer. Basemap: <a href="https://openfreemap.org/">OpenFreeMap</a> © <a href="https://openmaptiles.org/">OpenMapTiles</a>, data © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors. Place search: <a href="https://www.census.gov/geographies/reference-files/time-series/geo/gazetteer-files.html">U.S. Census Bureau Gazetteer</a> and the <a href="https://geocoding.geo.census.gov/geocoder/">Census Bureau Geocoder</a>. This product uses the Census Bureau Data API but is not endorsed or certified by the Census Bureau. Source code: <a href="https://github.com/steelhead99x/predator-watch-app">github.com/steelhead99x/predator-watch-app</a> (Apache-2.0).</p>
+    <p class="muted">Data from the agencies named on each layer. Basemap: <a href="https://openfreemap.org/">OpenFreeMap</a> © <a href="https://openmaptiles.org/">OpenMapTiles</a>, data © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors. Place search: <a href="https://www.census.gov/geographies/reference-files/time-series/geo/gazetteer-files.html">U.S. Census Bureau Gazetteer</a> and the <a href="https://geocoding.geo.census.gov/geocoder/">Census Bureau Geocoder</a>. This product uses the Census Bureau Data API but is not endorsed or certified by the Census Bureau. Source code: <a href="https://github.com/bitprairie-team/predator-watch-app">github.com/bitprairie-team/predator-watch-app</a> (Apache-2.0).</p>
     <footer class="credits" aria-label="Credits">
-      <p class="credits-proj"><svg class="proj-mark" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><ellipse cx="13" cy="6.6" rx="2" ry="3.2" transform="rotate(-6 13 6.6)"/><ellipse cx="19" cy="6.6" rx="2" ry="3.2" transform="rotate(6 19 6.6)"/><ellipse cx="8.4" cy="13.4" rx="1.9" ry="3" transform="rotate(-24 8.4 13.4)"/><ellipse cx="23.6" cy="13.4" rx="1.9" ry="3" transform="rotate(24 23.6 13.4)"/><path d="M16 15.8c-3 0-5.8 3.4-5.8 7 0 2.8 1.7 4.6 3.6 4.6 1 0 1.5-.6 2.2-.6s1.2.6 2.2.6c1.9 0 3.6-1.8 3.6-4.6 0-3.6-2.8-7-5.8-7z"/></svg>Predator Watch</p>
+      <p class="credits-proj"><span class="proj-mark" aria-hidden="true"><img class="proj-mark-light" src="/brand/predator-watch-mark.svg" alt="" width="32" height="32"><img class="proj-mark-dark" src="/brand/predator-watch-mark-dark.svg" alt="" width="32" height="32"></span>Predator Watch</p>
       <p class="credits-brand"><a href="https://bitprairie.com/predator-watch/" aria-label="Predator Watch on bitprairie.com"><img class="brand-symbol" src="/brand/bitprairie-symbol.svg" alt="" width="28" height="28"></a><span>&copy; 2026 BitPrairie LLC. Predator Watch is a BitPrairie project. Code under Apache-2.0; data from the agencies named on each layer.</span></p>
       <ul class="credits-links">
         <li><a href="https://bitprairie.com/predator-watch/">bitprairie.com/predator-watch</a></li>
           <li><a href="https://predatorwatch.org/">predatorwatch.org</a></li>
         <li><a href="/about">About and methodology</a></li>
         <li><a href="/status">Source status</a></li>
-        <li><a href="https://github.com/steelhead99x/predator-watch-app" rel="noopener">Source code</a></li>
+        <li><a href="https://github.com/bitprairie-team/predator-watch-app" rel="noopener">Source code</a></li>
         <li><a href="/about#credits">Credits</a></li>
         <li><a href="/privacy">Privacy</a></li>
       </ul>

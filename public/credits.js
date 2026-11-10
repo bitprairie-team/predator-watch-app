@@ -37,7 +37,7 @@ async function load() {
     tbody.innerHTML = rows.join("");
     keepTableRoles(tbody.closest("table"));
   } catch (e) {
-    tbody.innerHTML = `<tr><td colspan="3" class="muted">The source list could not load (${esc(e.message)}). The <a href="https://github.com/steelhead99x/predator-watch-app/blob/main/docs/data-sources.md">data sources list</a> has the same credits.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="3" class="muted">The source list could not load (${esc(e.message)}). The <a href="https://github.com/bitprairie-team/predator-watch-app/blob/main/docs/data-sources.md">data sources list</a> has the same credits.</td></tr>`;
   }
 }
 // The table stacks into cards on phones (CSS display changes), which makes

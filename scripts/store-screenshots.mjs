@@ -85,7 +85,7 @@ async function frame(browser, shot, s, caption) {
   await page.setContent(`<!doctype html><html><head><link rel="stylesheet" href="${BASE}/brand.css"><style>
     html,body{margin:0;height:100%;background:var(--paper);font-family:var(--sans)}
     .wrap{height:100%;display:flex;flex-direction:column;align-items:center;box-sizing:border-box;padding:${tablet ? 40 : 22}px ${tablet ? 48 : 20}px 0}
-    .name{font:600 ${tablet ? 22 : 15}px/1.2 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--accent);margin:0}
+    .name{font:600 ${tablet ? 22 : 15}px/1.2 var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--accent);margin:0}
     h1{font:600 ${tablet ? 44 : 27}px/1.18 var(--sans);color:var(--ink);text-align:center;margin:${tablet ? 14 : 8}px 0 ${tablet ? 32 : 18}px;max-width:${tablet ? 760 : 360}px}
     .shot{flex:1;min-height:0;width:100%;display:flex;justify-content:center;align-items:flex-start;overflow:hidden}
     .shot img{display:block;width:auto;height:auto;max-width:100%;border:1px solid var(--rule-strong);border-bottom:0;border-radius:${tablet ? 18 : 14}px ${tablet ? 18 : 14}px 0 0}
