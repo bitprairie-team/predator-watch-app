@@ -37,7 +37,7 @@
   <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
   <meta name="color-scheme" content="light dark">
   <link rel="preload" href="/api/layers" as="fetch" crossorigin="anonymous">
-  <link rel="stylesheet" href="/vendor/maplibre-gl-5.24.0/maplibre-gl.css">
+  <link rel="stylesheet" href="/vendor/maplibre-gl-6.17.0/maplibre-gl.css">
   <link rel="preload" href="/fonts/ibm-plex-sans.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/brand.css">
   <link rel="stylesheet" href="/styles.css">
@@ -154,8 +154,8 @@
       <nav class="panel-links" aria-label="More">
         <a href="/about">How this works</a>
         <a href="/status">Source status</a>
-        <a href="https://github.com/steelhead99x/predator-watch-app/issues/new?template=new-source.yml" rel="noopener">Suggest a source</a>
-        <a href="https://github.com/steelhead99x/predator-watch-app" rel="noopener">Source code</a>
+        <a href="https://github.com/bitprairie-team/predator-watch-app/issues/new?template=new-source.yml" rel="noopener">Suggest a source</a>
+        <a href="https://github.com/bitprairie-team/predator-watch-app" rel="noopener">Source code</a>
       </nav>
 
       <p class="disclaimer">Generalized public data from the agencies named on each layer. Locations are never shown more precisely than the agency publishes them. A highlighted area shows where the agency reports activity; it is not a current animal position. Check the agency's own notes before relying on any layer.</p>
@@ -168,7 +168,7 @@
           <li><a href="https://predatorwatch.org/">predatorwatch.org</a></li>
           <li><a href="/about">About and methodology</a></li>
           <li><a href="/status">Source status</a></li>
-          <li><a href="https://github.com/steelhead99x/predator-watch-app" rel="noopener">Source code</a></li>
+          <li><a href="https://github.com/bitprairie-team/predator-watch-app" rel="noopener">Source code</a></li>
           <li><a href="/about#credits">Credits</a></li>
           <li><a href="/privacy">Privacy</a></li>
         </ul>
@@ -228,14 +228,13 @@
     <p>Predator Watch is a free, open-source map. It brings together predator data that government agencies already publish, starting with gray wolves and bears, and refreshes each source as often as the agency updates it.</p>
     <p>Every item shows which agency published it, when the agency observed or last updated it, and when this map received it. Each layer has a freshness badge. Data is shown at the same precision the agency publishes, never finer.</p>
     <p>Only public agency data is used here. A private collaboration space for ranchers, community members, and agencies is <strong>Planned</strong>.</p>
-    <p><a href="/about">Methodology, freshness and limitations</a> · <a href="/status">Source status</a> · <a href="https://github.com/steelhead99x/predator-watch-app/issues/new?template=new-source.yml">Suggest a source</a></p>
-    <p>Source code and the full list of data sources: <a href="https://github.com/steelhead99x/predator-watch-app">github.com/steelhead99x/predator-watch-app</a> (Apache-2.0).</p>
+    <p><a href="/about">Methodology, freshness and limitations</a> · <a href="/status">Source status</a> · <a href="https://github.com/bitprairie-team/predator-watch-app/issues/new?template=new-source.yml">Suggest a source</a></p>
+    <p>Source code and the full list of data sources: <a href="https://github.com/bitprairie-team/predator-watch-app">github.com/bitprairie-team/predator-watch-app</a> (Apache-2.0).</p>
     <p class="small">Place search: <a href="https://www.census.gov/geographies/reference-files/time-series/geo/gazetteer-files.html">U.S. Census Bureau Gazetteer</a> (places, counties, ZIP codes, searched in your browser) and the <a href="https://geocoding.geo.census.gov/geocoder/">Census Bureau Geocoder</a> (street addresses). This product uses the Census Bureau Data API but is not endorsed or certified by the Census Bureau. Saved copies of the layer list and agency data are kept in this browser so the map still opens without a connection.</p>
     <p class="small">Basemap: <a href="https://openfreemap.org/">OpenFreeMap</a> © <a href="https://openmaptiles.org/">OpenMapTiles</a>, data © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors.</p>
     <form method="dialog"><button class="btn" autofocus>Close</button></form>
   </dialog>
 
-  <script src="/vendor/maplibre-gl-5.24.0/maplibre-gl.js" defer></script>
   <script type="module" src="/app.js"></script>
 </body>
 </html>

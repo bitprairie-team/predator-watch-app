@@ -15,9 +15,10 @@ describe("front end", () => {
     expect(html).toMatch(/not endorsed or certified by the Census Bureau/);
   });
 
-  it("preloads the layer list and defers the map library", () => {
+  it("preloads the layer list and loads the map library as a same-origin module", () => {
     expect(html).toMatch(/rel="preload" href="\/api\/layers" as="fetch"/);
-    expect(html).toMatch(/maplibre-gl\.js" defer/);
+    expect(html).not.toMatch(/maplibre-gl\.js" defer/);
+    expect(readFileSync("public/app.js", "utf8")).toMatch(/from "\/vendor\/maplibre-gl-[0-9][0-9A-Za-z.-]*\/maplibre-gl\.mjs"/);
   });
 
   it("serves the service worker uncached and keeps it same-origin only", () => {

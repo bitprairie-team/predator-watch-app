@@ -12,7 +12,7 @@
 //   returned only with an x-pw-saved-at header holding the time it was
 //   saved, and the pages show that time ("Saved copy", offline line). Saved
 //   data is never served silently.
-const VERSION = "pw-12";
+const VERSION = "pw-13";
 const SHELL = `${VERSION}-shell`;
 const DATA = `${VERSION}-data`;
 const NET_TIMEOUT_MS = 5000;
@@ -44,8 +44,9 @@ const SHELL_FILES = [
   "/favicon.svg",
   "/icons/icon-32.png",
   "/icons/icon-192.png",
-  "/vendor/maplibre-gl-5.24.0/maplibre-gl.js",
-  "/vendor/maplibre-gl-5.24.0/maplibre-gl.css",
+  "/vendor/maplibre-gl-6.17.0/maplibre-gl.mjs",
+  "/vendor/maplibre-gl-6.17.0/maplibre-gl-worker.mjs",
+  "/vendor/maplibre-gl-6.17.0/maplibre-gl.css",
 ];
 const IMMUTABLE_RE = /^\/(vendor|fonts)\//;
 const DATA_RE = /^\/api\/(layers|changes|status|sources\/[a-z0-9-]+(\/changes)?)$/;
