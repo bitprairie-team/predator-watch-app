@@ -70,12 +70,12 @@ async function load() {
     // A saved copy (offline) is never shown silently: say so, with its time.
     const saved = res.headers.get("x-pw-saved-at");
     const savedNote = saved ? `<span class="badge warn">Saved copy</span> Offline. Showing the status saved on this device ${time(saved)}. ` : "";
-    summary.innerHTML = savedNote + `<span class="badge ${allOk ? "ok" : "warn"}">${esc(r.healthy)} of ${esc(r.total)} healthy</span> Last scheduled run ${time(r.last_cron_run)}. <span class="muted">Page updated ${time(r.generated_at)}.</span>`;
+    summary.innerHTML = savedNote + `<span class="badge ${allOk ? "ok" : "warn"}">${esc(r.healthy)} of ${esc(r.total)} healthy.</span> Last scheduled run ${time(r.last_cron_run)}. <span class="muted">Page updated ${time(r.generated_at)}.</span>`;
     // data-label names each cell for the stacked layout on narrow screens.
     document.getElementById("rows").innerHTML = r.sources
       .map(
         (s) => `<tr>
-          <th scope="row">${esc(s.name)}<span class="muted src-meta">${esc(s.agency)} · checked ${esc(every(s.refresh_minutes))}</span></th>
+          <th scope="row">${esc(s.name)}<span class="muted src-meta">${esc(s.agency)}</span><span class="muted src-meta src-cadence">Checked ${esc(every(s.refresh_minutes))}</span></th>
           <td data-label="State">${stateBadge(s)}</td>
           <td data-label="Last success">${time(s.last_success_at)}${s.last_change_at ? `<span class="muted cell-sub">changed ${time(s.last_change_at)}</span>` : ""}</td>
           <td data-label="Last attempt">${time(s.last_attempt_at)}</td>
