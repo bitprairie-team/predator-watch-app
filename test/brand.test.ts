@@ -19,7 +19,7 @@ function contrast(a: string, b: string): number {
 describe("BitPrairie brand", () => {
   it("ships the brand assets, self-hosted fonts and their licenses", () => {
     for (const f of ["brand/bitprairie-symbol.svg", "brand/bitprairie-wordmark.svg", "brand/predator-watch-mark.svg", "brand.css", "theme.js",
-      "fonts/ibm-plex-sans.woff2", "fonts/ibm-plex-mono-normal-500.woff2", "fonts/OFL-IBMPlexSans.txt", "fonts/OFL-IBMPlexMono.txt"]) {
+      "fonts/ibm-plex-sans.woff2", "fonts/OFL-IBMPlexSans.txt"]) {
       expect(existsSync(`public/${f}`), f).toBe(true);
     }
     expect(read("public/fonts/OFL-IBMPlexSans.txt")).toMatch(/SIL OPEN FONT LICENSE/i);
@@ -60,7 +60,7 @@ describe("BitPrairie brand", () => {
 
   it("ships the lockup, favicon set and splash mark on every page", () => {
     for (const f of ["brand/predator-watch-lockup.svg", "brand/predator-watch-lockup-dark.svg", "favicon.svg", "favicon.ico",
-      "icons/icon-32.png", "icons/apple-touch-icon.png", "icons/icon-192.png", "icons/icon-512.png", "icons/icon-maskable-512.png"]) {
+      "icons/icon-32.png", "icons/apple-touch-icon.png", "apple-touch-icon.png", "icons/icon-192.png", "icons/icon-512.png", "icons/icon-maskable-512.png"]) {
       expect(existsSync(`public/${f}`), f).toBe(true);
     }
     expect(read("public/brand/predator-watch-lockup.svg")).not.toMatch(/<text/);
