@@ -11,7 +11,7 @@ Status key:
   (raster context layers; not cached).
 - **Planned:** identified but not wired in, with the reason.
 
-Endpoints and terms were checked on 2026-10-31. "Refresh" is how often this app
+Endpoints and terms were checked on 2026-10-31 and rechecked on 2026-11-09. "Refresh" is how often this app
 checks the source; the agency's own cadence is listed separately.
 
 ## Wolf activity
@@ -22,6 +22,23 @@ checks the source; the agency's own cadence is listed separately.
 | Wolf pack areas, current year (`wdfw-wolf-packs-current`) | Washington Department of Fish and Wildlife | ArcGIS: https://geodataservices.wdfw.wa.gov/arcgis/rest/services/WP_Statewide/Wolf_PackPolygons/MapServer/0 | Annual, after the year-end survey (currently survey year 2025) | Daily | Pack territory polygon; year | Public WDFW map service; no reuse license stated, credit WDFW | Live |
 | Gray wolf distribution (`mtfwp-wolf-distribution`) | Montana Fish, Wildlife & Parks | ArcGIS: https://services3.arcgis.com/Cdxz8r11hT0MGzg1/arcgis/rest/services/WILD_DISTRIB_WOLF/FeatureServer/0 (item https://www.arcgis.com/home/item.html?id=0b2a98d65f4746f1b9c2a247fca9dad6) | Periodic; last data edit 2023-10 | Daily | Distribution area; layer edit date | Provided "as is" per item terms; credit FWP | Live |
 | Mexican wolf occupied range, 2020 (`usfws-mexican-wolf-occupied-range-2020`) | U.S. Fish and Wildlife Service, Mexican Wolf Recovery Program | ArcGIS: https://services.arcgis.com/QVENGdaPbd4LUkLV/arcgis/rest/services/2020_Occupied_Range/FeatureServer/1 (item https://www.arcgis.com/home/item.html?id=4fb4062ee7a14a36bc3806cbd7b402d0) | Static 2020 layer | Daily | Distribution area; layer edit date | U.S. federal data, public domain in the U.S.; USFWS disclaimer | Live |
+| Mexican wolf occupied range, 2023 (`usfws-mexican-wolf-occupied-range-2023`) | U.S. Fish and Wildlife Service, Mexican Wolf Recovery Program | ArcGIS: https://services.arcgis.com/QVENGdaPbd4LUkLV/arcgis/rest/services/OccupiedRange2023/FeatureServer/0 (item https://www.arcgis.com/home/item.html?id=46b1946bc59343cd99121d9d633378e0) | Annual; this is the 2023 annual-report range | Daily | Distribution area; layer edit date | U.S. federal data, public domain in the U.S.; USFWS disclaimer | Live (off by default) |
+| Recent Mexican wolf locations, generalized cells (`usfws-mexican-wolf-recent-hexagons`) | U.S. Fish and Wildlife Service, Mexican Wolf Recovery Program | ArcGIS service https://services.arcgis.com/QVENGdaPbd4LUkLV/arcgis/rest/services/MexicanWolf_RecentHexagons/FeatureServer (item https://www.arcgis.com/home/item.html?id=20c06d78e1814f2eabf256476bd8266e). The current layer is discovered by a dated name (`RecentHexagonsYYYYMMDD`) | About every one to two weeks | Daily | Agency hexagon cell; date of the last location in the cell | U.S. federal data, public domain in the U.S.; USFWS disclaimer | Live (off by default) |
+
+## Official updates
+
+A dated feed of official wolf reports, counts and status notices is stored in KV by the same 15-minute cron (each source has its own daily or weekly check). Public requests read `/api/updates`. Items keep the agency's title, date and link. Counts appear only when a strict parser matches an official table or sentence, written as "as reported by <agency>, <date>".
+
+| Source (id) | Owner | Endpoint | Cadence | Refresh | Format | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| Federal Register, FWS wolf documents (`fr-fws-wolf`) | U.S. Fish and Wildlife Service | https://www.federalregister.gov/api/v1/documents.json (term and agency filters) | As documents are published | Daily | JSON API | Live |
+| Monthly wolf reports and related notices (`wdfw-wolf-updates`) | Washington Department of Fish and Wildlife | https://wdfw.wa.gov/species-habitats/at-risk/species-recovery/gray-wolf/updates | Monthly reports, plus notices as published | Daily | HTML list | Live |
+| Gray wolf news updates (`cdfw-wolf-updates`) | California Department of Fish and Wildlife | https://wildlife.ca.gov/Conservation/Mammals/Gray-Wolf/Updates | Monthly or quarterly posts | Daily | HTML list | Live |
+| Wolf population surveys (`mn-dnr-wolf-surveys`) | Minnesota Department of Natural Resources | https://www.dnr.state.mn.us/wolves/index.html | Annual PDF surveys | Weekly | HTML links to PDFs | Live |
+| Wolf monitoring reports (`wi-dnr-wolf-reports`) | Wisconsin Department of Natural Resources | https://dnr.wisconsin.gov/topic/WildlifeHabitat/wolf | Annual monitoring reports | Weekly | HTML links to PDFs | Live |
+| Annual wolf reports (`odfw-wolf-reports`) and official minimum count (`odfw-minimum-count`) | Oregon Department of Fish and Wildlife | https://dfw.state.or.us/Wolves/population.html | Annual | Weekly | HTML (report links and the official count table) | Live |
+| Wolf project minimum count (`nps-yellowstone-count`) | National Park Service | https://www.nps.gov/yell/learn/management/wolf.htm | Updated on the official page when a new count is posted | Weekly | HTML sentence | Live |
+| Isle Royale wolf count (`nps-isro-count`) | National Park Service | Official CSV linked from the park's ecological studies materials | Annual winter count | Weekly | CSV | Live |
 
 ## Wolf management areas
 
@@ -66,23 +83,24 @@ limits, attribution "OpenFreeMap © OpenMapTiles Data from OpenStreetMap".
 
 ## Planned
 
-Checked on 2026-10-31 with the ArcGIS Online search API, the agencies' own
-open data sites, and direct requests to each endpoint.
+Rechecked on 2026-11-09 with the agencies' own sites, open data hubs, and
+direct requests to each endpoint.
 
 | Candidate | Owner | URL | Why not Live yet |
 | --- | --- | --- | --- |
 | Approximate area of gray wolf activity | California Department of Fish and Wildlife | https://wildlife.ca.gov/Conservation/Mammals/Gray-Wolf/Updates | Published as JPEG/PDF only. The collared wolf cells above are CDFW's machine-readable layer. |
 | Monthly collared wolf activity by watershed (HUC-10) | Colorado Parks and Wildlife | https://cpw.state.co.us/wolf-sightings | Published as a PDF map. CPW's public ArcGIS services (for example https://services5.arcgis.com/ttNGmDvKQA7oeDQ3/arcgis/rest/services/CPWAdminData/FeatureServer) hold administrative boundaries and Survey123 field forms, not a public wolf layer. |
-| Areas of known wolf activity | Oregon Department of Fish and Wildlife | https://www.dfw.state.or.us/Wolves/ | No ODFW-owned public activity service found. ODFW publishes a modeled gray wolf range (GAP), layer 89 of https://services.arcgis.com/uUvqNMGPm7axC2dD/arcgis/rest/services/SGCN_GAP_Ranges_Mammals/FeatureServer, with no stated terms; modeled habitat is not activity. The only activity-area services found are third-party copies from 2016. |
-| Wolf range and pack data | Minnesota Department of Natural Resources | https://www.dnr.state.mn.us/mammals/wolves/index.html | No public wolf layer on the Minnesota Geospatial Commons or the DNR's ArcGIS organization. |
+| Areas of known wolf activity | Oregon Department of Fish and Wildlife | https://nrimp.dfw.state.or.us/DataClearinghouse/default.aspx?p=202&XMLname=41160.xml | Official AKWA shapefiles are now on the Data Clearinghouse (last published 4 May 2026), but the download is a dated zip, not a live FeatureServer. Annual reports and the official minimum count are used in Updates. |
+| Wolf pack polygons and occupied range | Minnesota Department of Natural Resources | https://www.dnr.state.mn.us/wolves/index.html | No public pack or range FeatureServer was found (a previously cited management-zone service URL returned 404). Annual population survey PDFs from this page are used in Updates. |
 | Wolf range and pack data | Michigan Department of Natural Resources | https://www.michigan.gov/dnr/education/michigan-species/mammals/wolves-in-michigan | No public wolf layer on the Michigan DNR open data hub. |
-| Predator damage management data | USDA APHIS Wildlife Services | https://www.aphis.usda.gov/wildlife-services/publications/pdr | Annual Program Data Reports are tables by state and species; no spatial service. |
-| Recent Mexican wolf locations (weekly hexagons) | Arizona Game and Fish Department | https://services2.arcgis.com/os1CphwIyxBDDUGn/arcgis/rest/services/WolfWeeklyHexagons/FeatureServer/0 | Requires a token; not public. |
+| Predator damage management data | USDA APHIS Wildlife Services | https://www.aphis.usda.gov/wildlife-services/publications/pdr | Annual Program Data Reports are tables by area and species; no spatial service. |
+| Recent Mexican wolf locations (weekly hexagons) | Arizona Game and Fish Department | https://services2.arcgis.com/os1CphwIyxBDDUGn/arcgis/rest/services/WolfWeeklyHexagons/FeatureServer/0 | Still requires a token (HTTP 499). The public USFWS MexicanWolf_RecentHexagons service is used instead. |
 | Generalized Mexican wolf locations | Arizona Game and Fish Department | https://services2.arcgis.com/os1CphwIyxBDDUGn/arcgis/rest/services/Wolf_locations_generalized_public/FeatureServer/0 | Public, but data last edited 2018-05. Would need a clear historical label. |
 | Mexican wolf occupied range | Arizona Game and Fish Department | https://services2.arcgis.com/os1CphwIyxBDDUGn/arcgis/rest/services/WolfOccupiedRange/FeatureServer/0 | Data last edited 2019-12; the 2020 USFWS layer above is newer. |
-| Wolf harvest by deer and elk hunting district, current season | Montana Fish, Wildlife & Parks | https://services3.arcgis.com/Cdxz8r11hT0MGzg1/arcgis/rest/services/Montana_Wolf_Harvest_Summary_by_Deer_Elk_Hunting_District/FeatureServer/0 | Public and updated daily, but a table with no geometry. Needs a join to hunting district boundaries. |
+| Wolf harvest by deer and elk hunting district, current season | Montana Fish, Wildlife & Parks | https://services3.arcgis.com/Cdxz8r11hT0MGzg1/arcgis/rest/services/Montana_Wolf_Harvest_Summary_by_Deer_Elk_Hunting_District/FeatureServer/0 | Public and still updated, but a table with no geometry. Needs a join to hunting-district boundaries. |
 | Archived wolf observation layers (pre-2019) | Washington Department of Fish and Wildlife | WDFW WildObs services (not verified) | Historical only; would need a historical label. |
 | Esri Living Atlas layers (USA Counties, USA Detailed Streams, Annual NLCD, World Hillshade) | Esri | https://livingatlas.arcgis.com/ | Licensed under the Esri Master License Agreement. Use outside ArcGIS needs an ArcGIS account or API key and "Powered by Esri" attribution. The federal originals above (Census, USGS, MRLC) are public domain and are used instead. |
+| Federal grizzly bear recovery zones | U.S. Fish and Wildlife Service | https://www.fws.gov/media/grizzly-bear-recovery-zones-and-estimated-distributions | No official nationwide public FeatureServer was found. A USFWS graphic exists, and some BLM planning maps include a North Continental Divide unit, but those are not a complete public recovery-zone service. |
 | Weather alerts API | National Weather Service | https://api.weather.gov/alerts/active | Most alerts are zone-based with no geometry (17 of 370 had geometry on 2026-10-31); the NWS MapServer above is used instead. |
 
 To propose a source, open an issue with the public URL, the owner, and its

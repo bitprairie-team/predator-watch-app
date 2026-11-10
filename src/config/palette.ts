@@ -15,6 +15,8 @@ export const LAYER_COLORS = {
   "wdfw-wolf-packs-current": "#3e66d2", // blue
   "mtfwp-wolf-distribution": "#8858bf", // violet
   "usfws-mexican-wolf-occupied-range-2020": "#148b7b", // teal
+  "usfws-mexican-wolf-occupied-range-2023": "#2870c0", // mid blue
+  "usfws-mexican-wolf-recent-hexagons": "#c05850", // coral
   // wolf management areas
   "usfws-mwepa": "#b1750e", // ochre
   "idfg-wolf-management-zones": "#6a7687", // slate
