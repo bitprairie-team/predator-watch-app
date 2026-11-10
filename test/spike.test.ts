@@ -161,3 +161,68 @@ describe("status", () => {
     expect(isOverdue(null, 60)).toBe(false);
   });
 });
+
+describe("geocode CORS and cache", () => {
+  const path = "/api/geocode?q=" + encodeURIComponent("1 Main St, Helena MT");
+
+  function stubCensus() {
+    resetGeocodeThrottle();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        new Response(
+          JSON.stringify({
+            result: { addressMatches: [{ matchedAddress: "1 MAIN ST, HELENA, MT, 59601", coordinates: { x: -112.03, y: 46.59 } }] },
+          }),
+          { headers: { "content-type": "application/json" } },
+        ),
+      ),
+    );
+  }
+
+  it("allows the map origin, blocks other sites, and caches lookups for a day", async () => {
+    stubCensus();
+    const env: Env = { LAYER_CACHE: memoryKV() };
+    const allowed = await get(env, path, { headers: { Origin: "https://app.predatorwatch.org" } });
+    expect(allowed.status).toBe(200);
+    expect(allowed.headers.get("access-control-allow-origin")).toBe("https://app.predatorwatch.org");
+    expect(allowed.headers.get("vary")).toMatch(/Origin/);
+    expect(allowed.headers.get("cache-control")).toMatch(/s-maxage=86400/);
+    expect(allowed.headers.get("cache-control")).not.toMatch(/s-maxage=604800/);
+
+    resetGeocodeThrottle();
+    const blocked = await get(env, path, { headers: { Origin: "https://evil.example" } });
+    expect(blocked.status).toBe(200);
+    expect(blocked.headers.get("access-control-allow-origin")).toBeNull();
+
+    resetGeocodeThrottle();
+    const localOnProd = await get(env, path, { headers: { Origin: "http://localhost:8787" } });
+    expect(localOnProd.headers.get("access-control-allow-origin")).toBeNull();
+
+    resetGeocodeThrottle();
+    const local = await handleRequest(
+      new Request(`http://127.0.0.1:8787${path}`, { headers: { Origin: "http://localhost:8787" } }),
+      env,
+      ctx,
+    );
+    expect(local.headers.get("access-control-allow-origin")).toBe("http://localhost:8787");
+  });
+});
+
+describe("rate limiter outages", () => {
+  it("fails closed on geocode and exports, and fails open on catalog reads", async () => {
+    const broken = { async limit() { throw new Error("limiter down"); } };
+    const env: Env = {
+      LAYER_CACHE: memoryKV(),
+      API_LIMITER: broken,
+      EXPORT_LIMITER: broken,
+      SEARCH_LIMITER: broken,
+      UPSTREAM_LIMITER: broken,
+    };
+    const q = "/api/geocode?q=" + encodeURIComponent("1 Main St, Helena MT");
+    expect((await get(env, q)).status).toBe(429);
+    expect((await get(env, `/api/sources/${ID}.csv`)).status).toBe(429);
+    expect((await get(env, `/api/sources/${ID}.kml`)).status).toBe(429);
+    expect((await get(env, "/api/layers")).status).toBe(200);
+  });
+});

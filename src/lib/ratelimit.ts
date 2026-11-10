@@ -49,8 +49,10 @@ export async function allow(env: Limiters, cls: LimitClass, key: string, now = D
     try {
       return (await binding.limit({ key: `${cls}:${key}` })).success;
     } catch {
-      // A limiter outage should not take the map down.
-      return true;
+      // Fail closed for address search and file exports so a limiter outage
+      // cannot open those routes. Catalog reads still fail open so the map
+      // can load cached data.
+      return cls === "api";
     }
   }
   return memoryLimit(cls, key, now);
