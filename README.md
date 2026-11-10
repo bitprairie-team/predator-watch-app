@@ -1,8 +1,14 @@
-<img src="public/favicon.svg" alt="" width="40" height="40">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/logo-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="assets/logo-light.svg">
+  <img src="assets/logo-light.svg" alt="Predator Watch" width="128" height="128">
+</picture>
 
 # Predator Watch
 
-*A [BitPrairie](https://bitprairie.com/predator-watch/) project.*
+Careful records of predator activity near livestock.
+
+*by BitPrairie*
 
 **Public agency wolf data on one map, with the source, date and freshness on every item.**
 
@@ -204,4 +210,25 @@ Layer colors come from the same palette, with a light and a dark value for each 
 keep at least 3:1 contrast against the basemap (checked in `test/brand.test.ts`).
 The BitPrairie symbol and wordmark are BitPrairie marks; the Apache-2.0 license covers the code, not the marks.
 
-Part of BitPrairie Predator Watch. Code licensed under Apache-2.0.
+Colours (hex):
+
+| Name | Hex | Role |
+| --- | --- | --- |
+| Stone (light grounds) | #6E6259 | Project accent |
+| Stone (dark grounds) | #A59C94 | Project accent on dark grounds |
+| Ink Black | #141416 | Type on light grounds |
+| Night Cream | #F7F1E8 | Type on dark grounds |
+
+Type is IBM Plex Sans.
+
+Logo files:
+
+- `assets/logo-light.svg` and `assets/logo-dark.svg` (outlined vector)
+- `assets/logo-512.png`
+- `assets/social-preview-1280x640.png`
+
+Use the files as drawn. Do not recolour, outline, or add a drop shadow. Keep clear space around the mark, about one quarter of the mark height. Use the light files on light grounds and the dark files on dark grounds.
+
+On contested topics, present data only and take no side.
+
+For merch, print and the full logo system, see the BitPrairie brand guide.
