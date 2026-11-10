@@ -48,7 +48,7 @@ would rather Play always run the live site.
 - **Predator Watch mark:** the line paw (`public/brand/predator-watch-mark.svg`,
   1.8 stroke, round caps, currentColor), next to "Predator Watch" in IBM Plex
   Sans 600.
-- **Type:** self-hosted IBM Plex Sans 400/500/600 and IBM Plex Mono 500
+- **Type:** self-hosted IBM Plex Sans 400/500/600
   (`public/fonts`, SIL OFL). Never 700.
 - **UI colors:** every chrome color is a token in `public/brand.css`
   (`:root` light, `[data-theme="dark"]`). Switching the chrome palette means
