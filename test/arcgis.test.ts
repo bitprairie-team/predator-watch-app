@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { ArcGisAdapter, type ArcGisSourceConfig, validateArcGisConfig } from "../src/adapters/arcgis";
+import { ArcGisAdapter, pickDatedLayer, type ArcGisSourceConfig, validateArcGisConfig } from "../src/adapters/arcgis";
 import { resetRateLimiter } from "../src/lib/http";
 import { fixture, jsonResponse, stubFetch } from "./helpers";
 
@@ -198,5 +198,45 @@ describe("ArcGisAdapter", () => {
     expect(validateArcGisConfig({ ...wdfwConfig, url: "http://insecure.example/MapServer/0" })).not.toHaveLength(0);
     expect(validateArcGisConfig({ ...wdfwConfig, url: `${WDFW.replace("/0", "")}` })).not.toHaveLength(0);
     expect(validateArcGisConfig(wdfwConfig)).toHaveLength(0);
+  });
+});
+
+describe("dated layer discovery", () => {
+  it("picks the newest YYYYMMDD suffix", () => {
+    const picked = pickDatedLayer(
+      [
+        { id: 400, name: "RecentHexagons20261015" },
+        { id: 477, name: "RecentHexagons20261102" },
+        { id: 12, name: "OtherLayer" },
+      ],
+      "RecentHexagons",
+    );
+    expect(picked).toEqual({ id: 477, name: "RecentHexagons20261102" });
+  });
+
+  it("resolves the current hexagon layer and normalizes pack names, not studbook numbers", async () => {
+    const url = "https://services.arcgis.com/QVENGdaPbd4LUkLV/arcgis/rest/services/MexicanWolf_RecentHexagons/FeatureServer";
+    const stub = stubFetch([
+      { match: (u) => /FeatureServer\/?$/.test(u.pathname) && !u.pathname.includes("/477"), respond: () => jsonResponse(fixture("updates/hex-service.json")) },
+      { match: (u) => u.pathname.endsWith("/FeatureServer/477") && !u.pathname.endsWith("query"), respond: () => jsonResponse(fixture("updates/hex-layer.json")) },
+      { match: (u) => u.pathname.endsWith("/477/query"), respond: () => jsonResponse(fixture("updates/hex-query.json")) },
+    ]);
+    const cfg: ArcGisSourceConfig = {
+      ...base,
+      type: "arcgis",
+      id: "usfws-hex-test",
+      url,
+      discoverLayer: { namePrefix: "RecentHexagons" },
+      precision: "hex-cell",
+      fields: { idField: "OBJECTID", label: "{pack}", observedAt: { field: "date_time", format: "date-text", precision: "day" }, details: { Pack: "pack", Studbook: "studbook" } },
+      http: { minIntervalMs: 0 },
+    };
+    const r = await new ArcGisAdapter(cfg).load({ fetch: stub.fetch, now, env: {} });
+    expect(r.changed).toBe(true);
+    if (!r.changed) return;
+    expect(r.features.length).toBe(5);
+    expect(r.features[0]!.properties.label).toBe("Rocky Prairie");
+    expect(r.features[0]!.properties.label).not.toMatch(/3081/);
+    expect(r.features[0]!.properties.details.Studbook).toBe(3081);
   });
 });

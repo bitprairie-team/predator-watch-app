@@ -1102,6 +1102,37 @@ function visibleLayers() {
   return [...layers.values()].filter((l) => l.visible)
     .sort((a, b) => CATEGORY_ORDER.indexOf(a.category) - CATEGORY_ORDER.indexOf(b.category) || (b.style?.order ?? 0) - (a.style?.order ?? 0));
 }
+
+function fmtUpdateDate(iso) {
+  const m = String(iso || "").match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return "";
+  const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  const d = Number(m[3]);
+  return d === 1 ? `${months[Number(m[2]) - 1]} ${m[1]}` : `${months[Number(m[2]) - 1]} ${d}, ${m[1]}`;
+}
+async function renderUpdates() {
+  const factsEl = $("#updates-facts");
+  const listEl = $("#updates-list");
+  if (!listEl) return;
+  try {
+    const res = await fetchWithTimeout("/api/updates", 15000);
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    const facts = data.facts || [];
+    if (factsEl) {
+      factsEl.innerHTML = facts.length
+        ? facts.slice(0, 4).map((f) => `<li>${esc(f.value)}, ${esc(f.attribution)}.</li>`).join("")
+        : "";
+    }
+    const items = (data.items || []).slice(0, 8);
+    listEl.innerHTML = items.length
+      ? items.map((i) => `<li><time datetime="${esc(i.date)}">${esc(fmtUpdateDate(i.date))}</time> <a href="${esc(i.url)}">${esc(i.title)}</a> <span class="muted">as reported by ${esc(i.credit_short || i.agency)}</span></li>`).join("")
+      : `<li class="hint">No official updates are cached yet.</li>`;
+  } catch (e) {
+    listEl.innerHTML = `<li class="hint">Official updates could not load right now.</li>`;
+  }
+}
+
 function renderCredits() {
   const groups = creditGroups(visibleLayers());
   $("#credits-agencies").innerHTML = groups.length
@@ -1190,6 +1221,7 @@ async function boot() {
   }
   renderPanel();
   renderPlanned(index);
+  renderUpdates();
   renderCredits();
   const vectors = [...layers.values()].filter((l) => l.type === "geojson");
   statusEl.textContent = savedAt

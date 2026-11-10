@@ -90,6 +90,18 @@ export async function fetchJson<T = unknown>(
   return (await res.json()) as T;
 }
 
+export async function fetchText(
+  fetchImpl: typeof fetch,
+  url: string,
+  opts: PoliteOptions = {},
+): Promise<string> {
+  const res = await politeFetch(fetchImpl, url, {
+    ...opts,
+    headers: { Accept: "text/html, application/xml, text/csv, text/plain, */*;q=0.1", ...opts.headers },
+  });
+  return res.text();
+}
+
 /** For tests: forget per-host timing. */
 export function resetRateLimiter() {
   lastRequestAt.clear();
