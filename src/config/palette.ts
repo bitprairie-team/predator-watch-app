@@ -95,7 +95,7 @@ export const PAPER = { light: "#f2ede4", dark: "#161310" } as const;
 /**
  * Installed-app colors (web app manifest, iOS meta tags, store app splash
  * screens and icons). The theme and background are the light paper color;
- * the icon is the BitPrairie bison tile on its warm plate (never recolored). test/stage7-app.test.ts checks
+ * the icon is the v9.1 Predator Watch tile in Stone (never recolored). test/stage7-app.test.ts checks
  * that public/manifest.webmanifest and capacitor.config.ts use these.
  */
 export const APP_COLORS = {
@@ -105,8 +105,8 @@ export const APP_COLORS = {
   background: PAPER.light,
   /** Dark theme bar color (meta theme-color data-dark). */
   themeDark: PAPER.dark,
-  /** The BitPrairie mark plate behind the bison symbol (brand fixed, light and dark). */
-  icon: "#c4ae96",
+  /** The Predator Watch tile plate, Stone (brand fixed, light and dark). */
+  icon: "#6E6259",
 } as const;
 
 /** "#rrggbb" to [r, g, b, a] for ArcGIS symbol JSON. */

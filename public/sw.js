@@ -12,7 +12,7 @@
 //   returned only with an x-pw-saved-at header holding the time it was
 //   saved, and the pages show that time ("Saved copy", offline line). Saved
 //   data is never served silently.
-const VERSION = "pw-14";
+const VERSION = "pw-15";
 const SHELL = `${VERSION}-shell`;
 const DATA = `${VERSION}-data`;
 const NET_TIMEOUT_MS = 5000;
@@ -39,8 +39,8 @@ const SHELL_FILES = [
   "/manifest.webmanifest",
   "/fonts/ibm-plex-sans.woff2",
   "/brand/bitprairie-symbol.svg",
-  "/brand/bitprairie-wordmark.svg",
   "/brand/predator-watch-mark.svg",
+  "/brand/predator-watch-mark-dark.svg",
   "/favicon.svg",
   "/icons/icon-32.png",
   "/icons/icon-192.png",

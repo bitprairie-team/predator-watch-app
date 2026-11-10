@@ -40,14 +40,15 @@ would rather Play always run the live site.
 
 ## Brand
 
-- **App icon, favicon, launch screen:** the BitPrairie bison tile
-  (`public/brand/bitprairie-symbol.svg`, always on its warm #c4ae96 plate,
-  never recolored). `npm run app:assets` draws every size from it, then
-  `npx capacitor-assets generate --ios --android --iconBackgroundColor '#c4ae96' --iconBackgroundColorDark '#c4ae96' --splashBackgroundColor '#f2ede4' --splashBackgroundColorDark '#161310'`
+- **App icon, favicon, launch screen:** the v9.1 Predator Watch tile
+  (`public/brand/predator-watch-mark.svg`, Stone #6E6259, never recolored).
+  `npm run app:assets` draws every size from it, then
+  `npx capacitor-assets generate --ios --android --iconBackgroundColor '#6E6259' --iconBackgroundColorDark '#6E6259' --splashBackgroundColor '#f2ede4' --splashBackgroundColorDark '#161310'`
   writes the native sizes. Do not edit the generated PNGs by hand.
-- **Predator Watch mark:** the line paw (`public/brand/predator-watch-mark.svg`,
-  1.8 stroke, round caps, currentColor), next to "Predator Watch" in IBM Plex
-  Sans 600.
+- **Predator Watch mark:** the official v9.1 tile (a trail camera on a fence
+  post) in Stone #6E6259 on light and #A59C94 on dark, next to "Predator Watch"
+  in IBM Plex Sans 600. The header leads with Predator Watch only. A quiet
+  BitPrairie credit stays in the footer and on About.
 - **Type:** self-hosted IBM Plex Sans 400/500/600
   (`public/fonts`, SIL OFL). Never 700.
 - **UI colors:** every chrome color is a token in `public/brand.css`

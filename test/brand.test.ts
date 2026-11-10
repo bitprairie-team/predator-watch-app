@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { SOURCES } from "../src/config/sources";
 
 const read = (p: string) => readFileSync(p, "utf8").toString();
-const pages = ["public/index.html", "public/about.html", "public/status.html"];
+const pages = ["public/index.html", "public/about.html", "public/status.html", "public/privacy.html", "public/updates.html", "public/offline.html"];
 
 function luminance(hex: string): number {
   const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
@@ -18,7 +18,7 @@ function contrast(a: string, b: string): number {
 
 describe("BitPrairie brand", () => {
   it("ships the brand assets, self-hosted fonts and their licenses", () => {
-    for (const f of ["brand/bitprairie-symbol.svg", "brand/bitprairie-wordmark.svg", "brand/predator-watch-mark.svg", "brand.css", "theme.js",
+    for (const f of ["brand/bitprairie-symbol.svg", "brand/bitprairie-wordmark.svg", "brand/predator-watch-mark.svg", "brand/predator-watch-mark-dark.svg", "brand.css", "theme.js",
       "fonts/ibm-plex-sans.woff2", "fonts/OFL-IBMPlexSans.txt"]) {
       expect(existsSync(`public/${f}`), f).toBe(true);
     }
@@ -33,10 +33,15 @@ describe("BitPrairie brand", () => {
       const h = read(p);
       expect(h, p).toMatch(/<script src="\/theme\.js"><\/script>/);
       expect(h, p).toMatch(/href="\/brand\.css"/);
-      expect(h, p).toMatch(/class="brand-home" href="https:\/\/bitprairie\.com\/"/);
-      expect(h, p).toMatch(/by <a href="https:\/\/bitprairie\.com\/predator-watch\/">BitPrairie<\/a>/);
+      expect(h, p).not.toMatch(/class="brand-home"/);
+      expect(h, p).not.toMatch(/class="byline"/);
       expect(h, p).toMatch(/class="proj-mark"/);
-      expect(h, p).toMatch(/<footer class="credits"/);
+      expect(h, p).toMatch(/src="\/brand\/predator-watch-mark\.svg"/);
+      expect(h, p).toMatch(/src="\/brand\/predator-watch-mark-dark\.svg"/);
+      if (!p.endsWith("offline.html")) {
+        expect(h, p).toMatch(/<footer class="credits"/);
+        expect(h, p).toMatch(/Predator Watch is a BitPrairie project/);
+      }
       expect(h, p).toMatch(/name="theme-color" content="#f2ede4"[^>]*data-dark="#161310"/);
       expect(h, p).not.toMatch(/<script>(?!<\/script>)/);
     }

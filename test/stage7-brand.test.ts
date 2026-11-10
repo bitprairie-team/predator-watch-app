@@ -1,5 +1,4 @@
-// Brand alignment (stage 7): the Predator Watch line paw mark, the BitPrairie
-// bison tile for every app icon, IBM Plex weights and copy style.
+// Brand alignment: the v9.1 Predator Watch tile (Stone), IBM Plex weights and copy style.
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import sharp from "sharp";
@@ -8,29 +7,35 @@ import { APP_COLORS } from "../src/config/palette";
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8");
 const PAGES = readdirSync("public").filter((f) => f.endsWith(".html"));
-const PLATE = "#c4ae96";
+const PLATE = "#6E6259";
 
 describe("brand marks", () => {
-  it("uses the line paw (1.8 stroke, round caps, currentColor) as the Predator Watch mark on every page", () => {
+  it("uses the v9.1 Predator Watch tile (Stone) as the mark on every page", () => {
+    const light = read("public/brand/predator-watch-mark.svg");
+    const dark = read("public/brand/predator-watch-mark-dark.svg");
+    expect(light).toContain('fill="#6E6259"');
+    expect(dark).toContain('fill="#A59C94"');
+    expect(light).toContain('viewBox="0 0 300 300"');
+    expect(dark).toContain('viewBox="0 0 300 300"');
+    // The official merch path, not the old line paw.
+    expect(light).not.toContain("stroke-width");
+    expect(light).not.toMatch(/<ellipse/);
     for (const p of PAGES) {
-      const marks = read(`public/${p}`).match(/<svg class="(?:proj|splash)-mark"[^>]*>/g) ?? [];
-      expect(marks.length, p).toBeGreaterThan(0);
-      for (const m of marks) {
-        expect(m).toContain('fill="none"');
-        expect(m).toContain('stroke="currentColor"');
-        expect(m).toContain('stroke-width="1.8"');
-        expect(m).toContain('stroke-linecap="round"');
-      }
+      const h = read(`public/${p}`);
+      expect(h, p).toMatch(/src="\/brand\/predator-watch-mark\.svg"/);
+      expect(h, p).toMatch(/src="\/brand\/predator-watch-mark-dark\.svg"/);
+      expect(h, p).not.toMatch(/class="brand-home"/);
+      expect(h, p).not.toMatch(/class="byline"/);
     }
-    expect(read("public/brand/predator-watch-mark.svg")).toContain('stroke-width="1.8"');
   });
-  it("keeps the BitPrairie symbol on its warm plate and uses it for the favicon", () => {
-    const tile = read("public/brand/bitprairie-symbol.svg");
-    expect(tile).toMatch(/<rect width="64" height="64" rx="14" fill="#c4ae96"\/>/);
-    expect(read("public/favicon.svg").trim()).toBe(tile.trim());
+  it("uses the Stone tile for the favicon and app icon plate", () => {
+    const fav = read("public/favicon.svg");
+    expect(fav).toContain('fill="#6E6259"');
+    expect(fav).toContain('fill="#A59C94"');
+    expect(fav).toMatch(/prefers-color-scheme: dark/);
     expect(APP_COLORS.icon).toBe(PLATE);
   });
-  it("draws every app icon on the bison plate", async () => {
+  it("draws every app icon on the Stone plate", async () => {
     const files = [
       "public/icons/icon-512.png", "public/icons/icon-maskable-512.png", "public/icons/apple-touch-icon.png",
       "assets/icon-only.png", "assets/icon-background.png",
@@ -41,7 +46,7 @@ describe("brand marks", () => {
       // A pixel a little in from the left edge, halfway down, is plate.
       const x = Math.round(info.width * 0.06), y = Math.round(info.height * 0.5);
       const i = (y * info.width + x) * info.channels;
-      const hex = "#" + [0, 1, 2].map((k) => data[i + k]!.toString(16).padStart(2, "0")).join("");
+      const hex = "#" + [0, 1, 2].map((k) => data[i + k]!.toString(16).padStart(2, "0")).join("").toUpperCase();
       expect(hex, f).toBe(PLATE);
     }
   });
@@ -69,12 +74,12 @@ describe("brand type and copy", () => {
 });
 
 describe("project site link", () => {
-  it("links predatorwatch.org next to the BitPrairie links in the header and footer", () => {
+  it("links predatorwatch.org in the footer, not in the header", () => {
     for (const p of ["index.html", "about.html", "status.html", "privacy.html"]) {
       const h = read(`public/${p}`);
-      expect(h, p).toMatch(/BitPrairie<\/a><span class="byline-site">[\s\S]*?<a href="https:\/\/predatorwatch\.org\/">predatorwatch\.org<\/a>/);
+      const header = h.split("<footer")[0];
+      expect(header, p).not.toMatch(/class="byline"/);
       expect(h, p).toMatch(/bitprairie\.com\/predator-watch<\/a><\/li>\s*<li><a href="https:\/\/predatorwatch\.org\/">predatorwatch\.org<\/a><\/li>/);
     }
-    expect(read("public/brand.css")).toMatch(/max-width: 480px\)[^{]*\{ \.byline-site \{ display: none; \} \}/);
   });
 });
