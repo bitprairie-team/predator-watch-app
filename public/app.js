@@ -1,5 +1,5 @@
 // Predator Watch front end. Plain ES module, no build step.
-/* global maplibregl */
+import * as maplibregl from "/vendor/maplibre-gl-6.17.0/maplibre-gl.mjs";
 import { creditGroups, swatchHtml, vectorPaint, vectorTilePaint } from "/layer-style.js";
 import { API_BASE, NATIVE, api, apiFetch } from "/net.js";
 

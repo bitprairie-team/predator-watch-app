@@ -41,11 +41,14 @@ describe("mobile round (stage 7)", () => {
   it("serves the map library from a versioned folder cached as immutable", () => {
     const folder = `/vendor/maplibre-gl-${maplibreVersion}/`;
     expect(index).toContain(`href="${folder}maplibre-gl.css"`);
-    expect(index).toContain(`src="${folder}maplibre-gl.js" defer`);
-    expect(sw).toContain(`"${folder}maplibre-gl.js"`);
+    expect(app).toContain(`from "${folder}maplibre-gl.mjs"`);
+    expect(index).not.toMatch(/maplibre-gl\.js/);
+    expect(sw).toContain(`"${folder}maplibre-gl.mjs"`);
+    expect(sw).toContain(`"${folder}maplibre-gl-worker.mjs"`);
     expect(index).not.toMatch(/\/vendor\/maplibre-gl\//);
     expect(headers).toMatch(/\/vendor\/\*\n\s+Cache-Control: public, max-age=31536000, immutable/);
-    expect(existsSync(`public${folder}maplibre-gl.js`)).toBe(true);
+    expect(existsSync(`public${folder}maplibre-gl.mjs`)).toBe(true);
+    expect(existsSync(`public${folder}maplibre-gl-worker.mjs`)).toBe(true);
   });
 
   it("stops pull-to-refresh and page bounce on the map, keeps inner scrolling", () => {
