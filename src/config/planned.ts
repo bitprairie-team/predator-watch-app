@@ -10,10 +10,10 @@ export const PLANNED = [
   },
   {
     id: "pasturetrace-integration",
-    name: "PastureTrace integration",
+    name: "Livestock activity integration",
     status: "Planned",
     description:
-      "Exchange of animal events and time-window alerts with PastureTrace for private workspaces. The message schemas carry no locations.",
+      "Exchange of animal events and time-window alerts with a livestock monitoring system for private workspaces. The message schemas carry no locations.",
     doc_url: "https://github.com/bitprairie-team/predator-watch-app/tree/main/schemas/integrations/pasturetrace/v1",
   },
 ] as const;
