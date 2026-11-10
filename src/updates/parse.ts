@@ -150,9 +150,18 @@ export function parseHtmlLinks(src: Extract<UpdateSource, { type: "html-links" }
   return { items, facts: [] };
 }
 
-function fact(src: UpdateSource, id: string, label: string, count: number, year: number, extra: string, url: string): OfficialFact {
+function fact(
+  src: UpdateSource,
+  id: string,
+  label: string,
+  count: number,
+  year: number,
+  extra: string,
+  url: string,
+  opts?: { minimum?: boolean },
+): OfficialFact {
   const date = extra || String(year);
-  const value = `${count} wolves`;
+  const value = opts?.minimum ? `at least ${count} wolves` : `${count} wolves`;
   return {
     id,
     source_id: src.id,
@@ -226,6 +235,27 @@ export function parseCsvCount(src: Extract<UpdateSource, { type: "csv-count" }>,
   };
 }
 
+export function parseStaticCount(src: Extract<UpdateSource, { type: "static-count" }>): ParseResult {
+  const year = src.year;
+  const count = src.count;
+  if (!Number.isInteger(year) || year < 1990 || year > 2100) return { items: [], facts: [] };
+  if (!Number.isInteger(count) || count <= 0 || count > 20000) return { items: [], facts: [] };
+  if (!src.factDate || !src.url) return { items: [], facts: [] };
+  const f = fact(src, src.factId, src.factLabel, count, year, src.factDate, src.url, { minimum: src.minimum });
+  return {
+    facts: [f],
+    items: [
+      item(src, {
+        slug: `${src.factId}-${year}`,
+        title: `${src.factLabel}, ${src.factDate}`,
+        url: src.url,
+        date: dateFromText(src.factDate) ?? `${year}-01-01`,
+        kind: "count",
+      }),
+    ],
+  };
+}
+
 export function parseUpdateSource(src: UpdateSource, body: string): ParseResult {
   switch (src.type) {
     case "federal-register":
@@ -236,5 +266,7 @@ export function parseUpdateSource(src: UpdateSource, body: string): ParseResult 
       return parseHtmlCount(src, body);
     case "csv-count":
       return parseCsvCount(src, body);
+    case "static-count":
+      return parseStaticCount(src);
   }
 }

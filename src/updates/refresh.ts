@@ -86,6 +86,16 @@ export async function refreshUpdates(
       continue;
     }
     try {
+      // Dated official figures are recorded from a published report, not parsed
+      // from a live page, so there is nothing to fetch on the cron.
+      if (src.type === "static-count") {
+        const parsed = parseUpdateSource(src, "");
+        if (!parsed.facts.length) throw new Error("official count is not recorded");
+        sources.push({ id: src.id, agency: src.agency, state: "ok", checked_at: atIso, item_count: parsed.items.length });
+        items.push(...parsed.items);
+        facts.push(...parsed.facts);
+        continue;
+      }
       const body = await withTimeout(fetchSourceBody(src, fetchImpl, env.USER_AGENT), SOURCE_TIMEOUT_MS, src.id);
       const parsed = parseUpdateSource(src, body);
       if (src.type === "html-links" && parsed.items.length === 0) {
