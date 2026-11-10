@@ -203,6 +203,16 @@ describe("geocode CORS and cache", () => {
     const localOnProd = await get(env, path, { headers: { Origin: "http://localhost:8787" } });
     expect(localOnProd.headers.get("access-control-allow-origin")).toBeNull();
 
+    for (const app of ["capacitor://localhost", "https://localhost"]) {
+      resetGeocodeThrottle();
+      const fromApp = await get(env, path, { headers: { Origin: app } });
+      expect(fromApp.headers.get("access-control-allow-origin")).toBe(app);
+    }
+
+    resetGeocodeThrottle();
+    const appWithPort = await get(env, path, { headers: { Origin: "https://localhost:8443" } });
+    expect(appWithPort.headers.get("access-control-allow-origin")).toBeNull();
+
     resetGeocodeThrottle();
     const local = await handleRequest(
       new Request(`http://127.0.0.1:8787${path}`, { headers: { Origin: "http://localhost:8787" } }),
