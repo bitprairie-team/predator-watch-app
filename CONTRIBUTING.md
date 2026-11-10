@@ -16,7 +16,7 @@ documentation are all welcome.
 
 ## Suggesting a source
 
-Open a [New data source](https://github.com/steelhead99x/predator-watch-app/issues/new?template=new-source.yml)
+Open a [New data source](https://github.com/bitprairie-team/predator-watch-app/issues/new?template=new-source.yml)
 issue with the URL, the agency page and the terms you found.
 
 ## Adding a source yourself

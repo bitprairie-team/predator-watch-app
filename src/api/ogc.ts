@@ -49,7 +49,7 @@ export function landing(base: string) {
       { href: `${base}/ogc/conformance`, rel: "conformance", type: "application/json", title: "Conformance classes" },
       { href: `${base}/ogc/collections`, rel: "data", type: "application/json", title: "Collections" },
       {
-        href: "https://github.com/steelhead99x/predator-watch-app/blob/main/docs/api.md",
+        href: "https://github.com/bitprairie-team/predator-watch-app/blob/main/docs/api.md",
         rel: "service-doc",
         type: "text/html",
         title: "API documentation",

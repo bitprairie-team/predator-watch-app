@@ -5,7 +5,7 @@ import { fnv1a } from "../lib/hash";
 export const SECURITY_HEADERS: Record<string, string> = {
   "x-content-type-options": "nosniff",
   "referrer-policy": "strict-origin-when-cross-origin",
-  "strict-transport-security": "max-age=63072000; includeSubDomains",
+  "strict-transport-security": "max-age=31536000; includeSubDomains",
   "permissions-policy": "camera=(), microphone=(), payment=(), usb=(), interest-cohort=()",
   "x-frame-options": "DENY",
   // API responses are data, never documents.
