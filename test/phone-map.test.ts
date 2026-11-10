@@ -54,4 +54,17 @@ describe("phone map layout", () => {
     expect(app).toMatch(/showCompass: !PHONE_AT_START/);
     expect(app).toMatch(/touchZoomRotate\.disableRotation\(\)/);
   });
+
+  it("hides the first-run tip when the layers sheet is open and keeps the credits bar opaque", () => {
+    expect(css).toMatch(/:root:has\(\.panel\[data-sheet="half"\]\) \.first-hint/);
+    expect(css).toMatch(/:root:has\(\.panel\[data-sheet="full"\]\) \.first-hint/);
+    expect(css).toMatch(/\.credits-bar \{[^}]*z-index: 8;/);
+    expect(css).toMatch(/\.credits-bar \{[^}]*background: var\(--surface\)/);
+  });
+
+  it("gives map controls and header actions 44 px targets on phones", () => {
+    expect(css).toMatch(/@media \(max-width: 760px\)[\s\S]*\.maplibregl-ctrl-group button \{ width: 44px; height: 44px; \}/);
+    const brand = readFileSync("public/brand.css", "utf8");
+    expect(brand).toMatch(/@media \(max-width: 760px\)[\s\S]*\.topbar-actions \.btn, \.topbar-actions \.btn-theme \{ min-height: 44px; min-width: 44px; \}/);
+  });
 });
