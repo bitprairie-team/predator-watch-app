@@ -52,10 +52,10 @@ describe("service worker", () => {
   const sw = read("sw.js");
   const shell = JSON.parse(`[${/const SHELL_FILES = \[([\s\S]*?)\];/.exec(sw)![1]!.replace(/\.\.\.PAGES,|OFFLINE_PAGE,/g, "").replace(/,\s*$/, "")}]`) as string[];
   it("caches the app shell, every listed file exists, and the offline page is saved", () => {
-    expect(sw).toMatch(/const PAGES = \["\/", "\/about", "\/status", "\/privacy"\]/);
+    expect(sw).toMatch(/const PAGES = \["\/", "\/about", "\/status", "\/privacy", "\/updates"\]/);
     expect(sw).toContain('const OFFLINE_PAGE = "/offline"');
     for (const f of shell) expect(existsSync(pub(f.slice(1))), f).toBe(true);
-    expect(shell).toEqual(expect.arrayContaining(["/app.js", "/net.js", "/styles.css", "/page.css", "/prefs.js", "/status.js", "/credits.js"]));
+    expect(shell).toEqual(expect.arrayContaining(["/app.js", "/net.js", "/styles.css", "/page.css", "/prefs.js", "/status.js", "/credits.js", "/updates.js"]));
   });
   it("never serves saved data silently: saved copies carry x-pw-saved-at", () => {
     expect(sw).toMatch(/headers\.set\("x-pw-saved-at"/);

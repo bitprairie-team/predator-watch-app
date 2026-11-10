@@ -53,6 +53,10 @@ describe("traffic spike safety", () => {
       expect((await get(env, p)).headers.get("cache-control"), p).toMatch(/public, max-age=\d+, s-maxage=\d+/);
     }
     expect((await get(env, "/api/health")).headers.get("cache-control")).toBe("no-store");
+    for (const p of ["/api/status", "/api/updates"]) {
+      expect((await get(env, p)).headers.get("cache-control"), p).toMatch(/max-age=30/);
+      expect((await get(env, p)).headers.get("cache-control"), p).toMatch(/must-revalidate/);
+    }
   });
 
   it("serves repeat requests from the edge cache and answers If-None-Match there", async () => {
