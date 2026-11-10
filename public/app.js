@@ -1103,6 +1103,9 @@ function visibleLayers() {
     .sort((a, b) => CATEGORY_ORDER.indexOf(a.category) - CATEGORY_ORDER.indexOf(b.category) || (b.style?.order ?? 0) - (a.style?.order ?? 0));
 }
 
+function tidyTitle(s) {
+  return String(s).replace(/([A-Za-z])-\s+([A-Za-z])/g, "$1 - $2");
+}
 function fmtUpdateDate(iso) {
   const m = String(iso || "").match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (!m) return "";
@@ -1131,7 +1134,7 @@ async function renderUpdates() {
     }
     const items = (data.items || []).slice(0, 8);
     listEl.innerHTML = items.length
-      ? items.map((i) => `<li><time datetime="${esc(i.date)}">${esc(fmtUpdateDate(i.date))}</time><span class="updates-detail"><a href="${esc(i.url)}">${esc(i.title)}</a> <span class="muted">${esc(i.credit_short || i.agency)}</span></span></li>`).join("")
+      ? items.map((i) => `<li><time datetime="${esc(i.date)}">${esc(fmtUpdateDate(i.date))}</time><span class="updates-detail"><a href="${esc(i.url)}">${esc(tidyTitle(i.title))}</a> <span class="muted">${esc(i.credit_short || i.agency)}</span></span></li>`).join("")
       : `<li class="hint">No official updates are listed yet.</li>`;
   } catch (e) {
     listEl.innerHTML = `<li class="hint">Official updates could not load right now.</li>`;

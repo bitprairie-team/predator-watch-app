@@ -72,3 +72,15 @@ describe("stage 10: quiet text pages", () => {
     expect(statusJs).toMatch(/src-cadence/);
   });
 });
+
+describe("stage 10: display-only title spacing", () => {
+  it("inserts a space in titles like \"report- October\" and leaves already-spaced titles alone", () => {
+    const tidy = (s: string) => s.replace(/([A-Za-z])-\s+([A-Za-z])/g, "$1 - $2");
+    expect(tidy("Monthly wolf report- October 2026")).toBe("Monthly wolf report - October 2026");
+    expect(tidy("Monthly wolf report - September 2026")).toBe("Monthly wolf report - September 2026");
+    const updatesJs = read("public/updates.js");
+    const app = read("public/app.js");
+    expect(updatesJs).toMatch(/tidyTitle\(i\.title\)/);
+    expect(app).toMatch(/tidyTitle\(i\.title\)/);
+  });
+});
