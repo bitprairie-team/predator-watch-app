@@ -20,7 +20,7 @@ export const SIMPLE_GROUPS: { id: string; name: string; layers: LayerColorId[] }
   {
     id: "wolves",
     name: "Wolves",
-    layers: ["cdfw-collared-wolf-cells", "wdfw-wolf-packs-current", "mtfwp-wolf-distribution", "usfws-mexican-wolf-occupied-range-2020"],
+    layers: ["cdfw-collared-wolf-cells", "wdfw-wolf-packs-current", "mtfwp-wolf-distribution", "usfws-mexican-wolf-occupied-range-2020", "usfws-mexican-wolf-occupied-range-2023", "usfws-mexican-wolf-recent-hexagons"],
   },
   {
     id: "bears",
@@ -54,6 +54,16 @@ export const SIMPLE_LAYERS: Partial<Record<LayerColorId, SimpleLayer>> = {
     name: "Mexican wolf range",
     summary: "Where Mexican wolves were known to live in 2020.",
     popup: "Mexican wolves were known to live in this area in 2020.",
+  },
+  "usfws-mexican-wolf-occupied-range-2023": {
+    name: "Mexican wolf range (2023)",
+    summary: "Where Mexican wolves were known to live in 2023, from the annual report.",
+    popup: "Mexican wolves were known to live in this area in 2023.",
+  },
+  "usfws-mexican-wolf-recent-hexagons": {
+    name: "Where Mexican wolves have been recently",
+    summary: "Recent generalized cells from the recovery program. Not exact spots.",
+    popup: "A Mexican wolf was reported in this area recently.",
   },
   "mtfwp-grizzly-occupied-range-2024": {
     name: "Where grizzly bears live",
@@ -105,6 +115,8 @@ export const LAYER_MARKS: Record<LayerColorId, { fill: FillMark; line: LineMark 
   "wdfw-wolf-packs-current": { fill: "hatch", line: "dash" },
   "mtfwp-wolf-distribution": { fill: "dots", line: "dot" },
   "usfws-mexican-wolf-occupied-range-2020": { fill: "cross", line: "dashdot" },
+  "usfws-mexican-wolf-occupied-range-2023": { fill: "dots", line: "long" },
+  "usfws-mexican-wolf-recent-hexagons": { fill: "hatch", line: "solid" },
   "usfws-mwepa": { fill: "none", line: "long" },
   "idfg-wolf-management-zones": { fill: "none", line: "dot" },
   "mtfwp-wolf-management-units": { fill: "none", line: "dashdot" },

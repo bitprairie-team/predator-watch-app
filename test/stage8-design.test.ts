@@ -20,7 +20,7 @@ describe("stage 8: panel is a control, not a document", () => {
     expect(html.match(/class="legend"/g) ?? []).toHaveLength(1);
   });
   it("folds everything below the layer list into closed rows", () => {
-    for (const id of ["sec-list", "sec-items", "sec-changes", "sec-sources", "sec-share", "sec-planned", "panel-prefs"]) {
+    for (const id of ["sec-list", "sec-items", "sec-changes", "sec-updates", "sec-sources", "sec-share", "sec-planned", "panel-prefs"]) {
       const m = html.match(new RegExp(`<details class="([^"]*)" id="${id}">`));
       expect(m, id).not.toBeNull();
       expect(m![1]).toMatch(/\bfold\b/);

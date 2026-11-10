@@ -55,6 +55,14 @@
       </table>
     </div>
     <p class="muted">When a source fails, times out or returns an empty or invalid answer, the last good copy keeps showing on the map and the error is listed here.</p>
+    <h2 id="updates-title">Official updates feed</h2>
+    <p class="muted">Agency reports, counts and status notices, checked once a day or once a week. Listed on <a href="/updates">Official updates</a>.</p>
+    <div class="table-wrap" tabindex="0" role="region" aria-label="Official updates feed table">
+      <table class="stack-table" role="table" aria-labelledby="updates-title">
+        <thead><tr><th scope="col">Update source</th><th scope="col">State</th><th scope="col">Last success</th><th scope="col">Items</th><th scope="col">Last error</th></tr></thead>
+        <tbody id="update-rows"><tr><td colspan="5" class="muted">Loading…</td></tr></tbody>
+      </table>
+    </div>
     <h2 id="runs-title">Recent scheduled runs</h2>
     <p class="muted">The last 20 runs. Sources not yet due are skipped; sources left for the next run (to stay within request limits) are marked deferred.</p>
     <div class="table-wrap" tabindex="0" role="region" aria-label="Recent scheduled runs table">
