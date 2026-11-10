@@ -37,9 +37,63 @@ export function emptyUpdates(): UpdatesFeed {
   };
 }
 
+export function staticCountResults(): { facts: OfficialFact[]; items: UpdateItem[]; sources: UpdateSourceStatus[] } {
+  const facts: OfficialFact[] = [];
+  const items: UpdateItem[] = [];
+  const sources: UpdateSourceStatus[] = [];
+  for (const src of UPDATE_SOURCES) {
+    if (src.type !== "static-count") continue;
+    const parsed = parseUpdateSource(src, "");
+    if (!parsed.facts.length) continue;
+    facts.push(...parsed.facts);
+    items.push(...parsed.items);
+    sources.push({ id: src.id, agency: src.agency, state: "ok", checked_at: null, item_count: parsed.items.length });
+  }
+  return { facts, items, sources };
+}
+
+function sortItems(items: UpdateItem[]): UpdateItem[] {
+  const sorted = [...items].sort((a, b) => b.date.localeCompare(a.date) || a.title.localeCompare(b.title));
+  const seen = new Set<string>();
+  return sorted.filter((i) => (seen.has(i.id) ? false : (seen.add(i.id), true)));
+}
+
+/** Always attach recorded official counts, even when KV is empty or stale. */
+export function withStaticCounts(feed: UpdatesFeed): UpdatesFeed {
+  const recorded = staticCountResults();
+  const ids = new Set(recorded.facts.map((f) => f.source_id));
+  const facts = [...recorded.facts, ...feed.facts.filter((f) => !ids.has(f.source_id))];
+  const items = sortItems([...feed.items.filter((i) => !ids.has(i.source_id)), ...recorded.items]);
+  const sources = feed.sources.map((s) => {
+    const rec = recorded.sources.find((x) => x.id === s.id);
+    if (!rec) return s;
+    return {
+      ...s,
+      state: s.state === "error" ? ("error" as const) : ("ok" as const),
+      item_count: Math.max(s.item_count, rec.item_count),
+    };
+  });
+  for (const rec of recorded.sources) {
+    if (!sources.some((s) => s.id === rec.id)) sources.push({ ...rec, state: "ok" });
+  }
+  const order = new Map(UPDATE_SOURCES.map((s, i) => [s.id, i]));
+  sources.sort((a, b) => (order.get(a.id) ?? 999) - (order.get(b.id) ?? 999));
+  const ok = sources.some((s) => s.state === "ok" || (s.state === "error" && s.item_count > 0)) || facts.length > 0;
+  return { ...feed, facts, items, sources, state: ok ? (feed.state === "never" || feed.state === "ok" ? "ok" : feed.state) : feed.state };
+}
+
+/** True when live (fetched) sources have never been written to KV. */
+export function updatesNeedRefresh(feed: { sources: UpdateSourceStatus[] }): boolean {
+  return UPDATE_SOURCES.some((src) => {
+    if (src.type === "static-count") return false;
+    const s = feed.sources.find((x) => x.id === src.id);
+    return !s || s.state === "never";
+  });
+}
+
 export async function readUpdates(kv: KVNamespace, cacheTtl?: number): Promise<UpdatesFeed> {
   const stored = await kv.get<UpdatesFeed>(UPDATES_KEY, { type: "json", cacheTtl });
-  return stored ?? emptyUpdates();
+  return withStaticCounts(stored ?? emptyUpdates());
 }
 
 function previousFor(feed: UpdatesFeed, id: string): { items: UpdateItem[]; facts: OfficialFact[] } {
@@ -123,12 +177,10 @@ export async function refreshUpdates(
     }
   }
 
-  items.sort((a, b) => b.date.localeCompare(a.date) || a.title.localeCompare(b.title));
-  const seen = new Set<string>();
-  const unique = items.filter((i) => (seen.has(i.id) ? false : (seen.add(i.id), true)));
+  const unique = sortItems(items);
   const ok = sources.some((s) => s.state === "ok" || (s.state === "error" && s.item_count > 0));
   const received_at = unique.length !== previous.items.length || JSON.stringify(unique) !== JSON.stringify(previous.items) ? atIso : previous.received_at;
-  const feed: UpdatesFeed = {
+  const feed = withStaticCounts({
     generated_at: atIso,
     checked_at: atIso,
     received_at,
@@ -136,7 +188,7 @@ export async function refreshUpdates(
     sources,
     items: unique,
     facts,
-  };
+  });
   await env.LAYER_CACHE.put(UPDATES_KEY, JSON.stringify(feed));
   return feed;
 }
