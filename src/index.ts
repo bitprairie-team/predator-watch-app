@@ -7,6 +7,7 @@ import { GEOCODER_ATTRIBUTION, geocode, looksLikeAddress, normalizeQuery } from 
 import { BadRequest, collectionInfo, CONFORMANCE, items, landing } from "./api/ogc";
 import { json, problem, respond } from "./api/respond";
 import { collection, PUBLIC_KV_TTL, publicStatus, readRunLog, readStatus, refreshDue, type Env } from "./cache";
+import { readUpdates, refreshUpdates } from "./updates/refresh";
 import { cached } from "./lib/edge";
 import { assetLinks } from "./config/app";
 import { allow, clientKey, type LimitClass } from "./lib/ratelimit";
@@ -81,6 +82,7 @@ export async function statusReport(env: Env) {
     readRunLog(env.LAYER_CACHE, PUBLIC_KV_TTL),
   ]);
   const healthy = sources.filter((s) => (s.state === "ok" || s.state === "unchanged") && !s.overdue).length;
+  const updates = await readUpdates(env.LAYER_CACHE, PUBLIC_KV_TTL);
   return {
     generated_at: new Date(now).toISOString(),
     last_cron_run: runs[0]?.finished_at ?? cron?.at ?? null,
@@ -88,6 +90,13 @@ export async function statusReport(env: Env) {
     total: sources.length,
     sources,
     runs,
+    updates: {
+      state: updates.state,
+      checked_at: updates.checked_at,
+      item_count: updates.items.length,
+      fact_count: updates.facts.length,
+      sources: updates.sources,
+    },
   };
 }
 
@@ -106,7 +115,7 @@ function limitClass(path: string, url: URL): LimitClass {
 
 /** Normalized edge cache key: path plus sorted query, never client headers. */
 /** Bump when response shapes change, so the edge cache cannot serve old ones. */
-const CACHE_VERSION = "3";
+const CACHE_VERSION = "4";
 
 function cacheKey(url: URL, path: string): string {
   const params = [...url.searchParams.entries()].sort(([a], [b]) => a.localeCompare(b));
@@ -120,6 +129,7 @@ async function route(request: Request, env: Env, ctx: ExecutionContext, url: URL
   const base = url.origin;
   if (path === "/api/layers") return json(request, await layersIndex(env), { maxAge: 30, sMaxAge: 60 });
   if (path === "/api/status") return json(request, await statusReport(env), { maxAge: 30, sMaxAge: 30 });
+  if (path === "/api/updates") return json(request, await readUpdates(env.LAYER_CACHE, PUBLIC_KV_TTL), { maxAge: 30, sMaxAge: 60 });
   if (path === "/api/changes") {
     const all = await Promise.all(registry.ids().map((id) => changesFor(env, id)));
     return json(request, { sources: all }, { maxAge: 60, sMaxAge: 120 });
@@ -258,8 +268,15 @@ export default {
   async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext) {
     ctx.waitUntil(
       refreshDue(registry, env).then(async (r) => {
-        console.log(JSON.stringify({ msg: "refresh complete", results: r }));
-        await env.LAYER_CACHE.put(CRON_KEY, JSON.stringify({ at: new Date().toISOString(), results: r }));
+        let updates: string = "skipped";
+        try {
+          const u = await refreshUpdates(env);
+          updates = `${u.state}:${u.items.length}`;
+        } catch (e) {
+          updates = e instanceof Error ? e.message : "error";
+        }
+        console.log(JSON.stringify({ msg: "refresh complete", results: r, updates }));
+        await env.LAYER_CACHE.put(CRON_KEY, JSON.stringify({ at: new Date().toISOString(), results: r, updates }));
       }),
     );
   },
