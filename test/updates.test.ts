@@ -68,6 +68,24 @@ describe("official parsers (fixtures from agency pages, 2026-11-09)", () => {
     expect(items.some((i) => i.date.startsWith("2025"))).toBe(true);
   });
 
+  it("records the official CDFW year-end minimum from the 2025 annual report and does not invent a later figure", () => {
+    const { facts, items } = parseUpdateSource(src("cdfw-minimum-count"), "");
+    expect(facts).toHaveLength(1);
+    expect(facts[0]?.year).toBe(2025);
+    expect(facts[0]?.value).toBe("at least 55 wolves");
+    expect(facts[0]?.label).toBe("Year-end minimum count");
+    expect(facts[0]?.date).toBe("December 31, 2025");
+    expect(facts[0]?.attribution).toBe(
+      "as reported by California Department of Fish and Wildlife, December 31, 2025",
+    );
+    expect(facts[0]?.url).toBe("https://nrm.dfg.ca.gov/FileHandler.ashx?DocumentID=245250");
+    expect(items[0]?.kind).toBe("count");
+    expect(items[0]?.date).toBe("2025-12-31");
+    // A static official figure is rejected if the recorded count is not a real published number.
+    const bad = { ...src("cdfw-minimum-count"), type: "static-count" as const, count: 0 };
+    expect(parseUpdateSource(bad, "").facts).toEqual([]);
+  });
+
   it("copies the official ODFW minimum count and does not invent a number", () => {
     const { facts, items } = parseUpdateSource(src("odfw-minimum-count"), fx("odfw-population.html"));
     expect(facts).toHaveLength(1);
@@ -117,7 +135,10 @@ describe("refresh keeps the last good copy", () => {
     const first = await refreshUpdates(env, { fetch: fetchImpl, now: () => new Date("2026-11-09T20:00:00Z") });
     expect(first.state).toBe("ok");
     expect(first.items.length).toBeGreaterThan(10);
-    expect(first.facts.length).toBeGreaterThanOrEqual(3);
+    expect(first.facts.length).toBeGreaterThanOrEqual(4);
+    const cdfw = first.facts.find((f) => f.id === "cdfw-minimum-count");
+    expect(cdfw?.value).toBe("at least 55 wolves");
+    expect(first.sources.some((s) => s.id === "cdfw-minimum-count" && s.state === "ok")).toBe(true);
     const count = first.items.length;
     ok = false;
     const second = await refreshUpdates(env, { fetch: fetchImpl, now: () => new Date("2026-11-10T20:00:00Z") });
