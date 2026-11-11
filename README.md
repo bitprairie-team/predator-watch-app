@@ -210,7 +210,7 @@ Layer colors come from the same palette, with a light and a dark value for each 
 keep at least 3:1 contrast against the basemap (checked in `test/brand.test.ts`).
 The BitPrairie symbol and wordmark are BitPrairie marks; the Apache-2.0 license covers the code, not the marks.
 
-Colours (hex):
+Colors (hex):
 
 | Name | Hex | Role |
 | --- | --- | --- |
@@ -227,7 +227,7 @@ Logo files:
 - `assets/logo-512.png`
 - `assets/social-preview-1280x640.png`
 
-Use the files as drawn. Do not recolour, outline, or add a drop shadow. Keep clear space around the mark, about one quarter of the mark height. Use the light files on light grounds and the dark files on dark grounds.
+Use the files as drawn. Do not recolor, outline, or add a drop shadow. Keep clear space around the mark, about one quarter of the mark height. Use the light files on light grounds and the dark files on dark grounds.
 
 On contested topics, present data only and take no side.
 
