@@ -78,3 +78,13 @@ curl -s http://127.0.0.1:8787/api/sources/agency-wolf-layer | jq '.metadata, .fe
 
 Then add a row to [data-sources.md](data-sources.md) with the URL, owner,
 cadence, terms and status.
+
+## A table with no geometry
+
+Some agencies publish a count by hunting district as a table (`type: "Table"`,
+no polygons) and publish the district boundaries as a different layer. That
+is not a config-only ArcGIS source. Add an `arcgis-join` entry instead: the
+table supplies the values, the polygon layer supplies the outline, and only
+table rows are drawn. Every table row must match exactly one polygon; if it
+does not, the refresh keeps the last good copy. See
+`mtfwp-wolf-harvest-by-district` in `src/config/sources.ts`.

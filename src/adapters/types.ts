@@ -52,6 +52,18 @@ export type AdapterResult =
     }
   | { changed: false; sourceUpdatedMs: number | null; validator: string | null };
 
+/**
+ * The agency answered, but the answer must not replace stored data and is
+ * not worth a retry (for example a join that cannot match every row).
+ */
+export class UnusableSourceError extends Error {
+  readonly retryable = false;
+  constructor(message: string) {
+    super(message);
+    this.name = "UnusableSourceError";
+  }
+}
+
 /** A pluggable source adapter. One instance per configured source. */
 export interface SourceAdapter {
   readonly config: BaseSourceConfig;

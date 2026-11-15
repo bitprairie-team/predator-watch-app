@@ -3,7 +3,7 @@ import {
   appendRunLog, KeepLastGood, readData, readRunLog, readStatus, refreshDue, refreshSource,
   RUN_LOG_SIZE, validateResult, withTimeout, type Env, type RunLogEntry,
 } from "../src/cache";
-import type { AdapterResult, SourceAdapter } from "../src/adapters/types";
+import { UnusableSourceError, type AdapterResult, type SourceAdapter } from "../src/adapters/types";
 import { statusReport } from "../src/index";
 import { HttpError } from "../src/lib/http";
 import { Registry } from "../src/registry";
@@ -115,6 +115,15 @@ describe("timeouts and retries", () => {
     const bad = scripted([new HttpError("HTTP 400 from x", 400), ok(1)]);
     await refreshSource(bad.adapter, e, fast);
     expect(bad.calls()).toBe(1);
+  });
+
+  it("does not retry an unusable join", async () => {
+    const e = env();
+    const bad = scripted([new UnusableSourceError("No hunting-district polygon for district 100"), ok(1)]);
+    const s = await refreshSource(bad.adapter, e, fast);
+    expect(bad.calls()).toBe(1);
+    expect(s.state).toBe("error");
+    expect(s.error).toMatch(/district 100/);
   });
 
   it("does not retry when the request budget is low", async () => {
