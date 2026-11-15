@@ -71,6 +71,7 @@ Live means the map reads it today. Full details, endpoints and terms:
 | Mexican Wolf Experimental Population Area | U.S. Fish and Wildlife Service | ArcGIS | Weekly | Live |
 | Wolf management zones | Idaho Department of Fish and Game | ArcGIS | Weekly | Live |
 | Wolf regions and management units | Montana Fish, Wildlife & Parks | ArcGIS | Weekly | Live |
+| Wolf harvest by deer and elk hunting district | Montana Fish, Wildlife & Parks | ArcGIS | Daily | Live |
 | Wolf hunt areas | Wyoming Game and Fish Department | ArcGIS | Weekly | Live |
 | Wolf management zones | Wisconsin Department of Natural Resources | ArcGIS | Weekly | Live |
 | Wildfire perimeters (current) | National Interagency Fire Center | ArcGIS | 15 min | Live |
@@ -102,7 +103,8 @@ flowchart LR
 
 - `src/adapters/`: a generic ArcGIS REST adapter (pagination, `outSR=4326`,
   change detection through `editingInfo.lastEditDate`, timeouts, retries,
-  per-host spacing) and a GeoJSON adapter (ETag / Last-Modified).
+  per-host spacing), a join adapter for an agency table that has no geometry,
+  and a GeoJSON adapter (ETag / Last-Modified).
 - `src/config/sources.ts`: every source, validated by `src/registry.ts`.
 - `src/cache.ts`: refreshes due sources one at a time within the request
   budget, with a per-source time limit and one retry with backoff. It keeps

@@ -4,11 +4,12 @@
 // public, live, and reusable; list everything else as Planned in
 // docs/data-sources.md.
 import type { ArcGisSourceConfig } from "../adapters/arcgis";
+import type { ArcGisJoinSourceConfig } from "../adapters/arcgis-join";
 import type { GeoJsonSourceConfig } from "../adapters/geojson";
 import type { LayerStyle } from "../schema";
 import { LAND_MANAGER_COLORS, esriRgba, layerColor } from "./palette";
 
-export type SourceConfig = ArcGisSourceConfig | GeoJsonSourceConfig;
+export type SourceConfig = ArcGisSourceConfig | ArcGisJoinSourceConfig | GeoJsonSourceConfig;
 
 const item = (id: string) => `https://www.arcgis.com/home/item.html?id=${id}`;
 
@@ -210,6 +211,51 @@ export const SOURCES: SourceConfig[] = [
     },
     maxAllowableOffset: 0.002,
     style: { color: layerColor("mtfwp-wolf-management-units"), fillOpacity: 0, dashed: true, order: 4 },
+  },
+  {
+    // The harvest service is a table. Counts are drawn on the current deer,
+    // elk and mountain lion hunting districts, one polygon per table row.
+    type: "arcgis-join",
+    id: "mtfwp-wolf-harvest-by-district",
+    name: "Wolf harvest by deer and elk hunting district",
+    category: "wolf-management",
+    species: "Gray wolf",
+    agency: "Montana Fish, Wildlife & Parks",
+    tableUrl:
+      "https://services3.arcgis.com/Cdxz8r11hT0MGzg1/arcgis/rest/services/Montana_Wolf_Harvest_Summary_by_Deer_Elk_Hunting_District/FeatureServer/0",
+    geometryUrl: "https://fwp-gis.mt.gov/arcgis/rest/services/admbnd/huntingDistricts/MapServer/11",
+    join: {
+      tableKey: "Deer___Elk_Hunting_District",
+      geometryKey: "DISTRICT",
+      tableFields: ["Wolf_Harvest"],
+      boundaryFields: ["REG", "REGYEAR", "AREA_AC", "OBJECTID", "MAPLINK"],
+      countField: "Wolf_Harvest",
+      maxCount: 5000,
+    },
+    infoUrl: item("9faa58f7a01348569729057503f0239b"),
+    license:
+      'Public FWP data provided "as is" without warranty (see item terms). Counts are mandatory harvest reports and can change as records are updated. Not all records are verified. Credit Montana Fish, Wildlife & Parks.',
+    creditShort: "Montana FWP",
+    attribution: "Montana Fish, Wildlife & Parks (FWP)",
+    cadence: "About once a day, from the prior day's mandatory harvest reports. District boundaries change with regulations.",
+    refreshMinutes: 24 * 60,
+    precision: "management-unit",
+    notes:
+      "The number is how many wolves Montana FWP reports were harvested in that deer and elk hunting district during the current season. It is not a count of wolves living there and not the location of an animal. Districts with no row in the harvest table are not drawn. Outlines are the current deer, elk and mountain lion hunting districts.",
+    fields: {
+      idField: "DISTRICT",
+      label: "Hunting district {DISTRICT}",
+      observedAt: { fromLayer: true },
+      details: {
+        "Wolf harvest": "Wolf_Harvest",
+        Region: "REG",
+        "Regulations year": "REGYEAR",
+        "District map": "MAPLINK",
+      },
+    },
+    maxAllowableOffset: 0.002,
+    geometryPrecision: 5,
+    style: { color: layerColor("mtfwp-wolf-harvest-by-district"), fillOpacity: 0.18, dashed: true, order: 8, defaultVisible: false },
   },
   {
     type: "arcgis",
