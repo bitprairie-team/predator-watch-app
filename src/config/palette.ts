@@ -21,6 +21,7 @@ export const LAYER_COLORS = {
   "usfws-mwepa": "#b1750e", // ochre
   "idfg-wolf-management-zones": "#6a7687", // slate
   "mtfwp-wolf-management-units": "#a8518b", // plum
+  "mtfwp-wolf-harvest-by-district": "#a06a7c", // dusty rose
   "wgfd-wolf-hunt-areas": "#768627", // olive
   "widnr-wolf-management-zones": "#3e8990", // lake teal
   // bears

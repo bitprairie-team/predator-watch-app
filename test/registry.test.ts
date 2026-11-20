@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { validateArcGisConfig } from "../src/adapters/arcgis";
+import { validateArcGisJoinConfig } from "../src/adapters/arcgis-join";
 import { RASTER_LAYERS, SOURCES } from "../src/config/sources";
 import { publicInfo, Registry } from "../src/registry";
 
@@ -22,6 +23,7 @@ describe("source registry", () => {
       expect(s.agency, s.id).toBeTruthy();
       expect(s.infoUrl, s.id).toMatch(/^https:\/\//);
       if (s.type === "arcgis") expect(validateArcGisConfig(s)).toEqual([]);
+      if (s.type === "arcgis-join") expect(validateArcGisJoinConfig(s)).toEqual([]);
     }
     for (const r of RASTER_LAYERS) {
       expect(r.tiles[0]).toMatch(/^https:\/\//);

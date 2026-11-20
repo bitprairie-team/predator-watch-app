@@ -1,6 +1,7 @@
 // Source registry: turns config entries into adapter instances and exposes the
 // public, display-safe description of each source.
 import { ArcGisAdapter } from "./adapters/arcgis";
+import { ArcGisJoinAdapter } from "./adapters/arcgis-join";
 import { GeoJsonAdapter } from "./adapters/geojson";
 import type { SourceAdapter } from "./adapters/types";
 import { SOURCES, type SourceConfig } from "./config/sources";
@@ -10,6 +11,7 @@ export type AdapterFactory = (config: SourceConfig) => SourceAdapter;
 
 const FACTORIES: Record<SourceConfig["type"], AdapterFactory> = {
   arcgis: (c) => new ArcGisAdapter(c as Extract<SourceConfig, { type: "arcgis" }>),
+  "arcgis-join": (c) => new ArcGisJoinAdapter(c as Extract<SourceConfig, { type: "arcgis-join" }>),
   geojson: (c) => new GeoJsonAdapter(c as Extract<SourceConfig, { type: "geojson" }>),
 };
 

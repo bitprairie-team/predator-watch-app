@@ -1,7 +1,7 @@
 // KV-backed cache of normalized GeoJSON plus per-source status, and the
 // refresh logic. Only the Cron Trigger calls agency servers; public requests
 // read KV (see collection()) and never fan out to an agency.
-import type { FetchContext, SourceAdapter } from "./adapters/types";
+import { UnusableSourceError, type FetchContext, type SourceAdapter } from "./adapters/types";
 import { sanitizePublicFeature } from "./lib/normalize";
 import { publicInfo, type Registry } from "./registry";
 import type { NormalizedCollection, NormalizedFeature, SourceStatus } from "./schema";
@@ -89,7 +89,7 @@ export function validateResult(features: unknown, previousCount: number, allowEm
 
 /** Network trouble or a server error is worth one more try; bad data is not. */
 function retryable(e: unknown): boolean {
-  if (e instanceof KeepLastGood) return false;
+  if (e instanceof KeepLastGood || e instanceof UnusableSourceError) return false;
   const status = (e as { status?: unknown } | null)?.status;
   if (status === null || status === undefined) return true;
   return typeof status === "number" && (status === 429 || status >= 500);
