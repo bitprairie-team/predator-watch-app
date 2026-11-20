@@ -12,7 +12,16 @@ import { FALLBACK_ANSWER, isIdk, type Citation } from "../agents/citations";
 import { normalize } from "./classifier";
 import { GENERAL_LABEL, PROMPT_CANARY, refusalText, type GuardCategory } from "./policy";
 
-export type OutputIssue = "legal_determination" | "dosage" | "lethal_instructions" | "prompt_leak" | "coordinates" | "ungrounded" | "opinion";
+export type OutputIssue =
+  | "legal_determination"
+  | "dosage"
+  | "lethal_instructions"
+  | "prompt_leak"
+  | "coordinates"
+  | "ungrounded"
+  | "opinion"
+  | "invented_number"
+  | "link";
 
 export interface OutputCheckInput {
   text: string;
@@ -23,6 +32,12 @@ export interface OutputCheckInput {
   grounding?: boolean;
   /** Redact coordinates not in allowedCoords. Default true. */
   redactCoords?: boolean;
+  /**
+   * Numbers the answer may state as data: every number in this turn's tool
+   * data and arguments, list lengths, and numbers in the question. When set,
+   * a data claim with any other number is dropped as invented.
+   */
+  knownNumbers?: number[];
 }
 
 export interface CheckedOutput {
@@ -114,6 +129,39 @@ function nearAllowed(v: number, allowed: number[]): boolean {
   return allowed.some((a) => Math.abs(a - v) < 0.00051);
 }
 
+/** The policy category an answer would be blocked for, if any. Used to vet earlier turns sent by the client. */
+export function blockedCategory(text: string): GuardCategory | null {
+  const lower = normalize(text);
+  return BLOCKERS.find((b) => b.patterns.some((p) => p.test(lower)))?.category ?? null;
+}
+
+/** Every number found in a value: numeric fields, numbers inside strings, and array lengths. */
+export function numbersIn(value: unknown, out: number[] = []): number[] {
+  if (typeof value === "number" && Number.isFinite(value)) out.push(value);
+  else if (typeof value === "string") for (const m of value.matchAll(/\d+(?:\.\d+)?/g)) out.push(Number(m[0]));
+  else if (Array.isArray(value)) {
+    out.push(value.length);
+    value.forEach((v) => numbersIn(v, out));
+  } else if (value && typeof value === "object") Object.values(value).forEach((v) => numbersIn(v, out));
+  return out;
+}
+
+/** Numbers stated in a sentence, ignoring dates (checked as claims) and citation markers. */
+function statedNumbers(s: string): number[] {
+  return [...s.replace(MARKER, "").replace(/\b\d{4}-\d{2}-\d{2}(t[\d:.]+z?)?\b/gi, "").replace(/\b\d{3}-\d{4}\b/g, "").matchAll(/(?<![\w.])\d+(?:\.\d+)?(?![\w])/g)].map((m) => Number(m[0]));
+}
+
+function numberKnown(n: number, known: number[]): boolean {
+  // Allow rounding to a whole number or one decimal, and small words-as-numbers like "1 report".
+  return known.some((raw) => {
+    const k = Math.abs(raw);
+    return k === n || Math.round(k) === n || Math.round(k * 10) / 10 === n || Math.abs(k - n) < 1e-9;
+  });
+}
+
+/** Links in an answer must point at a source returned this turn. */
+const LINK = /!\[[^\]]*\]\([^)]*\)|\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)|https?:\/\/[^\s)\]]+/g;
+
 export function checkOutput(o: OutputCheckInput): CheckedOutput {
   const issues: OutputIssue[] = [];
   const byCite = new Map(o.catalog.map((c) => [c.cite, c]));
@@ -137,6 +185,21 @@ export function checkOutput(o: OutputCheckInput): CheckedOutput {
       return { text: refusalText(b.category), citations: [], replaced: true, blocked: b.category, issues: [b.issue], general: false };
     }
   }
+
+  // 2b. Links and images that don't point at a returned source are removed.
+  // Images never render (they can leak data through the URL).
+  const sourceUrls = o.catalog.map((c) => c.url).filter((u): u is string => !!u);
+  const urlOk = (u: string) => sourceUrls.some((s) => u === s || u.startsWith(s.replace(/[#?].*$/, "")));
+  text = text.replace(LINK, (m, label?: string, url?: string) => {
+    if (m.startsWith("![")) {
+      if (!issues.includes("link")) issues.push("link");
+      return "";
+    }
+    const u = url ?? m;
+    if (urlOk(u)) return m;
+    if (!issues.includes("link")) issues.push("link");
+    return label ? label : "[link removed]";
+  });
 
   // 3. Coordinates not from the rancher's own records.
   const allowed = (o.allowedCoords ?? []).flat();
@@ -170,6 +233,12 @@ export function checkOutput(o: OutputCheckInput): CheckedOutput {
       const claim = !CONDITIONAL.test(n) && !leadIn && DATA_CLAIM.some((p) => p.test(n));
       if (claim && cites.length === 0 && !/\bi don['’]t know\b/i.test(s)) {
         if (!issues.includes("ungrounded")) issues.push("ungrounded");
+        dropped++;
+        continue;
+      }
+      // A cited claim may only use numbers that are in the data it cites.
+      if (claim && o.knownNumbers && statedNumbers(s).some((n) => !numberKnown(n, o.knownNumbers!))) {
+        if (!issues.includes("invented_number")) issues.push("invented_number");
         dropped++;
         continue;
       }

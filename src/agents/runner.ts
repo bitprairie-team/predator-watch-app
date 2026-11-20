@@ -9,8 +9,8 @@ import type { ExecutorDeps, ToolRegistry } from "./registry";
 import type { FunctionToolSpec, InputItem, ModelProvider } from "./providers/types";
 import { AgentError, type AuthContext } from "./types";
 import { sha256Hex } from "./auth";
-import { checkOutput, type OutputIssue } from "../guardrails/output-check";
-import { DATA_NOTICE } from "../guardrails/sanitize";
+import { checkOutput, numbersIn, type OutputIssue } from "../guardrails/output-check";
+import { fenceId, fenceToolOutput } from "../guardrails/sanitize";
 import type { GuardCategory } from "../guardrails/policy";
 
 export type RunEvent =
@@ -87,9 +87,13 @@ export async function* runAgent<D>(o: RunOptions<D>): AsyncGenerator<RunEvent> {
   const safetyIdentifier = await sha256Hex(`${o.ctx.tenantId}:${o.ctx.userId}`);
   const deadline = Date.now() + limits.turnTimeoutMs;
   let toolCalls = 0;
+  /** Fence id for this turn's tool output. Data can't guess it to fake a closing tag. */
+  const fence = fenceId();
+  /** Numbers the answer may state: from the question, tool arguments, and tool data. */
+  const knownNumbers: number[] = numbersIn(o.messages.filter((m) => m.role === "user").map((m) => m.content));
 
   const finish = (text: string, limit?: "tool_calls" | "rounds" | "timeout"): RunEvent => {
-    const c = checkOutput({ text, catalog, allowedCoords });
+    const c = checkOutput({ text, catalog, allowedCoords, knownNumbers });
     return { type: "answer", text: c.text, citations: c.citations, replaced: c.replaced, blocked: c.blocked, issues: c.issues, general: c.general, ...(limit ? { limit } : {}) };
   };
 
@@ -146,9 +150,9 @@ export async function* runAgent<D>(o: RunOptions<D>): AsyncGenerator<RunEvent> {
           return c;
         });
         coordsIn(r.data, allowedCoords);
+        numbersIn([args, r.data, r.unknown ?? "", r.planned ?? ""], knownNumbers);
         yield { type: "tool_result", name: call.name, sources: labelled, unknown: r.unknown, planned: r.planned };
         output = {
-          notice: DATA_NOTICE,
           data: r.data,
           unknown: r.unknown,
           planned: r.planned,
@@ -159,7 +163,10 @@ export async function* runAgent<D>(o: RunOptions<D>): AsyncGenerator<RunEvent> {
         yield { type: "tool_error", name: call.name, code: err.code, message: err.message };
         output = { error: err.code, message: err.message };
       }
-      input.push({ type: "function_call_output", call_id: call.call_id, output: JSON.stringify(output) });
+      // Data goes to the model inside a fence with this turn's id. Our own
+      // error messages are not data and are sent as plain JSON.
+      const isError = !!(output as { error?: string }).error;
+      input.push({ type: "function_call_output", call_id: call.call_id, output: isError ? JSON.stringify(output) : fenceToolOutput(output, fence) });
     }
   }
   yield finish(DONE_EARLY.rounds, "rounds");

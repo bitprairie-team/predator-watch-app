@@ -2,12 +2,13 @@
 // assistant. Each request builds a stateless server bound to the caller's
 // AuthContext, so every MCP tool call goes through the same scope check,
 // entitlement gate, rate limit, location tiers, and audit log.
+import { assistantKilled } from "../agents/killswitch";
 import { createMcpHandler } from "agents/mcp/server";
 import { McpServer, fromJsonSchema } from "@modelcontextprotocol/server";
 import type { RancherService } from "../rancher/service";
 import { AgentError, READ_SCOPES, type AuthContext, type Scope } from "../agents/types";
 import { MCP_INSTRUCTIONS } from "../rancher/prompt";
-import { DATA_NOTICE } from "../guardrails/sanitize";
+import { fenceToolOutput } from "../guardrails/sanitize";
 
 export const MCP_ROUTE = "/mcp";
 export const MCP_SERVER_INFO = { name: "predator-watch-rancher", version: "0.1.0" };
@@ -36,10 +37,8 @@ export function buildMcpServer(svc: RancherService, ctx: AuthContext): McpServer
           const result = await svc.registry.execute(tool.name, args ?? {}, ctx, svc.deps);
           return {
             // Same tiers, sanitizing, and policy check as the web assistant (all in registry.execute).
-            content: [
-              { type: "text" as const, text: JSON.stringify(result) },
-              { type: "text" as const, text: DATA_NOTICE },
-            ],
+            // The text the client's model reads is fenced like the web assistant's.
+            content: [{ type: "text" as const, text: fenceToolOutput(result) }],
             structuredContent: result as unknown as Record<string, unknown>,
           };
         } catch (e) {
@@ -54,6 +53,10 @@ export function buildMcpServer(svc: RancherService, ctx: AuthContext): McpServer
 
 /** Serve one MCP request for an already-authenticated caller. */
 export async function handleMcp(request: Request, svc: RancherService, ctx: AuthContext): Promise<Response> {
+  const killed = await assistantKilled(svc.store, svc.env, ctx.tenantId);
+  if (killed) {
+    return new Response(JSON.stringify({ error: "disabled", message: killed }), { status: 503, headers: { "content-type": "application/json" } });
+  }
   if (!(await svc.entitlements.has(ctx, "rancher_assistant"))) {
     return new Response(JSON.stringify({ error: "not_entitled", message: "MCP access needs the private rancher plan." }), {
       status: 402,

@@ -9,6 +9,8 @@ export interface AuditEntry {
   tenant_id: string;
   user_id: string;
   client: string;
+  /** Access key id (hash prefix) when the call used one. */
+  key_id?: string;
   tool: string;
   input: unknown;
   outcome: "ok" | "denied" | "not_entitled" | "rate_limited" | "invalid_input" | "error" | "refused" | "blocked" | "timeout";
