@@ -19,13 +19,13 @@ describe("public routes never expose the assistant", () => {
     const res = await handleRequest(new Request(`http://x${path}`), env as never, ctx);
     expect(await res.text()).not.toMatch(PRIVATE_WORDS);
   });
-  it.each(["/api/assistant/me", "/api/assistant/agents", "/api/assistant/outbox", "/mcp"])("%s is off (503) without the private store", async (path) => {
+  it.each(["/api/assistant/me", "/api/assistant/agents", "/api/assistant/outbox", "/api/ranch/me", "/api/ranch/settings", "/api/ranch/activity", "/mcp"])("%s is off (503) without the private store", async (path) => {
     const res = await handleRequest(new Request(`http://x${path}`, { method: path === "/mcp" ? "POST" : "GET" }), env as never, ctx);
     expect(res.status).toBe(503);
   });
   it("the public map script never calls the assistant", () => {
     const app = readFileSync(join(ROOT, "public/app.js"), "utf8");
-    expect(app).not.toMatch(/\/api\/assistant|\/mcp\b|rancher\.js|xai|grok/i);
+    expect(app).not.toMatch(/\/api\/assistant|\/api\/ranch|\/mcp\b|rancher\.js|ranch\.js|xai|grok/i);
   });
   it("public modules never import private code", () => {
     const publicRoots = ["src/cache.ts", "src/registry.ts", "src/schema.ts", ...["src/adapters", "src/lib", "src/config"].flatMap((d) => readdirSync(join(ROOT, d)).map((f) => `${d}/${f}`))];

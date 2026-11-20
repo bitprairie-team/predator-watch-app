@@ -13,13 +13,15 @@
 //   --label TEXT        a note for you, for example "laptop MCP client"
 //
 // Scopes default to rancher:read (all read-only tools). For the web app, add
-// agents:run (run or pause your background agents) and outbox:approve
-// (approve what an agent wants to send). Neither works over MCP. Add --local to the
+// settings:write (turn the assistant and each agent on or off, change
+// thresholds, dismiss or correct items), agents:run (run or pause your
+// background agents) and outbox:approve (approve what an agent wants to send).
+// None of these works over MCP. Add --local to the
 // printed command to write to the local dev KV instead of production.
 import { createHash, randomBytes } from "node:crypto";
 
 const TOOLS = ["recent_predator_activity", "allotment_wolf_activity", "fire_weather_alerts", "agency_contacts_and_reporting", "data_freshness", "nonlethal_deterrents", "weekly_summary", "my_audit_log"];
-const SCOPES = ["rancher:read", "activity:read", "alerts:read", "directory:read", "docs:read", "summary:read", "audit:read", "agents:run", "outbox:approve"];
+const SCOPES = ["rancher:read", "activity:read", "alerts:read", "directory:read", "docs:read", "summary:read", "audit:read", "agents:run", "outbox:approve", "settings:write"];
 
 const args = process.argv.slice(2);
 const opts = {};

@@ -236,6 +236,19 @@ stored whole. Ranchers can read their own entries with `my_audit_log`.
   after the professional to contact and any related data on file.
 - Declined answers are styled differently, and they are not added to the
   running chat history.
+- Off by default. The assistant and every agent stay off until the rancher
+  turns each one on in Ranch tools (`/ranch.html`). While off, the panel says
+  so and links there. Every job also works by hand there.
+- Each answer has a "What I did" section: the data read, rules applied, and
+  what was left out and why, with a link to the full record in the activity
+  log. Output-check issue codes are written as plain rules (for example "Held
+  back exact coordinates that were not from your own records."), from
+  `ISSUE_RULES` in `src/agents/activity.ts`.
+- Ranch tools follow the BitPrairie style: IBM Plex Sans 400, 500, and 600
+  (vendored in `public/fonts`, SIL OFL 1.1), paper, ink, and leather, light by
+  default, one main action per screen. `test/ranch-copy.test.ts` checks the
+  copy rules (no "AI", "rancher" not "producer", no em dashes, sentence case,
+  unbuilt features marked Planned).
 
 ## Red-team eval
 
@@ -298,6 +311,8 @@ npm run dev:mock    # wrangler dev with XAI_MOCK=1 and ASSISTANT_DEMO=1
 ```
 
 Open the map, click **Rancher**, and sign in with `pwk_demo_localdev_0000000000000000`.
+The demo account starts with everything off, like a real one. Open
+`/ranch.html`, sign in with the same key, and turn things on in Settings.
 
 - This opens a seeded in-memory demo account (`src/rancher/demo.ts`). It is
   not a credential.
