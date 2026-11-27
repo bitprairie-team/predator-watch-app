@@ -64,13 +64,6 @@ export const PLANNED_SOURCES = [
       "The service still requires a token (HTTP 499). The public USFWS MexicanWolf_RecentHexagons service is used instead.",
   },
   {
-    name: "Wolf harvest by deer and elk hunting district (current season)",
-    agency: "Montana Fish, Wildlife & Parks",
-    url: "https://services3.arcgis.com/Cdxz8r11hT0MGzg1/arcgis/rest/services/Montana_Wolf_Harvest_Summary_by_Deer_Elk_Hunting_District/FeatureServer/0",
-    reason:
-      "Public and updated (table last edited 2026-11-09) but still a table with no geometry. A join to hunting-district boundaries is needed before it can be drawn.",
-  },
-  {
     name: "Esri Living Atlas layers (counties, streams, land cover, hillshade)",
     agency: "Esri",
     url: "https://livingatlas.arcgis.com/",

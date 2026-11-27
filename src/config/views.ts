@@ -100,6 +100,13 @@ export const SIMPLE_LAYERS: Partial<Record<LayerColorId, SimpleLayer>> = {
     summary: "Current weather watches, warnings and advisories.",
     popup: "A weather watch, warning or advisory covers this area.",
   },
+  // Not in a Simple group. Used when someone turns the layer on, so the
+  // popup does not read as a place wolves live.
+  "mtfwp-wolf-harvest-by-district": {
+    name: "Wolf harvest by hunting district",
+    summary: "How many wolves the agency reports were harvested in each hunting district this season. Not how many live there.",
+    popup: "The agency reports a wolf harvest count for this hunting district. It is not a count of wolves living here.",
+  },
 };
 
 /**
@@ -120,6 +127,7 @@ export const LAYER_MARKS: Record<LayerColorId, { fill: FillMark; line: LineMark 
   "usfws-mwepa": { fill: "none", line: "long" },
   "idfg-wolf-management-zones": { fill: "none", line: "dot" },
   "mtfwp-wolf-management-units": { fill: "none", line: "dashdot" },
+  "mtfwp-wolf-harvest-by-district": { fill: "cross", line: "long" },
   "wgfd-wolf-hunt-areas": { fill: "none", line: "dash" },
   "widnr-wolf-management-zones": { fill: "none", line: "solid" },
   "mtfwp-grizzly-occupied-range-2024": { fill: "hatch", line: "long" },
